@@ -60,10 +60,10 @@ void uart_init(void) {
       (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE));
 }
 
-static uint32_t uart_base(hw_uart_t uart) {
+uint32_t uart_base(hw_uart_t uart) {
     switch (uart) {
         case HOST_UART:  return UART0_BASE;
-        //case BOARD_UART: return UART1_BASE;
+        case BOARD_UART: return UART1_BASE;
         default: return UART0_BASE;
     }
 }

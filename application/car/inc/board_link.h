@@ -17,7 +17,7 @@
 
 #include <stdint.h>
 
-#include "inc/hw_memmap.h"
+#include "uart.h"
 
 #define ACK_SUCCESS 1
 #define ACK_FAIL 0
@@ -26,7 +26,6 @@
 #define PAIR_MAGIC 0x55
 #define UNLOCK_MAGIC 0x56
 #define START_MAGIC 0x57
-#define BOARD_UART ((uint32_t)UART1_BASE)
 
 /**
  * @brief Structure for message between boards

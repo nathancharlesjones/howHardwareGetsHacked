@@ -16,22 +16,10 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "inc/hw_ints.h"
-#include "inc/hw_memmap.h"
-
-#include "driverlib/eeprom.h"
-#include "driverlib/gpio.h"
-#include "driverlib/interrupt.h"
-#include "driverlib/pin_map.h"
-#include "driverlib/sysctl.h"
-#include "driverlib/timer.h"
-
 #include "secrets.h"
-
 #include "board_link.h"
 #include "feature_list.h"
 #include "uart.h"
-
 #include "platform.h"
 
 /*** Structure definitions ***/
@@ -128,22 +116,16 @@ void startCar(void) {
   // Print out features for all active features
   for (int i = 0; i < feature_info->num_active; i++) {
     uint8_t eeprom_message[64];
+    char* featureNumToStr[] = { "\0", "feature1", "feature2", "feature3" };
 
-    uint32_t offset = feature_info->features[i] * FEATURE_SIZE;
-
-    if (offset > FEATURE_END) {
-        offset = FEATURE_END;
-    }
-
-    EEPROMRead((uint32_t *)eeprom_message, FEATURE_END - offset, FEATURE_SIZE);
+    uint8_t featureNum = feature_info->features[i];
+    readVar(eeprom_message, featureNumToStr[featureNum], FEATURE_SIZE);
 
     uart_write(HOST_UART, eeprom_message, FEATURE_SIZE);
   }
 
   // Change LED color: green
-  GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1, 0); // r
-  GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, 0); // b
-  GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_3, GPIO_PIN_3); // g
+  setLED(GREEN);
 }
 
 /**
