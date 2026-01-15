@@ -20,6 +20,12 @@
 #define FEATURE2_LOC (FEATURE_END - 2*FEATURE_SIZE)
 #define FEATURE3_LOC (FEATURE_END - 3*FEATURE_SIZE)
 
+#define FOB_STATE_PTR 0x3FC00
+#define FLASH_DATA_SIZE         \
+  (sizeof(FLASH_DATA) % 4 == 0) \
+      ? sizeof(FLASH_DATA)      \
+      : sizeof(FLASH_DATA) + (4 - (sizeof(FLASH_DATA) % 4))
+
 static uint8_t previous_sw_state = GPIO_PIN_4;
 static uint8_t debounce_sw_state = GPIO_PIN_4;
 static uint8_t current_sw_state = GPIO_PIN_4;
@@ -64,15 +70,18 @@ void readVar(uint8_t* dest, char* var, size_t size)
 	else if(!strcmp(var, "feature1")) EEPROMRead((uint32_t *)dest, FEATURE1_LOC, size);
 	else if(!strcmp(var, "feature2")) EEPROMRead((uint32_t *)dest, FEATURE2_LOC, size);
 	else if(!strcmp(var, "feature3")) EEPROMRead((uint32_t *)dest, FEATURE3_LOC, size);
+	else if(!strcmp(var, "fob_state"))
 }
 
-void storeVar(uint8_t* src, char* var, size_t size)
+/**
+ * @brief Function that erases and rewrites the non-volatile data to flash
+ *
+ * @param info Pointer to the flash data ram
+ */
+void saveFobState(FLASH_DATA *flash_data)
 {
-	if(!strcmp(var, "flash_data"))
-	{
-		FlashErase(FOB_STATE_PTR);
-		FlashProgram((uint32_t *)flash_data, FOB_STATE_PTR, FLASH_DATA_SIZE);
-	}
+  FlashErase(FOB_STATE_PTR);
+  FlashProgram((uint32_t *)flash_data, FOB_STATE_PTR, FLASH_DATA_SIZE);
 }
 
 void setLED(led_color_t color)
