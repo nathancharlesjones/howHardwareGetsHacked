@@ -66,11 +66,12 @@ uint8_t receiveAck();
 int main(int argc, char ** argv)
 {
   FLASH_DATA fob_state_ram;
-  FLASH_DATA *fob_state_flash = (FLASH_DATA *)FOB_STATE_PTR;
+  FLASH_DATA fob_state_flash;
+  readVar((uint8_t*)(&fob_state_flash), "fob_state", sizeof(FLASH_DATA));
 
 // If paired fob, initialize the system information
 #if PAIRED == 1
-  if (fob_state_flash->paired == FLASH_UNPAIRED)
+  if (fob_state_flash.paired == FLASH_UNPAIRED)
   {
     strcpy((char *)(fob_state_ram.pair_info.password), PASSWORD);
     strcpy((char *)(fob_state_ram.pair_info.pin), PAIR_PIN);
@@ -84,9 +85,9 @@ int main(int argc, char ** argv)
   fob_state_ram.paired = FLASH_UNPAIRED;
 #endif
 
-  if (fob_state_flash->paired == FLASH_PAIRED)
+  if (fob_state_flash.paired == FLASH_PAIRED)
   {
-    memcpy(&fob_state_ram, fob_state_flash, sizeof(FLASH_DATA));
+    memcpy(&fob_state_ram, &fob_state_flash, sizeof(FLASH_DATA));
   }
 
   // This will run on first boot to initialize features

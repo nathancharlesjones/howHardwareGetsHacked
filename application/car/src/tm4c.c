@@ -7,14 +7,15 @@
 #include "driverlib/eeprom.h"
 #include "driverlib/gpio.h"
 #include "driverlib/sysctl.h"
+#include "driverlib/flash.h"
 
 #include "board_link.h"
 #include "uart.h"
 #include "feature_list.h"
-
 #include "platform.h"
 
 #define UNLOCK_EEPROM_LOC 0x7C0
+
 #define FEATURE_END 0x7C0
 #define FEATURE1_LOC (FEATURE_END - FEATURE_SIZE)
 #define FEATURE2_LOC (FEATURE_END - 2*FEATURE_SIZE)
@@ -70,7 +71,7 @@ void readVar(uint8_t* dest, char* var, size_t size)
 	else if(!strcmp(var, "feature1")) EEPROMRead((uint32_t *)dest, FEATURE1_LOC, size);
 	else if(!strcmp(var, "feature2")) EEPROMRead((uint32_t *)dest, FEATURE2_LOC, size);
 	else if(!strcmp(var, "feature3")) EEPROMRead((uint32_t *)dest, FEATURE3_LOC, size);
-	else if(!strcmp(var, "fob_state"))
+	else if(!strcmp(var, "fob_state")) memcpy(&dest, (FLASH_DATA *)FOB_STATE_PTR, sizeof(FLASH_DATA));
 }
 
 /**
@@ -125,6 +126,5 @@ bool buttonPressed(void)
       previous_sw_state = current_sw_state;
       pressed = (debounce_sw_state == current_sw_state);
     }
-    return pressed;
-    
+    return pressed;    
 }
