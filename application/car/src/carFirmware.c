@@ -53,8 +53,8 @@ const uint8_t car_id[] = CAR_ID;
  * Initializes the RF module and waits for a successful unlock attempt.
  * If successful prints out the unlock flag.
  */
-int main(void) {
-  initHardware();
+int main(int argc, char ** argv) {
+  initHardware_car();
 
   while (true) {
 
