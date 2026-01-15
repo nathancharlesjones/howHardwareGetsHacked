@@ -60,6 +60,14 @@ void uart_init(void) {
       (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE));
 }
 
+static uint32_t uart_base(hw_uart_t uart) {
+    switch (uart) {
+        case HOST_UART:  return UART0_BASE;
+        //case BOARD_UART: return UART1_BASE;
+        default: return UART0_BASE;
+    }
+}
+
 /**
  * @brief Check if there are characters available on a UART interface.
  *
@@ -67,7 +75,7 @@ void uart_init(void) {
  * @return true if there is data available.
  * @return false if there is no data available.
  */
-bool uart_avail(uint32_t uart) { return UARTCharsAvail(uart); }
+bool uart_avail(hw_uart_t uart) { return UARTCharsAvail(uart_base(uart)); }
 
 /**
  * @brief Read a byte from a UART interface.
@@ -75,7 +83,7 @@ bool uart_avail(uint32_t uart) { return UARTCharsAvail(uart); }
  * @param uart is the base address of the UART port to read from.
  * @return the character read from the interface.
  */
-int32_t uart_readb(uint32_t uart) { return UARTCharGet(uart); }
+int32_t uart_readb(hw_uart_t uart) { return UARTCharGet(uart_base(uart)); }
 
 /**
  * @brief Read a sequence of bytes from a UART interface.
@@ -85,11 +93,12 @@ int32_t uart_readb(uint32_t uart) { return UARTCharGet(uart); }
  * @param n is the number of bytes to read.
  * @return the number of bytes read from the UART interface.
  */
-uint32_t uart_read(uint32_t uart, uint8_t *buf, uint32_t n) {
+uint32_t uart_read(hw_uart_t uart, uint8_t *buf, uint32_t n) {
   uint32_t read;
+  uint32_t base = uart_base(uart);
 
   for (read = 0; read < n; read++) {
-    buf[read] = (uint8_t)uart_readb(uart);
+    buf[read] = (uint8_t)uart_readb(base);
   }
   return read;
 }
@@ -101,12 +110,13 @@ uint32_t uart_read(uint32_t uart, uint8_t *buf, uint32_t n) {
  * @param buf is a pointer to the destination for the received data.
  * @return the number of bytes read from the UART interface.
  */
-uint32_t uart_readline(uint32_t uart, uint8_t *buf) {
+uint32_t uart_readline(hw_uart_t uart, uint8_t *buf) {
   uint32_t read = 0;
   uint8_t c;
+  uint32_t base = uart_base(uart);
 
   do {
-    c = (uint8_t)uart_readb(uart);
+    c = (uint8_t)uart_readb(base);
 
     if ((c != '\r') && (c != '\n') && (c != 0xD)) {
       buf[read] = c;
@@ -126,7 +136,7 @@ uint32_t uart_readline(uint32_t uart, uint8_t *buf) {
  * @param uart is the base address of the UART port to write to.
  * @param data is the byte value to write.
  */
-void uart_writeb(uint32_t uart, uint8_t data) { UARTCharPut(uart, data); }
+void uart_writeb(hw_uart_t uart, uint8_t data) { UARTCharPut(uart_base(uart), data); }
 
 /**
  * @brief Write a sequence of bytes to a UART interface.
@@ -136,11 +146,12 @@ void uart_writeb(uint32_t uart, uint8_t data) { UARTCharPut(uart, data); }
  * @param len is the number of bytes to send.
  * @return the number of bytes written.
  */
-uint32_t uart_write(uint32_t uart, uint8_t *buf, uint32_t len) {
+uint32_t uart_write(hw_uart_t uart, uint8_t *buf, uint32_t len) {
   uint32_t i;
+  uint32_t base = uart_base(uart);
 
   for (i = 0; i < len; i++) {
-    uart_writeb(uart, buf[i]);
+    uart_writeb(base, buf[i]);
   }
 
   return i;
