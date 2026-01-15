@@ -16,10 +16,27 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "inc/hw_ints.h"
+#include "inc/hw_memmap.h"
+
+#include "driverlib/eeprom.h"
+#include "driverlib/flash.h"
+#include "driverlib/gpio.h"
+#include "driverlib/interrupt.h"
+#include "driverlib/pin_map.h"
+#include "driverlib/sysctl.h"
+#include "driverlib/timer.h"
+
 #include "secrets.h"
+
 #include "board_link.h"
 #include "feature_list.h"
 #include "uart.h"
+
+// this will run if EXAMPLE_AES is defined in the Makefile (see line 54)
+#ifdef EXAMPLE_AES
+#include "aes.h"
+#endif
 
 #define FOB_STATE_PTR 0x3FC00
 #define FLASH_DATA_SIZE         \
@@ -103,7 +120,7 @@ int main(void)
 
   if (fob_state_flash->paired == FLASH_PAIRED)
   {
-    memcpy(&fob_state_ram, fob_state_flash, FLASH_DATA_SIZE);
+    memcpy(&fob_state_ram, fob_state_flash, sizeof(FLASH_DATA));
   }
 
   // This will run on first boot to initialize features
@@ -115,6 +132,28 @@ int main(void)
 
   // Initialize UART
   uart_init();
+
+#ifdef EXAMPLE_AES
+  // -------------------------------------------------------------------------
+  // example encryption using tiny-AES-c
+  // -------------------------------------------------------------------------
+  struct AES_ctx ctx;
+  uint8_t key[16] = {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
+                     0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf};
+  uint8_t plaintext[16] = "0123456789abcdef";
+
+  // initialize context
+  AES_init_ctx(&ctx, key);
+
+  // encrypt buffer (encryption happens in place)
+  AES_ECB_encrypt(&ctx, plaintext);
+
+  // decrypt buffer (decryption happens in place)
+  AES_ECB_decrypt(&ctx, plaintext);
+  // -------------------------------------------------------------------------
+  // end example
+  // -------------------------------------------------------------------------
+#endif
 
   // Initialize board link UART
   setup_board_link();
