@@ -45,12 +45,23 @@ __check_defined = \
 	$(if $(value $1),, \
 	  $(error Undefined $1))
 
-
 car_arg_check:
 	$(call check_defined, CAR_ID SECRETS_DIR BIN_PATH ELF_PATH EEPROM_PATH)
 
-gen_secret:
-	python3 gen_secret.py --car-id ${CAR_ID} --secret-file ${SECRETS_DIR}/car_secrets.json --header-file inc/secrets.h
+car_gen_secret:
+	python3 car_gen_secret.py --car-id ${CAR_ID} --secret-file ${SECRETS_DIR}/car_secrets.json --header-file inc/secrets.h
+
+paired_fob_arg_check:
+	$(call check_defined, CAR_ID PAIR_PIN SECRETS_DIR BIN_PATH ELF_PATH EEPROM_PATH)
+
+paired_fob_gen_secret:
+	python3 fob_gen_secret.py --car-id ${CAR_ID} --pair-pin ${PAIR_PIN} --secret-file ${SECRETS_DIR}/car_secrets.json --header-file inc/secrets.h --paired
+
+unpaired_fob_arg_check:
+	$(call check_defined, SECRETS_DIR BIN_PATH ELF_PATH EEPROM_PATH)
+
+unpaired_fob_gen_secret:
+	python3 fob_gen_secret.py --header-file inc/secrets.h
 
 ################ END car customization ################
 #######################################################
@@ -59,11 +70,37 @@ gen_secret:
 # this rule must come first in `car`
 car: ${COMPILER}
 car: car_arg_check
-car: gen_secret
+car: car_gen_secret
 
 # these must be the last build rules of `car`
 car: ${COMPILER}/firmware.axf
 car: copy_artifacts
+
+# this rule must come first in `paired_fob`
+paired_fob: ${COMPILER}
+paired_fob: paired_fob_arg_check
+paired_fob: paired_fob_gen_secret
+
+# this must be the last build rule of `paired_fob`
+paired_fob: ${COMPILER}/firmware.axf
+paired_fob: copy_artifacts
+
+# this rule must come first in `unpaired_fob`
+unpaired_fob: ${COMPILER}
+unpaired_fob: unpaired_fob_arg_check
+unpaired_fob: unpaired_fob_gen_secret
+
+# this must be the last build rule of `unpaired_fob`
+unpaired_fob: ${COMPILER}/firmware.axf
+unpaired_fob: copy_artifacts
+
+ifneq ($(filter car,$(MAKECMDGOALS)),)
+FIRMWARE_OBJ := carFirmware.o
+endif
+
+ifneq ($(filter paired_fob unpaired_fob,$(MAKECMDGOALS)),)
+FIRMWARE_OBJ := fobFirmware.o
+endif
 
 
 ################ start crypto example ################
@@ -114,9 +151,11 @@ ${COMPILER}:
 
 # for each source file that needs to be compiled besides the file that defines `main`
 
+#COMMON_OBJS := ${COMPILER}/uart.o ${COMPILER}/board_link.o ${COMPILER}/tm4c.o ${COMPILER}/startup_${COMPILER}.o ${TIVA_ROOT}/driverlib/${COMPILER}/libdriver.a
+
 ${COMPILER}/firmware.axf: ${COMPILER}/uart.o
 ${COMPILER}/firmware.axf: ${COMPILER}/board_link.o
-${COMPILER}/firmware.axf: ${COMPILER}/firmware.o
+${COMPILER}/firmware.axf: ${FIRMWARE_OBJ}
 ${COMPILER}/firmware.axf: ${COMPILER}/tm4c.o
 ${COMPILER}/firmware.axf: ${COMPILER}/startup_${COMPILER}.o
 ${COMPILER}/firmware.axf: ${TIVA_ROOT}/driverlib/${COMPILER}/libdriver.a
