@@ -21,7 +21,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "board_link.h"
+#include "platform.h"
+#include "feature_list.h"
+#include "uart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -53,60 +56,81 @@ static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
-int runTheApplication(void);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+static void initHardware(int argc, char ** argv)
+{
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
+  /* Configure the system clock */
+  SystemClock_Config();
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  
+  //setup_board_link();
+  MX_USART1_UART_Init();
+  //uart_init();
+  MX_USART2_UART_Init();
+
+  setLED(OFF);
+}
+
+void initHardware_car(int argc, char ** argv)
+{
+  initHardware(argc, argv);
+}
+
+void initHardware_fob(int argc, char ** argv)
+{
+  initHardware(argc, argv);
+}
+
+void readVar(uint8_t* dest, char * var, size_t size){}
+void saveFobState(FLASH_DATA *flash_data){}
+
+void setLED(led_color_t color)
+{
+  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, color == GREEN);
+}
+
+bool buttonPressed(void)
+{
+    static uint32_t history = 0;
+    static bool latched = false;
+
+    history = (history << 1) |
+              (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_SET);
+
+    if (history == 0xFFFFFFFF && !latched) {
+        latched = true;
+        return true;        // button just pressed
+    }
+
+    if (history == 0x00000000) {
+        latched = false;    // fully released
+    }
+
+    return false;
+}
+
+UART_HandleTypeDef* uart_base(hw_uart_t uart) {
+    switch (uart) {
+        case BOARD_UART: return &huart1;
+        case HOST_UART:  // Intentional fall-through
+        default: return &huart2;
+    }
+}
 /* USER CODE END 0 */
 
 /**
   * @brief  The application entry point.
   * @retval int
   */
-int main(void)
-{
-
-  /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
-
-  /* MCU Configuration--------------------------------------------------------*/
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
-
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
-  /* Configure the system clock */
-  SystemClock_Config();
-
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_USART1_UART_Init();
-  MX_USART2_UART_Init();
-  /* USER CODE BEGIN 2 */
-
-  /* USER CODE END 2 */
-
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    runTheApplication();
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-  }
-  /* USER CODE END 3 */
-}
 
 /**
   * @brief System Clock Configuration
