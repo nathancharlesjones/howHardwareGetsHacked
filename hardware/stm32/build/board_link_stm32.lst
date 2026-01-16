@@ -1,0 +1,335 @@
+ARM GAS  /tmp/cceC0UdG.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.eabi_attribute 27, 1
+   3              		.eabi_attribute 28, 1
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.file	"board_link_stm32.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.section	.text.setup_board_link,"ax",%progbits
+  18              		.align	1
+  19              		.global	setup_board_link
+  20              		.arch armv7e-m
+  21              		.syntax unified
+  22              		.thumb
+  23              		.thumb_func
+  24              		.fpu fpv4-sp-d16
+  26              	setup_board_link:
+  27              	.LFB134:
+  28              		.file 1 "Core/Src/board_link_stm32.c"
+   1:Core/Src/board_link_stm32.c **** /**
+   2:Core/Src/board_link_stm32.c ****  * @file board_link.h
+   3:Core/Src/board_link_stm32.c ****  * @author Frederich Stine
+   4:Core/Src/board_link_stm32.c ****  * @brief Firmware UART interface implementation.
+   5:Core/Src/board_link_stm32.c ****  * @date 2023
+   6:Core/Src/board_link_stm32.c ****  *
+   7:Core/Src/board_link_stm32.c ****  * This source file is part of an example system for MITRE's 2023 Embedded
+   8:Core/Src/board_link_stm32.c ****  * System CTF (eCTF). This code is being provided only for educational purposes
+   9:Core/Src/board_link_stm32.c ****  * for the 2023 MITRE eCTF competition, and may not meet MITRE standards for
+  10:Core/Src/board_link_stm32.c ****  * quality. Use this code at your own risk!
+  11:Core/Src/board_link_stm32.c ****  *
+  12:Core/Src/board_link_stm32.c ****  * @copyright Copyright (c) 2023 The MITRE Corporation
+  13:Core/Src/board_link_stm32.c ****  */
+  14:Core/Src/board_link_stm32.c **** 
+  15:Core/Src/board_link_stm32.c **** #include <stdbool.h>
+  16:Core/Src/board_link_stm32.c **** #include <stdint.h>
+  17:Core/Src/board_link_stm32.c **** 
+  18:Core/Src/board_link_stm32.c **** #include "main.h"
+  19:Core/Src/board_link_stm32.c **** #include "board_link.h"
+  20:Core/Src/board_link_stm32.c **** #include "uart_stm32.h"
+  21:Core/Src/board_link_stm32.c **** 
+  22:Core/Src/board_link_stm32.c **** /**
+  23:Core/Src/board_link_stm32.c ****  * @brief Set the up board link object
+  24:Core/Src/board_link_stm32.c ****  *
+  25:Core/Src/board_link_stm32.c ****  * UART 1 is used to communicate between boards
+  26:Core/Src/board_link_stm32.c ****  */
+  27:Core/Src/board_link_stm32.c **** void setup_board_link(void) {}
+  29              		.loc 1 27 29 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+ARM GAS  /tmp/cceC0UdG.s 			page 2
+
+
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  34              		.loc 1 27 30 view .LVU1
+  35 0000 7047     		bx	lr
+  36              		.cfi_endproc
+  37              	.LFE134:
+  39              		.section	.text.send_board_message,"ax",%progbits
+  40              		.align	1
+  41              		.global	send_board_message
+  42              		.syntax unified
+  43              		.thumb
+  44              		.thumb_func
+  45              		.fpu fpv4-sp-d16
+  47              	send_board_message:
+  48              	.LVL0:
+  49              	.LFB135:
+  28:Core/Src/board_link_stm32.c **** 
+  29:Core/Src/board_link_stm32.c **** /**
+  30:Core/Src/board_link_stm32.c ****  * @brief Send a message between boards
+  31:Core/Src/board_link_stm32.c ****  *
+  32:Core/Src/board_link_stm32.c ****  * @param message pointer to message to send
+  33:Core/Src/board_link_stm32.c ****  * @return uint32_t the number of bytes sent
+  34:Core/Src/board_link_stm32.c ****  */
+  35:Core/Src/board_link_stm32.c **** uint32_t send_board_message(MESSAGE_PACKET *message) {
+  50              		.loc 1 35 54 view -0
+  51              		.cfi_startproc
+  52              		@ args = 0, pretend = 0, frame = 0
+  53              		@ frame_needed = 0, uses_anonymous_args = 0
+  54              		.loc 1 35 54 is_stmt 0 view .LVU3
+  55 0000 10B5     		push	{r4, lr}
+  56              	.LCFI0:
+  57              		.cfi_def_cfa_offset 8
+  58              		.cfi_offset 4, -8
+  59              		.cfi_offset 14, -4
+  60 0002 0446     		mov	r4, r0
+  36:Core/Src/board_link_stm32.c ****   UART_HandleTypeDef* base = uart_base(BOARD_UART);
+  61              		.loc 1 36 3 is_stmt 1 view .LVU4
+  62              		.loc 1 36 30 is_stmt 0 view .LVU5
+  63 0004 0120     		movs	r0, #1
+  64              	.LVL1:
+  65              		.loc 1 36 30 view .LVU6
+  66 0006 FFF7FEFF 		bl	uart_base
+  67              	.LVL2:
+  37:Core/Src/board_link_stm32.c ****   HAL_UART_Transmit(base, (uint8_t*)message, (message->message_len)+2, HAL_MAX_DELAY);
+  68              		.loc 1 37 3 is_stmt 1 view .LVU7
+  69              		.loc 1 37 54 is_stmt 0 view .LVU8
+  70 000a 6278     		ldrb	r2, [r4, #1]	@ zero_extendqisi2
+  71              		.loc 1 37 3 view .LVU9
+  72 000c 4FF0FF33 		mov	r3, #-1
+  73 0010 0232     		adds	r2, r2, #2
+  74 0012 2146     		mov	r1, r4
+  75 0014 FFF7FEFF 		bl	HAL_UART_Transmit
+  76              	.LVL3:
+  38:Core/Src/board_link_stm32.c ****   /*
+  39:Core/Src/board_link_stm32.c ****   UARTCharPut(base, message->magic);
+  40:Core/Src/board_link_stm32.c ****   UARTCharPut(base, message->message_len);
+  41:Core/Src/board_link_stm32.c **** 
+ARM GAS  /tmp/cceC0UdG.s 			page 3
+
+
+  42:Core/Src/board_link_stm32.c ****   for (int i = 0; i < message->message_len; i++) {
+  43:Core/Src/board_link_stm32.c ****     UARTCharPut(base, message->buffer[i]);
+  44:Core/Src/board_link_stm32.c ****   }
+  45:Core/Src/board_link_stm32.c ****   */
+  46:Core/Src/board_link_stm32.c **** 
+  47:Core/Src/board_link_stm32.c ****   return message->message_len;
+  77              		.loc 1 47 3 is_stmt 1 view .LVU10
+  48:Core/Src/board_link_stm32.c **** }
+  78              		.loc 1 48 1 is_stmt 0 view .LVU11
+  79 0018 6078     		ldrb	r0, [r4, #1]	@ zero_extendqisi2
+  80 001a 10BD     		pop	{r4, pc}
+  81              		.loc 1 48 1 view .LVU12
+  82              		.cfi_endproc
+  83              	.LFE135:
+  85              		.section	.text.receive_board_message,"ax",%progbits
+  86              		.align	1
+  87              		.global	receive_board_message
+  88              		.syntax unified
+  89              		.thumb
+  90              		.thumb_func
+  91              		.fpu fpv4-sp-d16
+  93              	receive_board_message:
+  94              	.LVL4:
+  95              	.LFB136:
+  49:Core/Src/board_link_stm32.c **** 
+  50:Core/Src/board_link_stm32.c **** /**
+  51:Core/Src/board_link_stm32.c ****  * @brief Receive a message between boards
+  52:Core/Src/board_link_stm32.c ****  *
+  53:Core/Src/board_link_stm32.c ****  * @param message pointer to message where data will be received
+  54:Core/Src/board_link_stm32.c ****  * @return uint32_t the number of bytes received - 0 for error
+  55:Core/Src/board_link_stm32.c ****  */
+  56:Core/Src/board_link_stm32.c **** uint32_t receive_board_message(MESSAGE_PACKET *message) {
+  96              		.loc 1 56 57 is_stmt 1 view -0
+  97              		.cfi_startproc
+  98              		@ args = 0, pretend = 0, frame = 0
+  99              		@ frame_needed = 0, uses_anonymous_args = 0
+ 100              		.loc 1 56 57 is_stmt 0 view .LVU14
+ 101 0000 38B5     		push	{r3, r4, r5, lr}
+ 102              	.LCFI1:
+ 103              		.cfi_def_cfa_offset 16
+ 104              		.cfi_offset 3, -16
+ 105              		.cfi_offset 4, -12
+ 106              		.cfi_offset 5, -8
+ 107              		.cfi_offset 14, -4
+ 108 0002 0446     		mov	r4, r0
+  57:Core/Src/board_link_stm32.c ****   UART_HandleTypeDef* base = uart_base(BOARD_UART);
+ 109              		.loc 1 57 3 is_stmt 1 view .LVU15
+ 110              		.loc 1 57 30 is_stmt 0 view .LVU16
+ 111 0004 0120     		movs	r0, #1
+ 112              	.LVL5:
+ 113              		.loc 1 57 30 view .LVU17
+ 114 0006 FFF7FEFF 		bl	uart_base
+ 115              	.LVL6:
+ 116 000a 0546     		mov	r5, r0
+ 117              	.LVL7:
+  58:Core/Src/board_link_stm32.c ****   //message->magic = (uint8_t)UARTCharGet(base);
+  59:Core/Src/board_link_stm32.c ****   HAL_UART_Receive(base, &(message->magic), 1, HAL_MAX_DELAY);
+ARM GAS  /tmp/cceC0UdG.s 			page 4
+
+
+ 118              		.loc 1 59 3 is_stmt 1 view .LVU18
+ 119 000c 4FF0FF33 		mov	r3, #-1
+ 120 0010 0122     		movs	r2, #1
+ 121 0012 2146     		mov	r1, r4
+ 122 0014 FFF7FEFF 		bl	HAL_UART_Receive
+ 123              	.LVL8:
+  60:Core/Src/board_link_stm32.c **** 
+  61:Core/Src/board_link_stm32.c ****   if (message->magic == 0) {
+ 124              		.loc 1 61 3 view .LVU19
+ 125              		.loc 1 61 14 is_stmt 0 view .LVU20
+ 126 0018 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 127              		.loc 1 61 6 view .LVU21
+ 128 001a 0BB9     		cbnz	r3, .L8
+  62:Core/Src/board_link_stm32.c ****     return 0;
+ 129              		.loc 1 62 12 view .LVU22
+ 130 001c 0020     		movs	r0, #0
+ 131              	.L4:
+  63:Core/Src/board_link_stm32.c ****   }
+  64:Core/Src/board_link_stm32.c **** 
+  65:Core/Src/board_link_stm32.c ****   //message->message_len = (uint8_t)UARTCharGet(base);
+  66:Core/Src/board_link_stm32.c ****   HAL_UART_Receive(base, &(message->message_len), 1, HAL_MAX_DELAY);
+  67:Core/Src/board_link_stm32.c **** 
+  68:Core/Src/board_link_stm32.c ****   /*
+  69:Core/Src/board_link_stm32.c ****   for (int i = 0; i < message->message_len; i++) {
+  70:Core/Src/board_link_stm32.c ****     message->buffer[i] = (uint8_t)UARTCharGet(base);
+  71:Core/Src/board_link_stm32.c ****   }
+  72:Core/Src/board_link_stm32.c ****   */
+  73:Core/Src/board_link_stm32.c ****   HAL_UART_Receive(base, message->buffer, message->message_len, HAL_MAX_DELAY);
+  74:Core/Src/board_link_stm32.c **** 
+  75:Core/Src/board_link_stm32.c ****   return message->message_len;
+  76:Core/Src/board_link_stm32.c **** }
+ 132              		.loc 1 76 1 view .LVU23
+ 133 001e 38BD     		pop	{r3, r4, r5, pc}
+ 134              	.LVL9:
+ 135              	.L8:
+  66:Core/Src/board_link_stm32.c **** 
+ 136              		.loc 1 66 3 is_stmt 1 view .LVU24
+ 137 0020 4FF0FF33 		mov	r3, #-1
+ 138 0024 0122     		movs	r2, #1
+ 139 0026 A118     		adds	r1, r4, r2
+ 140 0028 2846     		mov	r0, r5
+ 141 002a FFF7FEFF 		bl	HAL_UART_Receive
+ 142              	.LVL10:
+  73:Core/Src/board_link_stm32.c **** 
+ 143              		.loc 1 73 3 view .LVU25
+ 144 002e 4FF0FF33 		mov	r3, #-1
+ 145 0032 6278     		ldrb	r2, [r4, #1]	@ zero_extendqisi2
+ 146 0034 6168     		ldr	r1, [r4, #4]
+ 147 0036 2846     		mov	r0, r5
+ 148 0038 FFF7FEFF 		bl	HAL_UART_Receive
+ 149              	.LVL11:
+  75:Core/Src/board_link_stm32.c **** }
+ 150              		.loc 1 75 3 view .LVU26
+  75:Core/Src/board_link_stm32.c **** }
+ 151              		.loc 1 75 17 is_stmt 0 view .LVU27
+ 152 003c 6078     		ldrb	r0, [r4, #1]	@ zero_extendqisi2
+ 153 003e EEE7     		b	.L4
+ARM GAS  /tmp/cceC0UdG.s 			page 5
+
+
+ 154              		.cfi_endproc
+ 155              	.LFE136:
+ 157              		.section	.text.receive_board_message_by_type,"ax",%progbits
+ 158              		.align	1
+ 159              		.global	receive_board_message_by_type
+ 160              		.syntax unified
+ 161              		.thumb
+ 162              		.thumb_func
+ 163              		.fpu fpv4-sp-d16
+ 165              	receive_board_message_by_type:
+ 166              	.LVL12:
+ 167              	.LFB137:
+  77:Core/Src/board_link_stm32.c **** 
+  78:Core/Src/board_link_stm32.c **** /**
+  79:Core/Src/board_link_stm32.c ****  * @brief Function that retreives messages until the specified message is found
+  80:Core/Src/board_link_stm32.c ****  *
+  81:Core/Src/board_link_stm32.c ****  * @param message pointer to message where data will be received
+  82:Core/Src/board_link_stm32.c ****  * @param type the type of message to receive
+  83:Core/Src/board_link_stm32.c ****  * @return uint32_t the number of bytes received
+  84:Core/Src/board_link_stm32.c ****  */
+  85:Core/Src/board_link_stm32.c **** uint32_t receive_board_message_by_type(MESSAGE_PACKET *message, uint8_t type) {
+ 168              		.loc 1 85 79 is_stmt 1 view -0
+ 169              		.cfi_startproc
+ 170              		@ args = 0, pretend = 0, frame = 0
+ 171              		@ frame_needed = 0, uses_anonymous_args = 0
+ 172              		.loc 1 85 79 is_stmt 0 view .LVU29
+ 173 0000 38B5     		push	{r3, r4, r5, lr}
+ 174              	.LCFI2:
+ 175              		.cfi_def_cfa_offset 16
+ 176              		.cfi_offset 3, -16
+ 177              		.cfi_offset 4, -12
+ 178              		.cfi_offset 5, -8
+ 179              		.cfi_offset 14, -4
+ 180 0002 0446     		mov	r4, r0
+ 181 0004 0D46     		mov	r5, r1
+ 182              	.LVL13:
+ 183              	.L10:
+  86:Core/Src/board_link_stm32.c ****   do {
+ 184              		.loc 1 86 3 is_stmt 1 discriminator 1 view .LVU30
+  87:Core/Src/board_link_stm32.c ****     receive_board_message(message);
+ 185              		.loc 1 87 5 discriminator 1 view .LVU31
+ 186 0006 2046     		mov	r0, r4
+ 187 0008 FFF7FEFF 		bl	receive_board_message
+ 188              	.LVL14:
+  88:Core/Src/board_link_stm32.c ****   } while (message->magic != type);
+ 189              		.loc 1 88 11 discriminator 1 view .LVU32
+ 190              		.loc 1 88 19 is_stmt 0 discriminator 1 view .LVU33
+ 191 000c 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 192              		.loc 1 88 3 discriminator 1 view .LVU34
+ 193 000e AB42     		cmp	r3, r5
+ 194 0010 F9D1     		bne	.L10
+  89:Core/Src/board_link_stm32.c **** 
+  90:Core/Src/board_link_stm32.c ****   return message->message_len;
+ 195              		.loc 1 90 3 is_stmt 1 view .LVU35
+  91:Core/Src/board_link_stm32.c **** }
+ 196              		.loc 1 91 1 is_stmt 0 view .LVU36
+ 197 0012 6078     		ldrb	r0, [r4, #1]	@ zero_extendqisi2
+ARM GAS  /tmp/cceC0UdG.s 			page 6
+
+
+ 198 0014 38BD     		pop	{r3, r4, r5, pc}
+ 199              		.loc 1 91 1 view .LVU37
+ 200              		.cfi_endproc
+ 201              	.LFE137:
+ 203              		.text
+ 204              	.Letext0:
+ 205              		.file 2 "/usr/lib/gcc/arm-none-eabi/10.3.1/include/stdint.h"
+ 206              		.file 3 "Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f411xe.h"
+ 207              		.file 4 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_def.h"
+ 208              		.file 5 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma.h"
+ 209              		.file 6 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h"
+ 210              		.file 7 "../../application/inc/uart.h"
+ 211              		.file 8 "../../application/inc/board_link.h"
+ 212              		.file 9 "Core/Inc/uart_stm32.h"
+ARM GAS  /tmp/cceC0UdG.s 			page 7
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 board_link_stm32.c
+     /tmp/cceC0UdG.s:18     .text.setup_board_link:0000000000000000 $t
+     /tmp/cceC0UdG.s:26     .text.setup_board_link:0000000000000000 setup_board_link
+     /tmp/cceC0UdG.s:40     .text.send_board_message:0000000000000000 $t
+     /tmp/cceC0UdG.s:47     .text.send_board_message:0000000000000000 send_board_message
+     /tmp/cceC0UdG.s:86     .text.receive_board_message:0000000000000000 $t
+     /tmp/cceC0UdG.s:93     .text.receive_board_message:0000000000000000 receive_board_message
+     /tmp/cceC0UdG.s:158    .text.receive_board_message_by_type:0000000000000000 $t
+     /tmp/cceC0UdG.s:165    .text.receive_board_message_by_type:0000000000000000 receive_board_message_by_type
+
+UNDEFINED SYMBOLS
+uart_base
+HAL_UART_Transmit
+HAL_UART_Receive
