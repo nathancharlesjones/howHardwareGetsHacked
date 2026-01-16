@@ -49,7 +49,7 @@ C_SOURCES =  \
 Core/Src/main.c \
 Core/Src/board_link_stm32.c \
 Core/Src/uart_stm32.c \
-../../application/car/src/$(TARGET)Firmware.c \
+../../application/src/$(TARGET)Firmware.c \
 Core/Src/stm32f4xx_it.c \
 Core/Src/stm32f4xx_hal_msp.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c \
@@ -134,7 +134,7 @@ C_INCLUDES =  \
 -IDrivers/STM32F4xx_HAL_Driver/Inc/Legacy \
 -IDrivers/CMSIS/Device/ST/STM32F4xx/Include \
 -IDrivers/CMSIS/Include \
--I../../application/$(TARGET)/inc
+-I../../application/inc
 
 
 # compile gcc flags
