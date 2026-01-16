@@ -16,7 +16,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "secrets.h"
+#include "car_secrets.h"
 #include "board_link.h"
 #include "feature_list.h"
 #include "uart.h"

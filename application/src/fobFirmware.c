@@ -27,7 +27,7 @@
 #include "driverlib/sysctl.h"
 #include "driverlib/timer.h"
 
-#include "secrets.h"
+#include "fob_secrets.h"
 
 #include "board_link.h"
 #include "feature_list.h"
