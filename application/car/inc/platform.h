@@ -1,6 +1,8 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
+#include "feature_list.h"
+
 typedef enum { OFF, RED, GREEN, WHITE } led_color_t;
 
 // Defines a struct for the format of a pairing message
@@ -27,8 +29,8 @@ typedef struct
   FEATURE_DATA feature_info;
 } FLASH_DATA;
 
-void initHardware_car(void);
-void initHardware_fob(void);
+void initHardware_car(int argc, char ** argv);
+void initHardware_fob(int argc, char ** argv);
 void readVar(uint8_t* dest, char * var, size_t size);
 void saveFobState(FLASH_DATA *flash_data);
 void setLED(led_color_t color);

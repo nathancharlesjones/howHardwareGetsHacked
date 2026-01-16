@@ -20,8 +20,6 @@
 
 typedef enum { HOST_UART, BOARD_UART } hw_uart_t;
 
-uint32_t uart_base(hw_uart_t uart);
-
 /**
  * @brief Initialize the UART interfaces.
  *

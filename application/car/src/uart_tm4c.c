@@ -62,8 +62,8 @@ void uart_init(void) {
 
 uint32_t uart_base(hw_uart_t uart) {
     switch (uart) {
-        case HOST_UART:  return UART0_BASE;
         case BOARD_UART: return UART1_BASE;
+        case HOST_UART:  // Intentional fall-through
         default: return UART0_BASE;
     }
 }

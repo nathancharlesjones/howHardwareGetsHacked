@@ -22,14 +22,6 @@
 #include "uart.h"
 #include "platform.h"
 
-/*** Structure definitions ***/
-// Structure of start_car packet FEATURE_DATA
-typedef struct {
-  uint8_t car_id[8];
-  uint8_t num_active;
-  uint8_t features[NUM_FEATURES];
-} FEATURE_DATA;
-
 /*** Macro Definitions ***/
 // Definitions for unlock message location in EEPROM
 #define UNLOCK_EEPROM_SIZE 64
@@ -54,7 +46,7 @@ const uint8_t car_id[] = CAR_ID;
  * If successful prints out the unlock flag.
  */
 int main(int argc, char ** argv) {
-  initHardware_car();
+  initHardware_car(argc, argv);
 
   while (true) {
 

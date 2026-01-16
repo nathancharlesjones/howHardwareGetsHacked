@@ -1,10 +1,9 @@
-#ifndef __FOB_SECRETS__
-#define __FOB_SECRETS__
+#ifndef __CAR_SECRETS__
+#define __CAR_SECRETS__
 
-#define PAIRED 0
-#define PAIR_PIN "000000"
-#define CAR_ID "000000"
-#define CAR_SECRET "000000"
+#define CAR_SECRET 1002
+
+#define CAR_ID "1001"
 
 #define PASSWORD "unlock"
 

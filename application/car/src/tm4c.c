@@ -31,7 +31,7 @@ static uint8_t previous_sw_state = GPIO_PIN_4;
 static uint8_t debounce_sw_state = GPIO_PIN_4;
 static uint8_t current_sw_state = GPIO_PIN_4;
 
-static void initHardware(void)
+static void initHardware(int argc, char ** argv)
 {
 	// Ensure EEPROM peripheral is enabled
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_EEPROM0);
@@ -44,17 +44,17 @@ static void initHardware(void)
 	setup_board_link();
 }
 
-void initHardware_car(void)
+void initHardware_car(int argc, char ** argv)
 {
-	initHardware();
+	initHardware(argc, argv);
 
 	// Change LED color for car: red
 	setLED(RED);
 }
 
-void initHardware_fob(void)
+void initHardware_fob(int argc, char ** argv)
 {
-	initHardware();
+	initHardware(argc, argv);
 
 	// Change LED color for fob: white
 	setLED(WHITE);

@@ -97,7 +97,7 @@ int main(int argc, char ** argv)
     saveFobState(&fob_state_ram);
   }
 
-  initHardware_fob();
+  initHardware_fob(argc, argv);
 
   // Declare a buffer for reading and writing to UART
   uint8_t uart_buffer[10];

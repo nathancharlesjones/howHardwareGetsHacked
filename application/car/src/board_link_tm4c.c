@@ -25,6 +25,7 @@
 #include "driverlib/uart.h"
 
 #include "board_link.h"
+#include "uart_tm4c.h"
 
 /**
  * @brief Set the up board link object
