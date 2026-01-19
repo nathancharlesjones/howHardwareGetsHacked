@@ -9,9 +9,9 @@
 #include "driverlib/sysctl.h"
 #include "driverlib/flash.h"
 
-#include "board_link.h"
+#include "messages.h"
 #include "uart.h"
-#include "feature_list.h"
+#include "dataFormats.h"
 #include "platform.h"
 
 #define UNLOCK_EEPROM_LOC 0x7C0
@@ -38,10 +38,10 @@ static void initHardware(int argc, char ** argv)
 	EEPROMInit();
 
 	// Initialize UART peripheral
-	uart_init();
+	uart_init(HOST_UART);
 
 	// Initialize board link UART
-	setup_board_link();
+	uart_init(BOARD_UART);
 }
 
 void initHardware_car(int argc, char ** argv)

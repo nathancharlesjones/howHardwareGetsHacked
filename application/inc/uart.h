@@ -25,7 +25,7 @@ typedef enum { HOST_UART, BOARD_UART } hw_uart_t;
  *
  * UART 0 is used to communicate with the door/fob.
  */
-void uart_init(void);
+void uart_init(hw_uart_t uart);
 
 /**
  * @brief Check if there are characters available on a UART interface.

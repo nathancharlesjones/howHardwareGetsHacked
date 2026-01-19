@@ -39,13 +39,6 @@ typedef struct
 } MESSAGE_PACKET;
 
 /**
- * @brief Set the up board link object
- *
- * UART 1 is used to communicate between boards
- */
-void setup_board_link(void);
-
-/**
  * @brief Send a message between boards
  *
  * @param message pointer to message to send

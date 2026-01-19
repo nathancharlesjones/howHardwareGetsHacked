@@ -1,4 +1,4 @@
-ARM GAS  /tmp/ccxlB5YN.s 			page 1
+ARM GAS  /tmp/ccJH5Y9a.s 			page 1
 
 
    1              		.cpu cortex-m4
@@ -58,7 +58,7 @@ ARM GAS  /tmp/ccxlB5YN.s 			page 1
   12:../../application/src/carFirmware.c ****  * @copyright Copyright (c) 2023 The MITRE Corporation
   13:../../application/src/carFirmware.c ****  */
   14:../../application/src/carFirmware.c **** 
-ARM GAS  /tmp/ccxlB5YN.s 			page 2
+ARM GAS  /tmp/ccJH5Y9a.s 			page 2
 
 
   15:../../application/src/carFirmware.c **** #include <stdbool.h>
@@ -66,8 +66,8 @@ ARM GAS  /tmp/ccxlB5YN.s 			page 1
   17:../../application/src/carFirmware.c **** #include <string.h>
   18:../../application/src/carFirmware.c **** 
   19:../../application/src/carFirmware.c **** #include "car_secrets.h"
-  20:../../application/src/carFirmware.c **** #include "board_link.h"
-  21:../../application/src/carFirmware.c **** #include "feature_list.h"
+  20:../../application/src/carFirmware.c **** #include "messages.h"
+  21:../../application/src/carFirmware.c **** #include "dataFormats.h"
   22:../../application/src/carFirmware.c **** #include "uart.h"
   23:../../application/src/carFirmware.c **** #include "platform.h"
   24:../../application/src/carFirmware.c **** 
@@ -118,7 +118,7 @@ ARM GAS  /tmp/ccxlB5YN.s 			page 1
   69:../../application/src/carFirmware.c ****   // Pad payload to a string
   70:../../application/src/carFirmware.c ****   message.buffer[message.message_len] = 0;
   71:../../application/src/carFirmware.c **** 
-ARM GAS  /tmp/ccxlB5YN.s 			page 3
+ARM GAS  /tmp/ccJH5Y9a.s 			page 3
 
 
   72:../../application/src/carFirmware.c ****   // If the data transfer is the password, unlock
@@ -178,7 +178,7 @@ ARM GAS  /tmp/ccxlB5YN.s 			page 1
  102:../../application/src/carFirmware.c **** 
  103:../../application/src/carFirmware.c ****   // Verify correct car id
  104:../../application/src/carFirmware.c ****   if (strcmp((char *)car_id, (char *)feature_info->car_id)) {
-ARM GAS  /tmp/ccxlB5YN.s 			page 4
+ARM GAS  /tmp/ccJH5Y9a.s 			page 4
 
 
   63              		.loc 1 104 3 view .LVU7
@@ -238,7 +238,7 @@ ARM GAS  /tmp/ccxlB5YN.s 			page 1
  105 003e 0020     		movs	r0, #0
  106 0040 FFF7FEFF 		bl	uart_write
  107              	.LVL8:
-ARM GAS  /tmp/ccxlB5YN.s 			page 5
+ARM GAS  /tmp/ccJH5Y9a.s 			page 5
 
 
  108              	.LBE3:
@@ -298,7 +298,7 @@ ARM GAS  /tmp/ccxlB5YN.s 			page 1
  124:../../application/src/carFirmware.c ****  * @brief Function to send successful ACK message
  125:../../application/src/carFirmware.c ****  */
  126:../../application/src/carFirmware.c **** void sendAckSuccess(void) {
-ARM GAS  /tmp/ccxlB5YN.s 			page 6
+ARM GAS  /tmp/ccJH5Y9a.s 			page 6
 
 
  152              		.loc 1 126 27 is_stmt 1 view -0
@@ -358,7 +358,7 @@ ARM GAS  /tmp/ccxlB5YN.s 			page 1
  196              		.syntax unified
  197              		.thumb
  198              		.thumb_func
-ARM GAS  /tmp/ccxlB5YN.s 			page 7
+ARM GAS  /tmp/ccJH5Y9a.s 			page 7
 
 
  199              		.fpu fpv4-sp-d16
@@ -418,7 +418,7 @@ ARM GAS  /tmp/ccxlB5YN.s 			page 1
  238              	.LCFI8:
  239              		.cfi_def_cfa_offset 4
  240              		@ sp needed
-ARM GAS  /tmp/ccxlB5YN.s 			page 8
+ARM GAS  /tmp/ccJH5Y9a.s 			page 8
 
 
  241 0022 5DF804FB 		ldr	pc, [sp], #4
@@ -478,7 +478,7 @@ ARM GAS  /tmp/ccxlB5YN.s 			page 1
  287 0018 D154     		strb	r1, [r2, r3]
   73:../../application/src/carFirmware.c ****     uint8_t eeprom_message[64];
  288              		.loc 1 73 3 is_stmt 1 view .LVU63
-ARM GAS  /tmp/ccxlB5YN.s 			page 9
+ARM GAS  /tmp/ccJH5Y9a.s 			page 9
 
 
   73:../../application/src/carFirmware.c ****     uint8_t eeprom_message[64];
@@ -538,7 +538,7 @@ ARM GAS  /tmp/ccxlB5YN.s 			page 1
  333              	.L17:
  334              		.align	2
  335              	.L16:
-ARM GAS  /tmp/ccxlB5YN.s 			page 10
+ARM GAS  /tmp/ccJH5Y9a.s 			page 10
 
 
  336 004c 00000000 		.word	.LANCHOR2
@@ -598,7 +598,7 @@ ARM GAS  /tmp/ccxlB5YN.s 			page 1
  387 000c 0C000000 		.word	.LC2
  388 0010 18000000 		.word	.LC3
  389              		.section	.rodata.car_id,"a"
-ARM GAS  /tmp/ccxlB5YN.s 			page 11
+ARM GAS  /tmp/ccJH5Y9a.s 			page 11
 
 
  390              		.align	2
@@ -614,35 +614,36 @@ ARM GAS  /tmp/ccxlB5YN.s 			page 1
  402      636B00
  403              		.text
  404              	.Letext0:
- 405              		.file 2 "../../application/inc/board_link.h"
+ 405              		.file 2 "../../application/inc/messages.h"
  406              		.file 3 "/usr/lib/gcc/arm-none-eabi/10.3.1/include/stdint.h"
- 407              		.file 4 "../../application/inc/uart.h"
- 408              		.file 5 "../../application/inc/platform.h"
- 409              		.file 6 "/usr/include/newlib/string.h"
-ARM GAS  /tmp/ccxlB5YN.s 			page 12
+ 407              		.file 4 "../../application/inc/dataFormats.h"
+ 408              		.file 5 "../../application/inc/uart.h"
+ 409              		.file 6 "../../application/inc/platform.h"
+ 410              		.file 7 "/usr/include/newlib/string.h"
+ARM GAS  /tmp/ccJH5Y9a.s 			page 12
 
 
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 carFirmware.c
-     /tmp/ccxlB5YN.s:15     .rodata.str1.4:0000000000000000 $d
-     /tmp/ccxlB5YN.s:28     .text.startCar:0000000000000000 $t
-     /tmp/ccxlB5YN.s:36     .text.startCar:0000000000000000 startCar
-     /tmp/ccxlB5YN.s:137    .text.startCar:0000000000000058 $d
-     /tmp/ccxlB5YN.s:143    .text.sendAckSuccess:0000000000000000 $t
-     /tmp/ccxlB5YN.s:150    .text.sendAckSuccess:0000000000000000 sendAckSuccess
-     /tmp/ccxlB5YN.s:194    .text.sendAckFailure:0000000000000000 $t
-     /tmp/ccxlB5YN.s:201    .text.sendAckFailure:0000000000000000 sendAckFailure
-     /tmp/ccxlB5YN.s:246    .rodata.unlockCar.str1.4:0000000000000000 $d
-     /tmp/ccxlB5YN.s:250    .text.unlockCar:0000000000000000 $t
-     /tmp/ccxlB5YN.s:257    .text.unlockCar:0000000000000000 unlockCar
-     /tmp/ccxlB5YN.s:336    .text.unlockCar:000000000000004c $d
-     /tmp/ccxlB5YN.s:342    .text.main:0000000000000000 $t
-     /tmp/ccxlB5YN.s:349    .text.main:0000000000000000 main
-     /tmp/ccxlB5YN.s:394    .rodata.car_id:0000000000000000 car_id
-     /tmp/ccxlB5YN.s:401    .rodata.pass:0000000000000000 pass
-     /tmp/ccxlB5YN.s:379    .rodata:0000000000000000 $d
-     /tmp/ccxlB5YN.s:390    .rodata.car_id:0000000000000000 $d
-     /tmp/ccxlB5YN.s:397    .rodata.pass:0000000000000000 $d
+     /tmp/ccJH5Y9a.s:15     .rodata.str1.4:0000000000000000 $d
+     /tmp/ccJH5Y9a.s:28     .text.startCar:0000000000000000 $t
+     /tmp/ccJH5Y9a.s:36     .text.startCar:0000000000000000 startCar
+     /tmp/ccJH5Y9a.s:137    .text.startCar:0000000000000058 $d
+     /tmp/ccJH5Y9a.s:143    .text.sendAckSuccess:0000000000000000 $t
+     /tmp/ccJH5Y9a.s:150    .text.sendAckSuccess:0000000000000000 sendAckSuccess
+     /tmp/ccJH5Y9a.s:194    .text.sendAckFailure:0000000000000000 $t
+     /tmp/ccJH5Y9a.s:201    .text.sendAckFailure:0000000000000000 sendAckFailure
+     /tmp/ccJH5Y9a.s:246    .rodata.unlockCar.str1.4:0000000000000000 $d
+     /tmp/ccJH5Y9a.s:250    .text.unlockCar:0000000000000000 $t
+     /tmp/ccJH5Y9a.s:257    .text.unlockCar:0000000000000000 unlockCar
+     /tmp/ccJH5Y9a.s:336    .text.unlockCar:000000000000004c $d
+     /tmp/ccJH5Y9a.s:342    .text.main:0000000000000000 $t
+     /tmp/ccJH5Y9a.s:349    .text.main:0000000000000000 main
+     /tmp/ccJH5Y9a.s:394    .rodata.car_id:0000000000000000 car_id
+     /tmp/ccJH5Y9a.s:401    .rodata.pass:0000000000000000 pass
+     /tmp/ccJH5Y9a.s:379    .rodata:0000000000000000 $d
+     /tmp/ccJH5Y9a.s:390    .rodata.car_id:0000000000000000 $d
+     /tmp/ccJH5Y9a.s:397    .rodata.pass:0000000000000000 $d
 
 UNDEFINED SYMBOLS
 receive_board_message_by_type

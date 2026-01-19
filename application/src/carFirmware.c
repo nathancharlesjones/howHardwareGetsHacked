@@ -17,8 +17,8 @@
 #include <string.h>
 
 #include "car_secrets.h"
-#include "board_link.h"
-#include "feature_list.h"
+#include "messages.h"
+#include "dataFormats.h"
 #include "uart.h"
 #include "platform.h"
 

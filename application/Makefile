@@ -154,7 +154,7 @@ ${COMPILER}:
 #COMMON_OBJS := ${COMPILER}/uart.o ${COMPILER}/board_link.o ${COMPILER}/tm4c.o ${COMPILER}/startup_${COMPILER}.o ${TIVA_ROOT}/driverlib/${COMPILER}/libdriver.a
 
 ${COMPILER}/firmware.axf: ${COMPILER}/uart_tm4c.o
-${COMPILER}/firmware.axf: ${COMPILER}/board_link_tm4c.o
+${COMPILER}/firmware.axf: ${COMPILER}/messages.o
 ${COMPILER}/firmware.axf: ${FIRMWARE_OBJ}
 ${COMPILER}/firmware.axf: ${COMPILER}/tm4c.o
 ${COMPILER}/firmware.axf: ${COMPILER}/startup_${COMPILER}.o

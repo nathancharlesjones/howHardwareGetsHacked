@@ -15,16 +15,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "main.h"
-#include "board_link.h"
-#include "uart_stm32.h"
-
-/**
- * @brief Set the up board link object
- *
- * UART 1 is used to communicate between boards
- */
-void setup_board_link(void) {}
+#include "messages.h"
+#include "uart.h"
 
 /**
  * @brief Send a message between boards
@@ -32,18 +24,9 @@ void setup_board_link(void) {}
  * @param message pointer to message to send
  * @return uint32_t the number of bytes sent
  */
-uint32_t send_board_message(MESSAGE_PACKET *message) {
-  UART_HandleTypeDef* base = uart_base(BOARD_UART);
-  HAL_UART_Transmit(base, (uint8_t*)message, (message->message_len)+2, HAL_MAX_DELAY);
-  /*
-  UARTCharPut(base, message->magic);
-  UARTCharPut(base, message->message_len);
-
-  for (int i = 0; i < message->message_len; i++) {
-    UARTCharPut(base, message->buffer[i]);
-  }
-  */
-
+uint32_t send_board_message(MESSAGE_PACKET *message)
+{
+  uart_write(BOARD_UART, (uint8_t*)message, message->message_len);
   return message->message_len;
 }
 
@@ -53,25 +36,17 @@ uint32_t send_board_message(MESSAGE_PACKET *message) {
  * @param message pointer to message where data will be received
  * @return uint32_t the number of bytes received - 0 for error
  */
-uint32_t receive_board_message(MESSAGE_PACKET *message) {
-  UART_HandleTypeDef* base = uart_base(BOARD_UART);
-  //message->magic = (uint8_t)UARTCharGet(base);
-  HAL_UART_Receive(base, &(message->magic), 1, HAL_MAX_DELAY);
+uint32_t receive_board_message(MESSAGE_PACKET *message)
+{
+  message->magic = (uint8_t)uart_readb(BOARD_UART);
 
   if (message->magic == 0) {
     return 0;
   }
 
-  //message->message_len = (uint8_t)UARTCharGet(base);
-  HAL_UART_Receive(base, &(message->message_len), 1, HAL_MAX_DELAY);
-
-  /*
-  for (int i = 0; i < message->message_len; i++) {
-    message->buffer[i] = (uint8_t)UARTCharGet(base);
-  }
-  */
-  HAL_UART_Receive(base, message->buffer, message->message_len, HAL_MAX_DELAY);
-
+  message->message_len = (uint8_t)uart_readb(BOARD_UART);
+  uart_read(BOARD_UART, (uint8_t*)(message->buffer), message->message_len);
+  
   return message->message_len;
 }
 

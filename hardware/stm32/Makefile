@@ -47,9 +47,8 @@ endif
 # C sources
 C_SOURCES =  \
 Core/Src/main.c \
-Core/Src/board_link_stm32.c \
-Core/Src/uart_stm32.c \
 ../../application/src/$(TARGET)Firmware.c \
+../../application/src/messages.c \
 Core/Src/stm32f4xx_it.c \
 Core/Src/stm32f4xx_hal_msp.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c \
