@@ -31,7 +31,7 @@ ifeq ($(ROLE),car)
 	endif
 endif
 
-export PLATFORM ROLE
+export PLATFORM ROLE C_DEFS
 
 ifeq ($(PLATFORM),tm4c)
 SUBDIR := tm4c
