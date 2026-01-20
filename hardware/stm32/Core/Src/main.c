@@ -75,16 +75,16 @@ UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-__attribute__((section(".eeprom_emul")))
+__attribute__((section(".flags")))
 const char unlock_flag[UNLOCK_SIZE]    = UNLOCK_FLAG;
 
-__attribute__((section(".eeprom_emul")))
+__attribute__((section(".flags")))
 const char feature1_flag[FEATURE_SIZE] = FEATURE1_FLAG;
 
-__attribute__((section(".eeprom_emul")))
+__attribute__((section(".flags")))
 const char feature2_flag[FEATURE_SIZE] = FEATURE2_FLAG;
 
-__attribute__((section(".eeprom_emul")))
+__attribute__((section(".flags")))
 const char feature3_flag[FEATURE_SIZE] = FEATURE3_FLAG;
 
 static UART_HandleTypeDef* const uart_base[2] = { [HOST_UART] = &huart2, [BOARD_UART] = &huart1 };

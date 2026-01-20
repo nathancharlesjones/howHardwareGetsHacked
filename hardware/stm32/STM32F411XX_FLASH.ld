@@ -206,16 +206,16 @@ SECTIONS
   } >RAM
 
   /* ===========================================================
-     EEPROM EMULATION REGION
+     FLAG REGION
      -----------------------------------------------------------
-     We'll reserve Sector 4 (64KB) for EEPROM emulation.
+     We'll reserve Sector 4 (64KB) for competition flags.
      =========================================================== */
-  __eeprom_start__ = 0x08010000;  /* Sector 4 base */
-  __eeprom_end__   = 0x08020000;  /* Sector 4 end  */
+  __flags_start__ = 0x08010000;  /* Sector 4 base */
+  __flags_end__   = 0x08020000;  /* Sector 4 end  */
 
-  .eeprom_emul (NOLOAD) :
+  .flags (NOLOAD) :
   {
-    KEEP(*(.eeprom_emul))
+    KEEP(*(.flags))
   } > FLASH
 
   /* ===========================================================
