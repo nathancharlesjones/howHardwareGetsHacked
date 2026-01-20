@@ -79,10 +79,11 @@ void readVar(uint8_t* dest, char* var)
  *
  * @param info Pointer to the flash data ram
  */
-void saveFobState(FLASH_DATA *flash_data)
+bool saveFobState(FLASH_DATA *flash_data)
 {
   FlashErase(FOB_STATE_PTR);
   FlashProgram((uint32_t *)flash_data, FOB_STATE_PTR, FLASH_DATA_SIZE);
+  return true;
 }
 
 void setLED(led_color_t color)

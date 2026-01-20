@@ -8,7 +8,7 @@ typedef enum { OFF, RED, GREEN, WHITE } led_color_t;
 void initHardware_car(int argc, char ** argv);
 void initHardware_fob(int argc, char ** argv);
 void readVar(uint8_t* dest, char * var);
-void saveFobState(FLASH_DATA *flash_data);
+bool saveFobState(const FLASH_DATA *flash_data);
 void setLED(led_color_t color);
 bool buttonPressed(void);
 

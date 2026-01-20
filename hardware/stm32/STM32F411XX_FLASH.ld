@@ -206,32 +206,17 @@ SECTIONS
   } >RAM
 
   /* ===========================================================
-     FLAG REGION
+     REGION FOR FLASH_DATA
      -----------------------------------------------------------
-     We'll reserve Sector 4 (64KB) for competition flags.
+     We'll reserve Sector 5 (128KB) for FLASH_DATA
      =========================================================== */
-  __flags_start__ = 0x08010000;  /* Sector 4 base */
-  __flags_end__   = 0x08020000;  /* Sector 4 end  */
+  __flash_data_start__ = 0x08020000;  /* Sector 5 base */
+  __flash_data_end__   = 0x08040000;  /* Sector 5 end  */
 
-  .flags (NOLOAD) :
+  .flash_data (NOLOAD) :
   {
-    KEEP(*(.flags))
+    KEEP(*(.flash_data))
   } > FLASH
-
-  /* ===========================================================
-     CONFIG REGION FOR g_fob_config
-     -----------------------------------------------------------
-     We'll reserve Sector 5 (128KB) for config data
-     =========================================================== */
-  __config_start__ = 0x08020000;  /* Sector 5 base */
-  __config_end__   = 0x08040000;  /* Sector 5 end  */
-
-  .config_flash (NOLOAD) :
-  {
-    KEEP(*(.config_flash))
-  } > FLASH
-
-
 
   /* Remove information from the standard libraries */
   /DISCARD/ :

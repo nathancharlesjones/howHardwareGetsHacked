@@ -55,14 +55,11 @@ typedef struct
 #define FEATURE3_FLAG "default_feature3"
 #endif
 
-#define CONFIG_FLASH_SECTOR   FLASH_SECTOR_7
-#define CONFIG_FLASH_BASE     0x080E0000UL
-#define CONFIG_FLASH_SIZE     (128 * 1024)
-#define DEVICE_CONFIG_BYTES         \
-  (sizeof(device_config_t) % 4 == 0) \
-      ? sizeof(device_config_t)      \
-      : sizeof(device_config_t) + (4 - (sizeof(device_config_t) % 4))
-#define DEVICE_CONFIG_WORDS (DEVICE_CONFIG_BYTES / 4)
+#define FLASH_DATA_BYTES         \
+  (sizeof(FLASH_DATA) % 4 == 0) \
+      ? sizeof(FLASH_DATA)      \
+      : sizeof(FLASH_DATA) + (4 - (sizeof(FLASH_DATA) % 4))
+#define FLASH_DATA_WORDS (FLASH_DATA_BYTES / 4)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -75,17 +72,16 @@ UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-__attribute__((section(".flags")))
 const char unlock_flag[UNLOCK_SIZE]    = UNLOCK_FLAG;
-
-__attribute__((section(".flags")))
 const char feature1_flag[FEATURE_SIZE] = FEATURE1_FLAG;
-
-__attribute__((section(".flags")))
 const char feature2_flag[FEATURE_SIZE] = FEATURE2_FLAG;
-
-__attribute__((section(".flags")))
 const char feature3_flag[FEATURE_SIZE] = FEATURE3_FLAG;
+
+__attribute__((section(".flash_data")))
+FLASH_DATA flash_data = {0};
+
+extern uint8_t __flash_data_start__;
+extern uint8_t __flash_data_end__;
 
 static UART_HandleTypeDef* const uart_base[2] = { [HOST_UART] = &huart2, [BOARD_UART] = &huart1 };
 /* USER CODE END PV */
@@ -132,42 +128,81 @@ void initHardware_fob(int argc, char ** argv)
 
 void readVar(uint8_t* dest, char * var)
 {
-  device_config_t* data = (device_config_t*)CONFIG_FLASH_BASE;
   if(!strcmp(var, "unlock")) memcpy(dest, unlock_flag, UNLOCK_SIZE);
   else if(!strcmp(var, "feature1")) memcpy(dest, feature1_flag, FEATURE_SIZE);
   else if(!strcmp(var, "feature2")) memcpy(dest, feature2_flag, FEATURE_SIZE);
   else if(!strcmp(var, "feature3")) memcpy(dest, feature3_flag, FEATURE_SIZE);
-  else if(!strcmp(var, "fob_state")) memcpy(dest, &(data->fob_info), sizeof(FLASH_DATA));
+  else if(!strcmp(var, "fob_state")) memcpy(dest, &flash_data, sizeof(FLASH_DATA));
 }
 
-void saveFobState(FLASH_DATA *flash_data)
+/* -----------------------------------------------------------
+   Flash Sector Helper (F411 Example)
+   ----------------------------------------------------------- */
+static uint32_t get_flash_sector(uint32_t addr)
 {
+  if (addr < 0x08004000) return FLASH_SECTOR_0;
+  if (addr < 0x08008000) return FLASH_SECTOR_1;
+  if (addr < 0x0800C000) return FLASH_SECTOR_2;
+  if (addr < 0x08010000) return FLASH_SECTOR_3;
+  if (addr < 0x08020000) return FLASH_SECTOR_4;
+  if (addr < 0x08040000) return FLASH_SECTOR_5;
+  if (addr < 0x08060000) return FLASH_SECTOR_6;
+  return FLASH_SECTOR_7;
+}
+
+/* -----------------------------------------------------------
+   Config Flash Write (Overwrite Whole Sector)
+   ----------------------------------------------------------- */
+bool saveFobState(const FLASH_DATA *src)
+{
+  uint32_t base = (uint32_t)&__flash_data_start__;
+  uint32_t end  = (uint32_t)&__flash_data_end__;
+  uint32_t size = end - base;
+
+  // Sanity check: config struct fits in sector
+  if (sizeof(FLASH_DATA_BYTES) > size)
+  {
+      return false;
+  }
+
+  // Erase the sector that holds .config_flash
+  uint32_t sector = get_flash_sector(base);
   FLASH_EraseInitTypeDef erase =
   {
       .TypeErase    = FLASH_TYPEERASE_SECTORS,
-      .Sector       = CONFIG_FLASH_SECTOR,
+      .Sector       = sector,
       .NbSectors    = 1,
       .VoltageRange = FLASH_VOLTAGE_RANGE_3,
   };
 
-  uint32_t padded_data[DEVICE_CONFIG_WORDS];
+  uint8_t padded_data[FLASH_DATA_BYTES];
   memset(padded_data, 0xFF, sizeof(padded_data));
-  memcpy(padded_data, (uint8_t*)CONFIG_FLASH_BASE, sizeof(device_config_t));
-  memcpy((device_config_t*)(&padded_data), flash_data, sizeof(FLASH_DATA));
+  memcpy((FLASH_DATA*)(&padded_data), src, sizeof(FLASH_DATA));
 
-  uint32_t sector_error;
+  uint32_t sector_err = 0;
   HAL_FLASH_Unlock();
-  HAL_FLASHEx_Erase(&erase, &sector_error);
 
-  uint32_t dst = CONFIG_FLASH_BASE;
-
-  for (size_t i = 0; i < DEVICE_CONFIG_WORDS; i++)
+  if (HAL_FLASHEx_Erase(&erase, &sector_err) != HAL_OK)
   {
-      HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, dst, padded_data[i]);
-      dst += 4;
+      HAL_FLASH_Lock();
+      return false;
+  }
+
+  // Program new config data
+  const uint32_t *words = (const uint32_t *)src;
+  uint32_t addr = base;
+
+  for (size_t i = 0; i < FLASH_DATA_WORDS; i++)
+  {
+      if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr, words[i]) != HAL_OK) {
+          HAL_FLASH_Lock();
+          return false;
+      }
+      addr += 4;
   }
 
   HAL_FLASH_Lock();
+  return true;
 }
 
 void setLED(led_color_t color)
@@ -177,22 +212,22 @@ void setLED(led_color_t color)
 
 bool buttonPressed(void)
 {
-    static uint32_t history = 0;
-    static bool latched = false;
+  static uint32_t history = 0;
+  static bool latched = false;
 
-    history = (history << 1) |
-              (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_SET);
+  history = (history << 1) |
+            (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_SET);
 
-    if (history == 0xFFFFFFFF && !latched) {
-        latched = true;
-        return true;        // button just pressed
-    }
+  if (history == 0xFFFFFFFF && !latched) {
+      latched = true;
+      return true;        // button just pressed
+  }
 
-    if (history == 0x00000000) {
-        latched = false;    // fully released
-    }
+  if (history == 0x00000000) {
+      latched = false;    // fully released
+  }
 
-    return false;
+  return false;
 }
 
 /**
