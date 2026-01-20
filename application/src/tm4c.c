@@ -65,12 +65,12 @@ void initHardware_fob(int argc, char ** argv)
                    GPIO_PIN_TYPE_STD_WPU);
 }
 
-void readVar(uint8_t* dest, char* var, size_t size)
+void readVar(uint8_t* dest, char* var)
 {
-	if(!strcmp(var, "unlock")) EEPROMRead((uint32_t *)dest, UNLOCK_EEPROM_LOC, size);
-	else if(!strcmp(var, "feature1")) EEPROMRead((uint32_t *)dest, FEATURE1_LOC, size);
-	else if(!strcmp(var, "feature2")) EEPROMRead((uint32_t *)dest, FEATURE2_LOC, size);
-	else if(!strcmp(var, "feature3")) EEPROMRead((uint32_t *)dest, FEATURE3_LOC, size);
+	if(!strcmp(var, "unlock")) EEPROMRead((uint32_t *)dest, UNLOCK_EEPROM_LOC, UNLOCK_SIZE);
+	else if(!strcmp(var, "feature1")) EEPROMRead((uint32_t *)dest, FEATURE1_LOC, FEATURE_SIZE);
+	else if(!strcmp(var, "feature2")) EEPROMRead((uint32_t *)dest, FEATURE2_LOC, FEATURE_SIZE);
+	else if(!strcmp(var, "feature3")) EEPROMRead((uint32_t *)dest, FEATURE3_LOC, FEATURE_SIZE);
 	else if(!strcmp(var, "fob_state")) memcpy(dest, (FLASH_DATA *)FOB_STATE_PTR, sizeof(FLASH_DATA));
 }
 

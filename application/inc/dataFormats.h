@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#define UNLOCK_SIZE 64
+
 #define NUM_FEATURES 3
 #define FEATURE_SIZE 64
 

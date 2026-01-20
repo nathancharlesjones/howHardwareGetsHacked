@@ -16,21 +16,9 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "inc/hw_ints.h"
-#include "inc/hw_memmap.h"
-
-#include "driverlib/eeprom.h"
-#include "driverlib/flash.h"
-#include "driverlib/gpio.h"
-#include "driverlib/interrupt.h"
-#include "driverlib/pin_map.h"
-#include "driverlib/sysctl.h"
-#include "driverlib/timer.h"
-
-#include "fob_secrets.h"
-
-#include "board_link.h"
-#include "feature_list.h"
+#include "secrets.h"
+#include "messages.h"
+#include "dataFormats.h"
 #include "uart.h"
 #include "platform.h"
 
@@ -67,7 +55,7 @@ int main(int argc, char ** argv)
 {
   FLASH_DATA fob_state_ram;
   FLASH_DATA fob_state_flash;
-  readVar((uint8_t*)(&fob_state_flash), "fob_state", sizeof(FLASH_DATA));
+  readVar((uint8_t*)(&fob_state_flash), "fob_state");
 
 // If paired fob, initialize the system information
 #if PAIRED == 1

@@ -1,0 +1,649 @@
+ARM GAS  /tmp/ccuKp4jq.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.eabi_attribute 27, 1
+   3              		.eabi_attribute 28, 1
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.file	"carFirmware.c"
+  14              		.section	.rodata.str1.4,"aMS",%progbits,1
+  15              		.align	2
+  16              	.LC1:
+  17 0000 66656174 		.ascii	"feature1\000"
+  17      75726531 
+  17      00
+  18 0009 000000   		.align	2
+  19              	.LC2:
+  20 000c 66656174 		.ascii	"feature2\000"
+  20      75726532 
+  20      00
+  21 0015 000000   		.align	2
+  22              	.LC3:
+  23 0018 66656174 		.ascii	"feature3\000"
+  23      75726533 
+  23      00
+  24              		.text
+  25              	.Ltext0:
+  26              		.cfi_sections	.debug_frame
+  27              		.section	.text.startCar,"ax",%progbits
+  28              		.align	1
+  29              		.global	startCar
+  30              		.arch armv7e-m
+  31              		.syntax unified
+  32              		.thumb
+  33              		.thumb_func
+  34              		.fpu fpv4-sp-d16
+  36              	startCar:
+  37              	.LFB2:
+  38              		.file 1 "../../application/src/carFirmware.c"
+   1:../../application/src/carFirmware.c **** /**
+   2:../../application/src/carFirmware.c ****  * @file main.c
+   3:../../application/src/carFirmware.c ****  * @author Frederich Stine
+   4:../../application/src/carFirmware.c ****  * @brief eCTF Car Example Design Implementation
+   5:../../application/src/carFirmware.c ****  * @date 2023
+   6:../../application/src/carFirmware.c ****  *
+   7:../../application/src/carFirmware.c ****  * This source file is part of an example system for MITRE's 2023 Embedded
+   8:../../application/src/carFirmware.c ****  * System CTF (eCTF). This code is being provided only for educational purposes
+   9:../../application/src/carFirmware.c ****  * for the 2023 MITRE eCTF competition, and may not meet MITRE standards for
+  10:../../application/src/carFirmware.c ****  * quality. Use this code at your own risk!
+  11:../../application/src/carFirmware.c ****  *
+  12:../../application/src/carFirmware.c ****  * @copyright Copyright (c) 2023 The MITRE Corporation
+  13:../../application/src/carFirmware.c ****  */
+  14:../../application/src/carFirmware.c **** 
+ARM GAS  /tmp/ccuKp4jq.s 			page 2
+
+
+  15:../../application/src/carFirmware.c **** #include <stdbool.h>
+  16:../../application/src/carFirmware.c **** #include <stdint.h>
+  17:../../application/src/carFirmware.c **** #include <string.h>
+  18:../../application/src/carFirmware.c **** 
+  19:../../application/src/carFirmware.c **** #include "secrets.h"
+  20:../../application/src/carFirmware.c **** #include "messages.h"
+  21:../../application/src/carFirmware.c **** #include "dataFormats.h"
+  22:../../application/src/carFirmware.c **** #include "uart.h"
+  23:../../application/src/carFirmware.c **** #include "platform.h"
+  24:../../application/src/carFirmware.c **** 
+  25:../../application/src/carFirmware.c **** /*** Function definitions ***/
+  26:../../application/src/carFirmware.c **** // Core functions - unlockCar and startCar
+  27:../../application/src/carFirmware.c **** void unlockCar(void);
+  28:../../application/src/carFirmware.c **** void startCar(void);
+  29:../../application/src/carFirmware.c **** 
+  30:../../application/src/carFirmware.c **** // Helper functions - sending ack messages
+  31:../../application/src/carFirmware.c **** void sendAckSuccess(void);
+  32:../../application/src/carFirmware.c **** void sendAckFailure(void);
+  33:../../application/src/carFirmware.c **** 
+  34:../../application/src/carFirmware.c **** // Declare password
+  35:../../application/src/carFirmware.c **** const uint8_t pass[] = PASSWORD;
+  36:../../application/src/carFirmware.c **** const uint8_t car_id[] = CAR_ID;
+  37:../../application/src/carFirmware.c **** 
+  38:../../application/src/carFirmware.c **** /**
+  39:../../application/src/carFirmware.c ****  * @brief Main function for the car example
+  40:../../application/src/carFirmware.c ****  *
+  41:../../application/src/carFirmware.c ****  * Initializes the RF module and waits for a successful unlock attempt.
+  42:../../application/src/carFirmware.c ****  * If successful prints out the unlock flag.
+  43:../../application/src/carFirmware.c ****  */
+  44:../../application/src/carFirmware.c **** int main(int argc, char ** argv) {
+  45:../../application/src/carFirmware.c ****   initHardware_car(argc, argv);
+  46:../../application/src/carFirmware.c **** 
+  47:../../application/src/carFirmware.c ****   while (true) {
+  48:../../application/src/carFirmware.c **** 
+  49:../../application/src/carFirmware.c ****     unlockCar();
+  50:../../application/src/carFirmware.c ****   }
+  51:../../application/src/carFirmware.c **** }
+  52:../../application/src/carFirmware.c **** 
+  53:../../application/src/carFirmware.c **** /**
+  54:../../application/src/carFirmware.c ****  * @brief Function that handles unlocking of car
+  55:../../application/src/carFirmware.c ****  */
+  56:../../application/src/carFirmware.c **** void unlockCar(void) {
+  57:../../application/src/carFirmware.c ****   // Create a message struct variable for receiving data
+  58:../../application/src/carFirmware.c ****   MESSAGE_PACKET message;
+  59:../../application/src/carFirmware.c ****   uint8_t buffer[256];
+  60:../../application/src/carFirmware.c ****   message.buffer = buffer;
+  61:../../application/src/carFirmware.c **** 
+  62:../../application/src/carFirmware.c ****   // Receive packet with some error checking
+  63:../../application/src/carFirmware.c ****   receive_board_message_by_type(&message, UNLOCK_MAGIC);
+  64:../../application/src/carFirmware.c **** 
+  65:../../application/src/carFirmware.c ****   // Pad payload to a string
+  66:../../application/src/carFirmware.c ****   message.buffer[message.message_len] = 0;
+  67:../../application/src/carFirmware.c **** 
+  68:../../application/src/carFirmware.c ****   // If the data transfer is the password, unlock
+  69:../../application/src/carFirmware.c ****   if (!strcmp((char *)(message.buffer), (char *)pass)) {
+  70:../../application/src/carFirmware.c ****     uint8_t eeprom_message[UNLOCK_SIZE];
+  71:../../application/src/carFirmware.c ****     // Read last 64B of EEPROM
+ARM GAS  /tmp/ccuKp4jq.s 			page 3
+
+
+  72:../../application/src/carFirmware.c ****     readVar(eeprom_message, "unlock");
+  73:../../application/src/carFirmware.c **** 
+  74:../../application/src/carFirmware.c ****     // Write out full flag if applicable
+  75:../../application/src/carFirmware.c ****     uart_write(HOST_UART, eeprom_message, UNLOCK_SIZE);
+  76:../../application/src/carFirmware.c **** 
+  77:../../application/src/carFirmware.c ****     sendAckSuccess();
+  78:../../application/src/carFirmware.c **** 
+  79:../../application/src/carFirmware.c ****     startCar();
+  80:../../application/src/carFirmware.c ****   } else {
+  81:../../application/src/carFirmware.c ****     sendAckFailure();
+  82:../../application/src/carFirmware.c ****   }
+  83:../../application/src/carFirmware.c **** }
+  84:../../application/src/carFirmware.c **** 
+  85:../../application/src/carFirmware.c **** /**
+  86:../../application/src/carFirmware.c ****  * @brief Function that handles starting of car - feature list
+  87:../../application/src/carFirmware.c ****  */
+  88:../../application/src/carFirmware.c **** void startCar(void) {
+  39              		.loc 1 88 21 view -0
+  40              		.cfi_startproc
+  41              		@ args = 0, pretend = 0, frame = 344
+  42              		@ frame_needed = 0, uses_anonymous_args = 0
+  43 0000 10B5     		push	{r4, lr}
+  44              	.LCFI0:
+  45              		.cfi_def_cfa_offset 8
+  46              		.cfi_offset 4, -8
+  47              		.cfi_offset 14, -4
+  48 0002 D6B0     		sub	sp, sp, #344
+  49              	.LCFI1:
+  50              		.cfi_def_cfa_offset 352
+  89:../../application/src/carFirmware.c ****   // Create a message struct variable for receiving data
+  90:../../application/src/carFirmware.c ****   MESSAGE_PACKET message;
+  51              		.loc 1 90 3 view .LVU1
+  91:../../application/src/carFirmware.c ****   uint8_t buffer[256];
+  52              		.loc 1 91 3 view .LVU2
+  92:../../application/src/carFirmware.c ****   message.buffer = buffer;
+  53              		.loc 1 92 3 view .LVU3
+  54              		.loc 1 92 18 is_stmt 0 view .LVU4
+  55 0004 14AC     		add	r4, sp, #80
+  56 0006 5594     		str	r4, [sp, #340]
+  93:../../application/src/carFirmware.c **** 
+  94:../../application/src/carFirmware.c ****   // Receive start message
+  95:../../application/src/carFirmware.c ****   receive_board_message_by_type(&message, START_MAGIC);
+  57              		.loc 1 95 3 is_stmt 1 view .LVU5
+  58 0008 5721     		movs	r1, #87
+  59 000a 54A8     		add	r0, sp, #336
+  60 000c FFF7FEFF 		bl	receive_board_message_by_type
+  61              	.LVL0:
+  96:../../application/src/carFirmware.c **** 
+  97:../../application/src/carFirmware.c ****   FEATURE_DATA *feature_info = (FEATURE_DATA *)buffer;
+  62              		.loc 1 97 3 view .LVU6
+  98:../../application/src/carFirmware.c **** 
+  99:../../application/src/carFirmware.c ****   // Verify correct car id
+ 100:../../application/src/carFirmware.c ****   if (strcmp((char *)car_id, (char *)feature_info->car_id)) {
+  63              		.loc 1 100 3 view .LVU7
+  64              		.loc 1 100 7 is_stmt 0 view .LVU8
+  65 0010 2146     		mov	r1, r4
+  66 0012 1148     		ldr	r0, .L6
+ARM GAS  /tmp/ccuKp4jq.s 			page 4
+
+
+  67 0014 FFF7FEFF 		bl	strcmp
+  68              	.LVL1:
+  69              		.loc 1 100 6 view .LVU9
+  70 0018 0446     		mov	r4, r0
+  71              	.LVL2:
+  72              		.loc 1 100 6 view .LVU10
+  73 001a 98B1     		cbz	r0, .L2
+  74 001c 19E0     		b	.L1
+  75              	.LVL3:
+  76              	.L4:
+  77              	.LBB2:
+  78              	.LBB3:
+ 101:../../application/src/carFirmware.c ****     return;
+ 102:../../application/src/carFirmware.c ****   }
+ 103:../../application/src/carFirmware.c **** 
+ 104:../../application/src/carFirmware.c ****   // Print out features for all active features
+ 105:../../application/src/carFirmware.c ****   for (int i = 0; i < feature_info->num_active; i++) {
+ 106:../../application/src/carFirmware.c ****     uint8_t eeprom_message[64];
+  79              		.loc 1 106 5 is_stmt 1 discriminator 3 view .LVU11
+ 107:../../application/src/carFirmware.c ****     char* featureNumToStr[] = { "\0", "feature1", "feature2", "feature3" };
+  80              		.loc 1 107 5 discriminator 3 view .LVU12
+  81              		.loc 1 107 11 is_stmt 0 discriminator 3 view .LVU13
+  82 001e EC46     		mov	ip, sp
+  83 0020 0E4B     		ldr	r3, .L6+4
+  84 0022 0FCB     		ldm	r3, {r0, r1, r2, r3}
+  85 0024 8CE80F00 		stm	ip, {r0, r1, r2, r3}
+ 108:../../application/src/carFirmware.c **** 
+ 109:../../application/src/carFirmware.c ****     uint8_t featureNum = feature_info->features[i];
+  86              		.loc 1 109 5 is_stmt 1 discriminator 3 view .LVU14
+  87              		.loc 1 109 13 is_stmt 0 discriminator 3 view .LVU15
+  88 0028 14AB     		add	r3, sp, #80
+  89              	.LVL4:
+  90              		.loc 1 109 13 discriminator 3 view .LVU16
+  91 002a 2344     		add	r3, r3, r4
+  92              	.LVL5:
+  93              		.loc 1 109 13 discriminator 3 view .LVU17
+  94 002c 5B7A     		ldrb	r3, [r3, #9]	@ zero_extendqisi2
+  95              	.LVL6:
+ 110:../../application/src/carFirmware.c ****     readVar(eeprom_message, featureNumToStr[featureNum]);
+  96              		.loc 1 110 5 is_stmt 1 discriminator 3 view .LVU18
+  97 002e 5CF82310 		ldr	r1, [ip, r3, lsl #2]
+  98 0032 04A8     		add	r0, sp, #16
+  99 0034 FFF7FEFF 		bl	readVar
+ 100              	.LVL7:
+ 111:../../application/src/carFirmware.c **** 
+ 112:../../application/src/carFirmware.c ****     uart_write(HOST_UART, eeprom_message, FEATURE_SIZE);
+ 101              		.loc 1 112 5 discriminator 3 view .LVU19
+ 102 0038 4022     		movs	r2, #64
+ 103 003a 04A9     		add	r1, sp, #16
+ 104 003c 0020     		movs	r0, #0
+ 105 003e FFF7FEFF 		bl	uart_write
+ 106              	.LVL8:
+ 107              	.LBE3:
+ 105:../../application/src/carFirmware.c ****     uint8_t eeprom_message[64];
+ 108              		.loc 1 105 49 discriminator 3 view .LVU20
+ 105:../../application/src/carFirmware.c ****     uint8_t eeprom_message[64];
+ 109              		.loc 1 105 50 is_stmt 0 discriminator 3 view .LVU21
+ARM GAS  /tmp/ccuKp4jq.s 			page 5
+
+
+ 110 0042 0134     		adds	r4, r4, #1
+ 111              	.LVL9:
+ 112              	.L2:
+ 105:../../application/src/carFirmware.c ****     uint8_t eeprom_message[64];
+ 113              		.loc 1 105 19 is_stmt 1 discriminator 1 view .LVU22
+ 105:../../application/src/carFirmware.c ****     uint8_t eeprom_message[64];
+ 114              		.loc 1 105 35 is_stmt 0 discriminator 1 view .LVU23
+ 115 0044 9DF85830 		ldrb	r3, [sp, #88]	@ zero_extendqisi2
+ 105:../../application/src/carFirmware.c ****     uint8_t eeprom_message[64];
+ 116              		.loc 1 105 3 discriminator 1 view .LVU24
+ 117 0048 A342     		cmp	r3, r4
+ 118 004a E8DC     		bgt	.L4
+ 119              	.LBE2:
+ 113:../../application/src/carFirmware.c ****   }
+ 114:../../application/src/carFirmware.c **** 
+ 115:../../application/src/carFirmware.c ****   // Change LED color: green
+ 116:../../application/src/carFirmware.c ****   setLED(GREEN);
+ 120              		.loc 1 116 3 is_stmt 1 view .LVU25
+ 121 004c 0220     		movs	r0, #2
+ 122 004e FFF7FEFF 		bl	setLED
+ 123              	.LVL10:
+ 124              	.L1:
+ 117:../../application/src/carFirmware.c **** }
+ 125              		.loc 1 117 1 is_stmt 0 view .LVU26
+ 126 0052 56B0     		add	sp, sp, #344
+ 127              	.LCFI2:
+ 128              		.cfi_def_cfa_offset 8
+ 129              		@ sp needed
+ 130 0054 10BD     		pop	{r4, pc}
+ 131              	.LVL11:
+ 132              	.L7:
+ 133              		.loc 1 117 1 view .LVU27
+ 134 0056 00BF     		.align	2
+ 135              	.L6:
+ 136 0058 00000000 		.word	.LANCHOR0
+ 137 005c 04000000 		.word	.LANCHOR1+4
+ 138              		.cfi_endproc
+ 139              	.LFE2:
+ 141              		.section	.text.sendAckSuccess,"ax",%progbits
+ 142              		.align	1
+ 143              		.global	sendAckSuccess
+ 144              		.syntax unified
+ 145              		.thumb
+ 146              		.thumb_func
+ 147              		.fpu fpv4-sp-d16
+ 149              	sendAckSuccess:
+ 150              	.LFB3:
+ 118:../../application/src/carFirmware.c **** 
+ 119:../../application/src/carFirmware.c **** /**
+ 120:../../application/src/carFirmware.c ****  * @brief Function to send successful ACK message
+ 121:../../application/src/carFirmware.c ****  */
+ 122:../../application/src/carFirmware.c **** void sendAckSuccess(void) {
+ 151              		.loc 1 122 27 is_stmt 1 view -0
+ 152              		.cfi_startproc
+ 153              		@ args = 0, pretend = 0, frame = 16
+ 154              		@ frame_needed = 0, uses_anonymous_args = 0
+ 155 0000 00B5     		push	{lr}
+ARM GAS  /tmp/ccuKp4jq.s 			page 6
+
+
+ 156              	.LCFI3:
+ 157              		.cfi_def_cfa_offset 4
+ 158              		.cfi_offset 14, -4
+ 159 0002 85B0     		sub	sp, sp, #20
+ 160              	.LCFI4:
+ 161              		.cfi_def_cfa_offset 24
+ 123:../../application/src/carFirmware.c ****   // Create packet for successful ack and send
+ 124:../../application/src/carFirmware.c ****   MESSAGE_PACKET message;
+ 162              		.loc 1 124 3 view .LVU29
+ 125:../../application/src/carFirmware.c **** 
+ 126:../../application/src/carFirmware.c ****   uint8_t buffer[1];
+ 163              		.loc 1 126 3 view .LVU30
+ 127:../../application/src/carFirmware.c ****   message.buffer = buffer;
+ 164              		.loc 1 127 3 view .LVU31
+ 165              		.loc 1 127 18 is_stmt 0 view .LVU32
+ 166 0004 01AB     		add	r3, sp, #4
+ 167 0006 0393     		str	r3, [sp, #12]
+ 128:../../application/src/carFirmware.c ****   message.magic = ACK_MAGIC;
+ 168              		.loc 1 128 3 is_stmt 1 view .LVU33
+ 169              		.loc 1 128 17 is_stmt 0 view .LVU34
+ 170 0008 5423     		movs	r3, #84
+ 171 000a 8DF80830 		strb	r3, [sp, #8]
+ 129:../../application/src/carFirmware.c ****   buffer[0] = ACK_SUCCESS;
+ 172              		.loc 1 129 3 is_stmt 1 view .LVU35
+ 173              		.loc 1 129 13 is_stmt 0 view .LVU36
+ 174 000e 0123     		movs	r3, #1
+ 175 0010 8DF80430 		strb	r3, [sp, #4]
+ 130:../../application/src/carFirmware.c ****   message.message_len = 1;
+ 176              		.loc 1 130 3 is_stmt 1 view .LVU37
+ 177              		.loc 1 130 23 is_stmt 0 view .LVU38
+ 178 0014 8DF80930 		strb	r3, [sp, #9]
+ 131:../../application/src/carFirmware.c **** 
+ 132:../../application/src/carFirmware.c ****   send_board_message(&message);
+ 179              		.loc 1 132 3 is_stmt 1 view .LVU39
+ 180 0018 02A8     		add	r0, sp, #8
+ 181 001a FFF7FEFF 		bl	send_board_message
+ 182              	.LVL12:
+ 133:../../application/src/carFirmware.c **** }
+ 183              		.loc 1 133 1 is_stmt 0 view .LVU40
+ 184 001e 05B0     		add	sp, sp, #20
+ 185              	.LCFI5:
+ 186              		.cfi_def_cfa_offset 4
+ 187              		@ sp needed
+ 188 0020 5DF804FB 		ldr	pc, [sp], #4
+ 189              		.cfi_endproc
+ 190              	.LFE3:
+ 192              		.section	.text.sendAckFailure,"ax",%progbits
+ 193              		.align	1
+ 194              		.global	sendAckFailure
+ 195              		.syntax unified
+ 196              		.thumb
+ 197              		.thumb_func
+ 198              		.fpu fpv4-sp-d16
+ 200              	sendAckFailure:
+ 201              	.LFB4:
+ 134:../../application/src/carFirmware.c **** 
+ 135:../../application/src/carFirmware.c **** /**
+ARM GAS  /tmp/ccuKp4jq.s 			page 7
+
+
+ 136:../../application/src/carFirmware.c ****  * @brief Function to send unsuccessful ACK message
+ 137:../../application/src/carFirmware.c ****  */
+ 138:../../application/src/carFirmware.c **** void sendAckFailure(void) {
+ 202              		.loc 1 138 27 is_stmt 1 view -0
+ 203              		.cfi_startproc
+ 204              		@ args = 0, pretend = 0, frame = 16
+ 205              		@ frame_needed = 0, uses_anonymous_args = 0
+ 206 0000 00B5     		push	{lr}
+ 207              	.LCFI6:
+ 208              		.cfi_def_cfa_offset 4
+ 209              		.cfi_offset 14, -4
+ 210 0002 85B0     		sub	sp, sp, #20
+ 211              	.LCFI7:
+ 212              		.cfi_def_cfa_offset 24
+ 139:../../application/src/carFirmware.c ****   // Create packet for unsuccessful ack and send
+ 140:../../application/src/carFirmware.c ****   MESSAGE_PACKET message;
+ 213              		.loc 1 140 3 view .LVU42
+ 141:../../application/src/carFirmware.c **** 
+ 142:../../application/src/carFirmware.c ****   uint8_t buffer[1];
+ 214              		.loc 1 142 3 view .LVU43
+ 143:../../application/src/carFirmware.c ****   message.buffer = buffer;
+ 215              		.loc 1 143 3 view .LVU44
+ 216              		.loc 1 143 18 is_stmt 0 view .LVU45
+ 217 0004 01AB     		add	r3, sp, #4
+ 218 0006 0393     		str	r3, [sp, #12]
+ 144:../../application/src/carFirmware.c ****   message.magic = ACK_MAGIC;
+ 219              		.loc 1 144 3 is_stmt 1 view .LVU46
+ 220              		.loc 1 144 17 is_stmt 0 view .LVU47
+ 221 0008 5423     		movs	r3, #84
+ 222 000a 8DF80830 		strb	r3, [sp, #8]
+ 145:../../application/src/carFirmware.c ****   buffer[0] = ACK_FAIL;
+ 223              		.loc 1 145 3 is_stmt 1 view .LVU48
+ 224              		.loc 1 145 13 is_stmt 0 view .LVU49
+ 225 000e 0023     		movs	r3, #0
+ 226 0010 8DF80430 		strb	r3, [sp, #4]
+ 146:../../application/src/carFirmware.c ****   message.message_len = 1;
+ 227              		.loc 1 146 3 is_stmt 1 view .LVU50
+ 228              		.loc 1 146 23 is_stmt 0 view .LVU51
+ 229 0014 0123     		movs	r3, #1
+ 230 0016 8DF80930 		strb	r3, [sp, #9]
+ 147:../../application/src/carFirmware.c **** 
+ 148:../../application/src/carFirmware.c ****   send_board_message(&message);
+ 231              		.loc 1 148 3 is_stmt 1 view .LVU52
+ 232 001a 02A8     		add	r0, sp, #8
+ 233 001c FFF7FEFF 		bl	send_board_message
+ 234              	.LVL13:
+ 149:../../application/src/carFirmware.c **** }
+ 235              		.loc 1 149 1 is_stmt 0 view .LVU53
+ 236 0020 05B0     		add	sp, sp, #20
+ 237              	.LCFI8:
+ 238              		.cfi_def_cfa_offset 4
+ 239              		@ sp needed
+ 240 0022 5DF804FB 		ldr	pc, [sp], #4
+ 241              		.cfi_endproc
+ 242              	.LFE4:
+ 244              		.section	.rodata.unlockCar.str1.4,"aMS",%progbits,1
+ 245              		.align	2
+ARM GAS  /tmp/ccuKp4jq.s 			page 8
+
+
+ 246              	.LC6:
+ 247 0000 756E6C6F 		.ascii	"unlock\000"
+ 247      636B00
+ 248              		.section	.text.unlockCar,"ax",%progbits
+ 249              		.align	1
+ 250              		.global	unlockCar
+ 251              		.syntax unified
+ 252              		.thumb
+ 253              		.thumb_func
+ 254              		.fpu fpv4-sp-d16
+ 256              	unlockCar:
+ 257              	.LFB1:
+  56:../../application/src/carFirmware.c ****   // Create a message struct variable for receiving data
+ 258              		.loc 1 56 22 is_stmt 1 view -0
+ 259              		.cfi_startproc
+ 260              		@ args = 0, pretend = 0, frame = 328
+ 261              		@ frame_needed = 0, uses_anonymous_args = 0
+ 262 0000 00B5     		push	{lr}
+ 263              	.LCFI9:
+ 264              		.cfi_def_cfa_offset 4
+ 265              		.cfi_offset 14, -4
+ 266 0002 D3B0     		sub	sp, sp, #332
+ 267              	.LCFI10:
+ 268              		.cfi_def_cfa_offset 336
+  58:../../application/src/carFirmware.c ****   uint8_t buffer[256];
+ 269              		.loc 1 58 3 view .LVU55
+  59:../../application/src/carFirmware.c ****   message.buffer = buffer;
+ 270              		.loc 1 59 3 view .LVU56
+  60:../../application/src/carFirmware.c **** 
+ 271              		.loc 1 60 3 view .LVU57
+  60:../../application/src/carFirmware.c **** 
+ 272              		.loc 1 60 18 is_stmt 0 view .LVU58
+ 273 0004 10AB     		add	r3, sp, #64
+ 274 0006 5193     		str	r3, [sp, #324]
+  63:../../application/src/carFirmware.c **** 
+ 275              		.loc 1 63 3 is_stmt 1 view .LVU59
+ 276 0008 5621     		movs	r1, #86
+ 277 000a 50A8     		add	r0, sp, #320
+ 278 000c FFF7FEFF 		bl	receive_board_message_by_type
+ 279              	.LVL14:
+  66:../../application/src/carFirmware.c **** 
+ 280              		.loc 1 66 3 view .LVU60
+  66:../../application/src/carFirmware.c **** 
+ 281              		.loc 1 66 25 is_stmt 0 view .LVU61
+ 282 0010 9DF84131 		ldrb	r3, [sp, #321]	@ zero_extendqisi2
+  66:../../application/src/carFirmware.c **** 
+ 283              		.loc 1 66 39 view .LVU62
+ 284 0014 519A     		ldr	r2, [sp, #324]
+ 285 0016 0021     		movs	r1, #0
+ 286 0018 D154     		strb	r1, [r2, r3]
+  69:../../application/src/carFirmware.c ****     uint8_t eeprom_message[UNLOCK_SIZE];
+ 287              		.loc 1 69 3 is_stmt 1 view .LVU63
+  69:../../application/src/carFirmware.c ****     uint8_t eeprom_message[UNLOCK_SIZE];
+ 288              		.loc 1 69 8 is_stmt 0 view .LVU64
+ 289 001a 0C49     		ldr	r1, .L16
+ 290 001c 5198     		ldr	r0, [sp, #324]
+ 291 001e FFF7FEFF 		bl	strcmp
+ARM GAS  /tmp/ccuKp4jq.s 			page 9
+
+
+ 292              	.LVL15:
+  69:../../application/src/carFirmware.c ****     uint8_t eeprom_message[UNLOCK_SIZE];
+ 293              		.loc 1 69 6 view .LVU65
+ 294 0022 78B9     		cbnz	r0, .L13
+ 295              	.LBB4:
+  70:../../application/src/carFirmware.c ****     // Read last 64B of EEPROM
+ 296              		.loc 1 70 5 is_stmt 1 view .LVU66
+  72:../../application/src/carFirmware.c **** 
+ 297              		.loc 1 72 5 view .LVU67
+ 298 0024 0A49     		ldr	r1, .L16+4
+ 299 0026 6846     		mov	r0, sp
+ 300 0028 FFF7FEFF 		bl	readVar
+ 301              	.LVL16:
+  75:../../application/src/carFirmware.c **** 
+ 302              		.loc 1 75 5 view .LVU68
+ 303 002c 4022     		movs	r2, #64
+ 304 002e 6946     		mov	r1, sp
+ 305 0030 0020     		movs	r0, #0
+ 306 0032 FFF7FEFF 		bl	uart_write
+ 307              	.LVL17:
+  77:../../application/src/carFirmware.c **** 
+ 308              		.loc 1 77 5 view .LVU69
+ 309 0036 FFF7FEFF 		bl	sendAckSuccess
+ 310              	.LVL18:
+  79:../../application/src/carFirmware.c ****   } else {
+ 311              		.loc 1 79 5 view .LVU70
+ 312 003a FFF7FEFF 		bl	startCar
+ 313              	.LVL19:
+ 314              	.L12:
+ 315              	.LBE4:
+  83:../../application/src/carFirmware.c **** 
+ 316              		.loc 1 83 1 is_stmt 0 view .LVU71
+ 317 003e 53B0     		add	sp, sp, #332
+ 318              	.LCFI11:
+ 319              		.cfi_remember_state
+ 320              		.cfi_def_cfa_offset 4
+ 321              		@ sp needed
+ 322 0040 5DF804FB 		ldr	pc, [sp], #4
+ 323              	.L13:
+ 324              	.LCFI12:
+ 325              		.cfi_restore_state
+  81:../../application/src/carFirmware.c ****   }
+ 326              		.loc 1 81 5 is_stmt 1 view .LVU72
+ 327 0044 FFF7FEFF 		bl	sendAckFailure
+ 328              	.LVL20:
+  83:../../application/src/carFirmware.c **** 
+ 329              		.loc 1 83 1 is_stmt 0 view .LVU73
+ 330 0048 F9E7     		b	.L12
+ 331              	.L17:
+ 332 004a 00BF     		.align	2
+ 333              	.L16:
+ 334 004c 00000000 		.word	.LANCHOR2
+ 335 0050 00000000 		.word	.LC6
+ 336              		.cfi_endproc
+ 337              	.LFE1:
+ 339              		.section	.text.main,"ax",%progbits
+ 340              		.align	1
+ARM GAS  /tmp/ccuKp4jq.s 			page 10
+
+
+ 341              		.global	main
+ 342              		.syntax unified
+ 343              		.thumb
+ 344              		.thumb_func
+ 345              		.fpu fpv4-sp-d16
+ 347              	main:
+ 348              	.LVL21:
+ 349              	.LFB0:
+  44:../../application/src/carFirmware.c ****   initHardware_car(argc, argv);
+ 350              		.loc 1 44 34 is_stmt 1 view -0
+ 351              		.cfi_startproc
+ 352              		@ Volatile: function does not return.
+ 353              		@ args = 0, pretend = 0, frame = 0
+ 354              		@ frame_needed = 0, uses_anonymous_args = 0
+  44:../../application/src/carFirmware.c ****   initHardware_car(argc, argv);
+ 355              		.loc 1 44 34 is_stmt 0 view .LVU75
+ 356 0000 08B5     		push	{r3, lr}
+ 357              	.LCFI13:
+ 358              		.cfi_def_cfa_offset 8
+ 359              		.cfi_offset 3, -8
+ 360              		.cfi_offset 14, -4
+  45:../../application/src/carFirmware.c **** 
+ 361              		.loc 1 45 3 is_stmt 1 view .LVU76
+ 362 0002 FFF7FEFF 		bl	initHardware_car
+ 363              	.LVL22:
+ 364              	.L19:
+  47:../../application/src/carFirmware.c **** 
+ 365              		.loc 1 47 3 discriminator 1 view .LVU77
+  49:../../application/src/carFirmware.c ****   }
+ 366              		.loc 1 49 5 discriminator 1 view .LVU78
+ 367 0006 FFF7FEFF 		bl	unlockCar
+ 368              	.LVL23:
+  47:../../application/src/carFirmware.c **** 
+ 369              		.loc 1 47 9 discriminator 1 view .LVU79
+ 370 000a FCE7     		b	.L19
+ 371              		.cfi_endproc
+ 372              	.LFE0:
+ 374              		.global	car_id
+ 375              		.global	pass
+ 376              		.section	.rodata
+ 377              		.align	2
+ 378              		.set	.LANCHOR1,. + 0
+ 379              	.LC0:
+ 380 0000 0000     		.ascii	"\000\000"
+ 381 0002 0000     		.space	2
+ 382              	.LC5:
+ 383 0004 00000000 		.word	.LC0
+ 384 0008 00000000 		.word	.LC1
+ 385 000c 0C000000 		.word	.LC2
+ 386 0010 18000000 		.word	.LC3
+ 387              		.section	.rodata.car_id,"a"
+ 388              		.align	2
+ 389              		.set	.LANCHOR0,. + 0
+ 392              	car_id:
+ 393 0000 31393838 		.ascii	"1988\000"
+ 393      00
+ 394              		.section	.rodata.pass,"a"
+ARM GAS  /tmp/ccuKp4jq.s 			page 11
+
+
+ 395              		.align	2
+ 396              		.set	.LANCHOR2,. + 0
+ 399              	pass:
+ 400 0000 756E6C6F 		.ascii	"unlock\000"
+ 400      636B00
+ 401              		.text
+ 402              	.Letext0:
+ 403              		.file 2 "../../application/inc/messages.h"
+ 404              		.file 3 "/usr/lib/gcc/arm-none-eabi/10.3.1/include/stdint.h"
+ 405              		.file 4 "../../application/inc/dataFormats.h"
+ 406              		.file 5 "../../application/inc/uart.h"
+ 407              		.file 6 "../../application/inc/platform.h"
+ 408              		.file 7 "/usr/include/newlib/string.h"
+ARM GAS  /tmp/ccuKp4jq.s 			page 12
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 carFirmware.c
+     /tmp/ccuKp4jq.s:15     .rodata.str1.4:0000000000000000 $d
+     /tmp/ccuKp4jq.s:28     .text.startCar:0000000000000000 $t
+     /tmp/ccuKp4jq.s:36     .text.startCar:0000000000000000 startCar
+     /tmp/ccuKp4jq.s:136    .text.startCar:0000000000000058 $d
+     /tmp/ccuKp4jq.s:142    .text.sendAckSuccess:0000000000000000 $t
+     /tmp/ccuKp4jq.s:149    .text.sendAckSuccess:0000000000000000 sendAckSuccess
+     /tmp/ccuKp4jq.s:193    .text.sendAckFailure:0000000000000000 $t
+     /tmp/ccuKp4jq.s:200    .text.sendAckFailure:0000000000000000 sendAckFailure
+     /tmp/ccuKp4jq.s:245    .rodata.unlockCar.str1.4:0000000000000000 $d
+     /tmp/ccuKp4jq.s:249    .text.unlockCar:0000000000000000 $t
+     /tmp/ccuKp4jq.s:256    .text.unlockCar:0000000000000000 unlockCar
+     /tmp/ccuKp4jq.s:334    .text.unlockCar:000000000000004c $d
+     /tmp/ccuKp4jq.s:340    .text.main:0000000000000000 $t
+     /tmp/ccuKp4jq.s:347    .text.main:0000000000000000 main
+     /tmp/ccuKp4jq.s:392    .rodata.car_id:0000000000000000 car_id
+     /tmp/ccuKp4jq.s:399    .rodata.pass:0000000000000000 pass
+     /tmp/ccuKp4jq.s:377    .rodata:0000000000000000 $d
+     /tmp/ccuKp4jq.s:388    .rodata.car_id:0000000000000000 $d
+     /tmp/ccuKp4jq.s:395    .rodata.pass:0000000000000000 $d
+
+UNDEFINED SYMBOLS
+receive_board_message_by_type
+strcmp
+readVar
+uart_write
+setLED
+send_board_message
+initHardware_car

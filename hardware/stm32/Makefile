@@ -29,25 +29,30 @@ OPT = -Og
 # paths
 #######################################
 # Build path
-BUILD_DIR = build
+
 
 ######################################
 # source
 ######################################
 
-TARGET ?=
-# Check that TARGET only contains the keywords
-ifeq ($(TARGET),car)
-else ifeq ($(TARGET),fob)
-# Do nothing; these are valid targets for TARGET.
+#ROLE ?=
+ifeq ($(ROLE),car)
+FIRMWARE_SRC := carFirmware.c
+else ifeq ($(ROLE),paired_fob)
+FIRMWARE_SRC := fobFirmware.c
+else ifeq ($(ROLE),unpaired_fob)
+FIRMWARE_SRC := fobFirmware.c
 else
-$(error ERROR: TARGET variable not set. Options are: car or fob)
+$(error ROLE not set correctly)
 endif
+
+BUILD_DIR = build/$(ROLE)
+include ../../secrets/secrets.mk
 
 # C sources
 C_SOURCES =  \
 Core/Src/main.c \
-../../application/src/$(TARGET)Firmware.c \
+../../application/src/$(FIRMWARE_SRC) \
 ../../application/src/messages.c \
 Core/Src/stm32f4xx_it.c \
 Core/Src/stm32f4xx_hal_msp.c \
@@ -133,7 +138,9 @@ C_INCLUDES =  \
 -IDrivers/STM32F4xx_HAL_Driver/Inc/Legacy \
 -IDrivers/CMSIS/Device/ST/STM32F4xx/Include \
 -IDrivers/CMSIS/Include \
--I../../application/inc
+-I../../application/inc \
+-I../include \
+-I$(BUILD_DIR)
 
 
 # compile gcc flags
@@ -162,7 +169,8 @@ LIBDIR =
 LDFLAGS = $(MCU) -specs=nano.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
 
 # default action: build all
-all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).bin
+.DEFAULT_GOAL := all
+all: $(BUILD_DIR) $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).bin
 
 
 #######################################
@@ -177,7 +185,7 @@ vpath %.s $(sort $(dir $(ASM_SOURCES)))
 OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(ASMM_SOURCES:.S=.o)))
 vpath %.S $(sort $(dir $(ASMM_SOURCES)))
 
-$(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR) 
+$(BUILD_DIR)/%.o: %.c $(SECRETS_HDR) Makefile | $(BUILD_DIR) 
 	$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
 
 $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
@@ -194,10 +202,10 @@ $(BUILD_DIR)/%.hex: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
 	
 $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
 	$(BIN) $< $@	
-	
-$(BUILD_DIR):
-	mkdir $@		
 
+$(BUILD_DIR):
+	mkdir -p $@	
+	
 #######################################
 # clean up
 #######################################

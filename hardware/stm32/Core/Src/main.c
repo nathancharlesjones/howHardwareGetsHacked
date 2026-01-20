@@ -105,10 +105,10 @@ void initHardware_fob(int argc, char ** argv)
   initHardware(argc, argv);
 }
 
-void readVar(uint8_t* dest, char * var, size_t size)
+void readVar(uint8_t* dest, char * var)
 {
   device_config_t* data = (device_config_t*)CONFIG_FLASH_BASE;
-  if(!strcmp(var, "unlock")) memcpy(dest, &(data->unlock), 64);
+  if(!strcmp(var, "unlock")) memcpy(dest, &(data->unlock), UNLOCK_SIZE);
   else if(!strcmp(var, "feature1")) memcpy(dest, &(data->feature1), FEATURE_SIZE);
   else if(!strcmp(var, "feature2")) memcpy(dest, &(data->feature2), FEATURE_SIZE);
   else if(!strcmp(var, "feature3")) memcpy(dest, &(data->feature3), FEATURE_SIZE);

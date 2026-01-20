@@ -16,15 +16,11 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "car_secrets.h"
+#include "secrets.h"
 #include "messages.h"
 #include "dataFormats.h"
 #include "uart.h"
 #include "platform.h"
-
-/*** Macro Definitions ***/
-// Definitions for unlock message location in EEPROM
-#define UNLOCK_EEPROM_SIZE 64
 
 /*** Function definitions ***/
 // Core functions - unlockCar and startCar
@@ -71,12 +67,12 @@ void unlockCar(void) {
 
   // If the data transfer is the password, unlock
   if (!strcmp((char *)(message.buffer), (char *)pass)) {
-    uint8_t eeprom_message[64];
+    uint8_t eeprom_message[UNLOCK_SIZE];
     // Read last 64B of EEPROM
-    readVar(eeprom_message, "unlock", UNLOCK_EEPROM_SIZE);
+    readVar(eeprom_message, "unlock");
 
     // Write out full flag if applicable
-    uart_write(HOST_UART, eeprom_message, UNLOCK_EEPROM_SIZE);
+    uart_write(HOST_UART, eeprom_message, UNLOCK_SIZE);
 
     sendAckSuccess();
 
@@ -111,7 +107,7 @@ void startCar(void) {
     char* featureNumToStr[] = { "\0", "feature1", "feature2", "feature3" };
 
     uint8_t featureNum = feature_info->features[i];
-    readVar(eeprom_message, featureNumToStr[featureNum], FEATURE_SIZE);
+    readVar(eeprom_message, featureNumToStr[featureNum]);
 
     uart_write(HOST_UART, eeprom_message, FEATURE_SIZE);
   }
