@@ -42,6 +42,19 @@ typedef struct
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#ifndef UNLOCK_FLAG
+#define UNLOCK_FLAG   "default_unlock"
+#endif
+#ifndef FEATURE1_FLAG
+#define FEATURE1_FLAG "default_feature1"
+#endif
+#ifndef FEATURE2_FLAG
+#define FEATURE2_FLAG "default_feature2"
+#endif
+#ifndef FEATURE3_FLAG
+#define FEATURE3_FLAG "default_feature3"
+#endif
+
 #define CONFIG_FLASH_SECTOR   FLASH_SECTOR_7
 #define CONFIG_FLASH_BASE     0x080E0000UL
 #define CONFIG_FLASH_SIZE     (128 * 1024)
@@ -62,6 +75,18 @@ UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+__attribute__((section(".eeprom_emul")))
+const char unlock_flag[UNLOCK_SIZE]    = UNLOCK_FLAG;
+
+__attribute__((section(".eeprom_emul")))
+const char feature1_flag[FEATURE_SIZE] = FEATURE1_FLAG;
+
+__attribute__((section(".eeprom_emul")))
+const char feature2_flag[FEATURE_SIZE] = FEATURE2_FLAG;
+
+__attribute__((section(".eeprom_emul")))
+const char feature3_flag[FEATURE_SIZE] = FEATURE3_FLAG;
+
 static UART_HandleTypeDef* const uart_base[2] = { [HOST_UART] = &huart2, [BOARD_UART] = &huart1 };
 /* USER CODE END PV */
 
@@ -108,10 +133,10 @@ void initHardware_fob(int argc, char ** argv)
 void readVar(uint8_t* dest, char * var)
 {
   device_config_t* data = (device_config_t*)CONFIG_FLASH_BASE;
-  if(!strcmp(var, "unlock")) memcpy(dest, &(data->unlock), UNLOCK_SIZE);
-  else if(!strcmp(var, "feature1")) memcpy(dest, &(data->feature1), FEATURE_SIZE);
-  else if(!strcmp(var, "feature2")) memcpy(dest, &(data->feature2), FEATURE_SIZE);
-  else if(!strcmp(var, "feature3")) memcpy(dest, &(data->feature3), FEATURE_SIZE);
+  if(!strcmp(var, "unlock")) memcpy(dest, unlock_flag, UNLOCK_SIZE);
+  else if(!strcmp(var, "feature1")) memcpy(dest, feature1_flag, FEATURE_SIZE);
+  else if(!strcmp(var, "feature2")) memcpy(dest, feature2_flag, FEATURE_SIZE);
+  else if(!strcmp(var, "feature3")) memcpy(dest, feature3_flag, FEATURE_SIZE);
   else if(!strcmp(var, "fob_state")) memcpy(dest, &(data->fob_info), sizeof(FLASH_DATA));
 }
 
