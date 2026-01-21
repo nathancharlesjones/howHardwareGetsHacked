@@ -26,6 +26,7 @@ typedef struct
 
 // Defines a struct for storing the state in flash
 typedef struct
+__attribute__((aligned(4)))
 {
   uint8_t paired;
   PAIR_PACKET pair_info;

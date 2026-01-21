@@ -69,7 +69,7 @@ int main(int argc, char ** argv)
     strcpy((char *)(fob_state_ram.feature_info.car_id), CAR_ID);
     fob_state_ram.paired = FLASH_PAIRED;
 
-    //saveFobState(&fob_state_ram);
+    saveFobState(&fob_state_ram);
   }
 #else
   fob_state_ram.paired = FLASH_UNPAIRED;

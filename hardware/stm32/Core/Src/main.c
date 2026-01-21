@@ -188,7 +188,7 @@ bool saveFobState(const FLASH_DATA *src)
   uint32_t size = end - base;
 
   // Sanity check: config struct fits in sector
-  if (sizeof(FLASH_DATA_BYTES) > size)
+  if (FLASH_DATA_BYTES > size)
   {
       return false;
   }
@@ -217,7 +217,7 @@ bool saveFobState(const FLASH_DATA *src)
   }
 
   // Program new config data
-  const uint32_t *words = (const uint32_t *)src;
+  const uint32_t *words = (const uint32_t *)padded_data;
   uint32_t addr = base;
 
   for (size_t i = 0; i < FLASH_DATA_WORDS; i++)
