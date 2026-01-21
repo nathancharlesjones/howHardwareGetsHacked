@@ -53,6 +53,8 @@ uint8_t receiveAck();
  */
 int main(int argc, char ** argv)
 {
+  initHardware_fob(argc, argv);
+
   FLASH_DATA fob_state_ram;
   FLASH_DATA fob_state_flash;
   readVar((uint8_t*)(&fob_state_flash), "fob_state");
@@ -67,11 +69,14 @@ int main(int argc, char ** argv)
     strcpy((char *)(fob_state_ram.feature_info.car_id), CAR_ID);
     fob_state_ram.paired = FLASH_PAIRED;
 
-    saveFobState(&fob_state_ram);
+    //saveFobState(&fob_state_ram);
   }
 #else
   fob_state_ram.paired = FLASH_UNPAIRED;
 #endif
+
+  char msg[] = "Here\n";
+  uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
 
   if (fob_state_flash.paired == FLASH_PAIRED)
   {
@@ -85,7 +90,9 @@ int main(int argc, char ** argv)
     saveFobState(&fob_state_ram);
   }
 
-  initHardware_fob(argc, argv);
+  char msg2[] = "Fob state loaded. Current fob state: \n";
+  uart_write(HOST_UART, (uint8_t*)msg2, strlen(msg2));
+  uart_write(HOST_UART, (uint8_t*)(&fob_state_ram), sizeof(FLASH_DATA));
 
   // Declare a buffer for reading and writing to UART
   uint8_t uart_buffer[10];
@@ -124,6 +131,8 @@ int main(int argc, char ** argv)
 
     if(buttonPressed())
     {
+      char msg[] = "Button press detected\n";
+      uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
       unlockCar(&fob_state_ram);
       if (receiveAck())
       {

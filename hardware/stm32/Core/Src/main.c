@@ -30,14 +30,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef struct
-{
-  FLASH_DATA fob_info;
-  uint8_t feature3[64];
-  uint8_t feature2[64];
-  uint8_t feature1[64];
-  uint8_t unlock[64];
-} device_config_t;
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -124,15 +117,50 @@ void initHardware_car(int argc, char ** argv)
 void initHardware_fob(int argc, char ** argv)
 {
   initHardware(argc, argv);
+
+  char msg[] = "Initialization complete\n";
+  uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
 }
 
 void readVar(uint8_t* dest, char * var)
 {
-  if(!strcmp(var, "unlock")) memcpy(dest, unlock_flag, UNLOCK_SIZE);
-  else if(!strcmp(var, "feature1")) memcpy(dest, feature1_flag, FEATURE_SIZE);
-  else if(!strcmp(var, "feature2")) memcpy(dest, feature2_flag, FEATURE_SIZE);
-  else if(!strcmp(var, "feature3")) memcpy(dest, feature3_flag, FEATURE_SIZE);
-  else if(!strcmp(var, "fob_state")) memcpy(dest, &flash_data, sizeof(FLASH_DATA));
+  size_t dataSize = 0;
+
+  char msg[] = "Inside readVar\n";
+  uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
+
+  if(!strcmp(var, "unlock"))
+  {
+    memcpy(dest, unlock_flag, UNLOCK_SIZE);
+    dataSize = UNLOCK_SIZE;
+  }
+  else if(!strcmp(var, "feature1"))
+  {
+    memcpy(dest, feature1_flag, FEATURE_SIZE);
+    dataSize = FEATURE_SIZE;
+  }
+  else if(!strcmp(var, "feature2"))
+  {
+    memcpy(dest, feature2_flag, FEATURE_SIZE);
+    dataSize = FEATURE_SIZE;
+  }
+  else if(!strcmp(var, "feature3"))
+  {
+    memcpy(dest, feature3_flag, FEATURE_SIZE);
+    dataSize = FEATURE_SIZE;
+  }
+  else if(!strcmp(var, "fob_state"))
+  {
+    char msg[] = "Fetching fob state\n";
+    uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
+    memcpy(dest, (uint8_t*)(&flash_data), sizeof(FLASH_DATA));
+    dataSize = sizeof(FLASH_DATA);
+  }
+
+  char msg2[] = "Data is: ";
+  uart_write(HOST_UART, (uint8_t*)msg2, strlen(msg2));
+  uart_write(HOST_UART, dest, dataSize);
+  uart_writeb(HOST_UART, '\n');
 }
 
 /* -----------------------------------------------------------
@@ -215,8 +243,10 @@ bool buttonPressed(void)
   static uint32_t history = 0;
   static bool latched = false;
 
+  bool buttonValue = HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin);
+
   history = (history << 1) |
-            (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_SET);
+            (buttonValue == GPIO_PIN_RESET);
 
   if (history == 0xFFFFFFFF && !latched) {
       latched = true;
