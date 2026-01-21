@@ -1,4 +1,4 @@
-ARM GAS  /tmp/ccvRTwEi.s 			page 1
+ARM GAS  /tmp/cclPkfbj.s 			page 1
 
 
    1              		.cpu cortex-m4
@@ -58,7 +58,7 @@ ARM GAS  /tmp/ccvRTwEi.s 			page 1
   12:../../application/src/carFirmware.c ****  * @copyright Copyright (c) 2023 The MITRE Corporation
   13:../../application/src/carFirmware.c ****  */
   14:../../application/src/carFirmware.c **** 
-ARM GAS  /tmp/ccvRTwEi.s 			page 2
+ARM GAS  /tmp/cclPkfbj.s 			page 2
 
 
   15:../../application/src/carFirmware.c **** #include <stdbool.h>
@@ -118,7 +118,7 @@ ARM GAS  /tmp/ccvRTwEi.s 			page 1
   69:../../application/src/carFirmware.c ****   if (!strcmp((char *)(message.buffer), (char *)pass)) {
   70:../../application/src/carFirmware.c ****     uint8_t eeprom_message[UNLOCK_SIZE];
   71:../../application/src/carFirmware.c ****     // Read last 64B of EEPROM
-ARM GAS  /tmp/ccvRTwEi.s 			page 3
+ARM GAS  /tmp/cclPkfbj.s 			page 3
 
 
   72:../../application/src/carFirmware.c ****     readVar(eeprom_message, "unlock");
@@ -178,7 +178,7 @@ ARM GAS  /tmp/ccvRTwEi.s 			page 1
   64              		.loc 1 100 7 is_stmt 0 view .LVU8
   65 0010 2146     		mov	r1, r4
   66 0012 1148     		ldr	r0, .L6
-ARM GAS  /tmp/ccvRTwEi.s 			page 4
+ARM GAS  /tmp/cclPkfbj.s 			page 4
 
 
   67 0014 FFF7FEFF 		bl	strcmp
@@ -238,7 +238,7 @@ ARM GAS  /tmp/ccvRTwEi.s 			page 1
  108              		.loc 1 105 49 discriminator 3 view .LVU20
  105:../../application/src/carFirmware.c ****     uint8_t eeprom_message[64];
  109              		.loc 1 105 50 is_stmt 0 discriminator 3 view .LVU21
-ARM GAS  /tmp/ccvRTwEi.s 			page 5
+ARM GAS  /tmp/cclPkfbj.s 			page 5
 
 
  110 0042 0134     		adds	r4, r4, #1
@@ -298,7 +298,7 @@ ARM GAS  /tmp/ccvRTwEi.s 			page 1
  153              		@ args = 0, pretend = 0, frame = 16
  154              		@ frame_needed = 0, uses_anonymous_args = 0
  155 0000 00B5     		push	{lr}
-ARM GAS  /tmp/ccvRTwEi.s 			page 6
+ARM GAS  /tmp/cclPkfbj.s 			page 6
 
 
  156              	.LCFI3:
@@ -358,7 +358,7 @@ ARM GAS  /tmp/ccvRTwEi.s 			page 1
  201              	.LFB4:
  134:../../application/src/carFirmware.c **** 
  135:../../application/src/carFirmware.c **** /**
-ARM GAS  /tmp/ccvRTwEi.s 			page 7
+ARM GAS  /tmp/cclPkfbj.s 			page 7
 
 
  136:../../application/src/carFirmware.c ****  * @brief Function to send unsuccessful ACK message
@@ -418,7 +418,7 @@ ARM GAS  /tmp/ccvRTwEi.s 			page 1
  242              	.LFE4:
  244              		.section	.rodata.unlockCar.str1.4,"aMS",%progbits,1
  245              		.align	2
-ARM GAS  /tmp/ccvRTwEi.s 			page 8
+ARM GAS  /tmp/cclPkfbj.s 			page 8
 
 
  246              	.LC6:
@@ -478,7 +478,7 @@ ARM GAS  /tmp/ccvRTwEi.s 			page 1
  289 001a 0C49     		ldr	r1, .L16
  290 001c 5198     		ldr	r0, [sp, #324]
  291 001e FFF7FEFF 		bl	strcmp
-ARM GAS  /tmp/ccvRTwEi.s 			page 9
+ARM GAS  /tmp/cclPkfbj.s 			page 9
 
 
  292              	.LVL15:
@@ -538,7 +538,7 @@ ARM GAS  /tmp/ccvRTwEi.s 			page 1
  337              	.LFE1:
  339              		.section	.text.main,"ax",%progbits
  340              		.align	1
-ARM GAS  /tmp/ccvRTwEi.s 			page 10
+ARM GAS  /tmp/cclPkfbj.s 			page 10
 
 
  341              		.global	main
@@ -598,7 +598,7 @@ ARM GAS  /tmp/ccvRTwEi.s 			page 1
  393 0000 31393838 		.ascii	"1988\000"
  393      00
  394              		.section	.rodata.pass,"a"
-ARM GAS  /tmp/ccvRTwEi.s 			page 11
+ARM GAS  /tmp/cclPkfbj.s 			page 11
 
 
  395              		.align	2
@@ -614,30 +614,30 @@ ARM GAS  /tmp/ccvRTwEi.s 			page 1
  406              		.file 5 "../../application/inc/uart.h"
  407              		.file 6 "../../application/inc/platform.h"
  408              		.file 7 "/usr/include/newlib/string.h"
-ARM GAS  /tmp/ccvRTwEi.s 			page 12
+ARM GAS  /tmp/cclPkfbj.s 			page 12
 
 
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 carFirmware.c
-     /tmp/ccvRTwEi.s:15     .rodata.str1.4:0000000000000000 $d
-     /tmp/ccvRTwEi.s:28     .text.startCar:0000000000000000 $t
-     /tmp/ccvRTwEi.s:36     .text.startCar:0000000000000000 startCar
-     /tmp/ccvRTwEi.s:136    .text.startCar:0000000000000058 $d
-     /tmp/ccvRTwEi.s:142    .text.sendAckSuccess:0000000000000000 $t
-     /tmp/ccvRTwEi.s:149    .text.sendAckSuccess:0000000000000000 sendAckSuccess
-     /tmp/ccvRTwEi.s:193    .text.sendAckFailure:0000000000000000 $t
-     /tmp/ccvRTwEi.s:200    .text.sendAckFailure:0000000000000000 sendAckFailure
-     /tmp/ccvRTwEi.s:245    .rodata.unlockCar.str1.4:0000000000000000 $d
-     /tmp/ccvRTwEi.s:249    .text.unlockCar:0000000000000000 $t
-     /tmp/ccvRTwEi.s:256    .text.unlockCar:0000000000000000 unlockCar
-     /tmp/ccvRTwEi.s:334    .text.unlockCar:000000000000004c $d
-     /tmp/ccvRTwEi.s:340    .text.main:0000000000000000 $t
-     /tmp/ccvRTwEi.s:347    .text.main:0000000000000000 main
-     /tmp/ccvRTwEi.s:392    .rodata.car_id:0000000000000000 car_id
-     /tmp/ccvRTwEi.s:399    .rodata.pass:0000000000000000 pass
-     /tmp/ccvRTwEi.s:377    .rodata:0000000000000000 $d
-     /tmp/ccvRTwEi.s:388    .rodata.car_id:0000000000000000 $d
-     /tmp/ccvRTwEi.s:395    .rodata.pass:0000000000000000 $d
+     /tmp/cclPkfbj.s:15     .rodata.str1.4:0000000000000000 $d
+     /tmp/cclPkfbj.s:28     .text.startCar:0000000000000000 $t
+     /tmp/cclPkfbj.s:36     .text.startCar:0000000000000000 startCar
+     /tmp/cclPkfbj.s:136    .text.startCar:0000000000000058 $d
+     /tmp/cclPkfbj.s:142    .text.sendAckSuccess:0000000000000000 $t
+     /tmp/cclPkfbj.s:149    .text.sendAckSuccess:0000000000000000 sendAckSuccess
+     /tmp/cclPkfbj.s:193    .text.sendAckFailure:0000000000000000 $t
+     /tmp/cclPkfbj.s:200    .text.sendAckFailure:0000000000000000 sendAckFailure
+     /tmp/cclPkfbj.s:245    .rodata.unlockCar.str1.4:0000000000000000 $d
+     /tmp/cclPkfbj.s:249    .text.unlockCar:0000000000000000 $t
+     /tmp/cclPkfbj.s:256    .text.unlockCar:0000000000000000 unlockCar
+     /tmp/cclPkfbj.s:334    .text.unlockCar:000000000000004c $d
+     /tmp/cclPkfbj.s:340    .text.main:0000000000000000 $t
+     /tmp/cclPkfbj.s:347    .text.main:0000000000000000 main
+     /tmp/cclPkfbj.s:392    .rodata.car_id:0000000000000000 car_id
+     /tmp/cclPkfbj.s:399    .rodata.pass:0000000000000000 pass
+     /tmp/cclPkfbj.s:377    .rodata:0000000000000000 $d
+     /tmp/cclPkfbj.s:388    .rodata.car_id:0000000000000000 $d
+     /tmp/cclPkfbj.s:395    .rodata.pass:0000000000000000 $d
 
 UNDEFINED SYMBOLS
 receive_board_message_by_type

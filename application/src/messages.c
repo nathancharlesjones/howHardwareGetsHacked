@@ -26,7 +26,9 @@
  */
 uint32_t send_board_message(MESSAGE_PACKET *message)
 {
-  uart_write(BOARD_UART, (uint8_t*)message, message->message_len);
+  uart_writeb(BOARD_UART, message->magic);
+  uart_writeb(BOARD_UART, message->message_len);
+  uart_write(BOARD_UART, message->buffer, message->message_len);
   return message->message_len;
 }
 
@@ -45,7 +47,7 @@ uint32_t receive_board_message(MESSAGE_PACKET *message)
   }
 
   message->message_len = (uint8_t)uart_readb(BOARD_UART);
-  uart_read(BOARD_UART, (uint8_t*)(message->buffer), message->message_len);
+  uart_read(BOARD_UART, message->buffer, message->message_len);
   
   return message->message_len;
 }

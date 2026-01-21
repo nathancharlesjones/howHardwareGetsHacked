@@ -39,6 +39,7 @@ void pairFob(FLASH_DATA *fob_state_ram);
 void unlockCar(FLASH_DATA *fob_state_ram);
 void enableFeature(FLASH_DATA *fob_state_ram);
 void startCar(FLASH_DATA *fob_state_ram);
+void printFobState(FLASH_DATA *flash_data);
 
 // Helper functions - receive ack message
 uint8_t receiveAck();
@@ -69,14 +70,12 @@ int main(int argc, char ** argv)
     strcpy((char *)(fob_state_ram.feature_info.car_id), CAR_ID);
     fob_state_ram.paired = FLASH_PAIRED;
 
+    printFobState(&fob_state_ram);
     saveFobState(&fob_state_ram);
   }
 #else
   fob_state_ram.paired = FLASH_UNPAIRED;
 #endif
-
-  char msg[] = "Here\n";
-  uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
 
   if (fob_state_flash.paired == FLASH_PAIRED)
   {
@@ -87,12 +86,9 @@ int main(int argc, char ** argv)
   if (fob_state_ram.feature_info.num_active == 0xFF)
   {
     fob_state_ram.feature_info.num_active = 0;
+    printFobState(&fob_state_ram);
     saveFobState(&fob_state_ram);
   }
-
-  char msg2[] = "Fob state loaded. Current fob state: \n";
-  uart_write(HOST_UART, (uint8_t*)msg2, strlen(msg2));
-  uart_write(HOST_UART, (uint8_t*)(&fob_state_ram), sizeof(FLASH_DATA));
 
   // Declare a buffer for reading and writing to UART
   uint8_t uart_buffer[10];
@@ -246,6 +242,12 @@ void unlockCar(FLASH_DATA *fob_state_ram)
     message.message_len = 6;
     message.magic = UNLOCK_MAGIC;
     message.buffer = fob_state_ram->pair_info.password;
+
+    char msg[] = "PW: ";
+    uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
+    uart_write(HOST_UART, message.buffer, message.message_len);
+    uart_writeb(HOST_UART, '\n');
+
     send_board_message(&message);
   }
 }
@@ -257,12 +259,45 @@ void unlockCar(FLASH_DATA *fob_state_ram)
  */
 void startCar(FLASH_DATA *fob_state_ram)
 {
+  char msg[64] = {0};
+
   if (fob_state_ram->paired == FLASH_PAIRED)
   {
     MESSAGE_PACKET message;
     message.magic = START_MAGIC;
     message.message_len = sizeof(FEATURE_DATA);
-    message.buffer = (uint8_t *)&fob_state_ram->feature_info;
+    message.buffer = (uint8_t *)&fob_state_ram->feature_info;  
+
+    strcpy(msg, "Car ID: ");
+    uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
+    uart_write(HOST_UART, fob_state_ram->feature_info.car_id, 8);
+    uart_writeb(HOST_UART, '\n');
+    uart_writeb(HOST_UART, '\r');
+
+    strcpy(msg, "Num active: ");
+    uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
+    uart_writeb(HOST_UART, fob_state_ram->feature_info.num_active);
+    uart_writeb(HOST_UART, '\n');
+    uart_writeb(HOST_UART, '\r');
+
+    strcpy(msg, "Feature[0]: ");
+    uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
+    uart_writeb(HOST_UART, fob_state_ram->feature_info.features[0]);
+    uart_writeb(HOST_UART, '\n');
+    uart_writeb(HOST_UART, '\r');
+
+    strcpy(msg, "Feature[1]: ");
+    uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
+    uart_writeb(HOST_UART, fob_state_ram->feature_info.features[1]);
+    uart_writeb(HOST_UART, '\n');
+    uart_writeb(HOST_UART, '\r');
+
+    strcpy(msg, "Feature[2]: ");
+    uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
+    uart_writeb(HOST_UART, fob_state_ram->feature_info.features[2]);
+    uart_writeb(HOST_UART, '\n');
+    uart_writeb(HOST_UART, '\r');
+
     send_board_message(&message);
   }
 }
@@ -281,4 +316,78 @@ uint8_t receiveAck()
   receive_board_message_by_type(&message, ACK_MAGIC);
 
   return message.buffer[0];
+}
+
+void printFobState(FLASH_DATA *flash_data)
+{
+  char msg[64] = {0};
+
+  strcpy(msg, "=====Fob State=====");
+  uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
+  uart_writeb(HOST_UART, '\n');
+  uart_writeb(HOST_UART, '\r');
+
+  strcpy(msg, "Paired?: ");
+  uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
+  uart_writeb(HOST_UART, flash_data->paired);
+  uart_writeb(HOST_UART, '\n');
+  uart_writeb(HOST_UART, '\r');
+
+  strcpy(msg, "---Pair Info---");
+  uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
+  uart_writeb(HOST_UART, '\n');
+  uart_writeb(HOST_UART, '\r');
+
+  strcpy(msg, "Car ID: ");
+  uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
+  uart_write(HOST_UART, flash_data->pair_info.car_id, 8);
+  uart_writeb(HOST_UART, '\n');
+  uart_writeb(HOST_UART, '\r');
+
+  strcpy(msg, "Password: ");
+  uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
+  uart_write(HOST_UART, flash_data->pair_info.password, 8);
+  uart_writeb(HOST_UART, '\n');
+  uart_writeb(HOST_UART, '\r');
+
+  strcpy(msg, "Pin: ");
+  uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
+  uart_write(HOST_UART, flash_data->pair_info.pin, 8);
+  uart_writeb(HOST_UART, '\n');
+  uart_writeb(HOST_UART, '\r');
+
+  strcpy(msg, "---Feature Info---");
+  uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
+  uart_writeb(HOST_UART, '\n');
+  uart_writeb(HOST_UART, '\r');
+
+  strcpy(msg, "Car ID: ");
+  uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
+  uart_write(HOST_UART, flash_data->feature_info.car_id, 8);
+  uart_writeb(HOST_UART, '\n');
+  uart_writeb(HOST_UART, '\r');
+
+  strcpy(msg, "Num active: ");
+  uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
+  uart_writeb(HOST_UART, flash_data->feature_info.num_active);
+  uart_writeb(HOST_UART, '\n');
+  uart_writeb(HOST_UART, '\r');
+
+  strcpy(msg, "Feature[0]: ");
+  uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
+  uart_writeb(HOST_UART, flash_data->feature_info.features[0]);
+  uart_writeb(HOST_UART, '\n');
+  uart_writeb(HOST_UART, '\r');
+
+  strcpy(msg, "Feature[1]: ");
+  uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
+  uart_writeb(HOST_UART, flash_data->feature_info.features[1]);
+  uart_writeb(HOST_UART, '\n');
+  uart_writeb(HOST_UART, '\r');
+
+  strcpy(msg, "Feature[2]: ");
+  uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
+  uart_writeb(HOST_UART, flash_data->feature_info.features[2]);
+  uart_writeb(HOST_UART, '\n');
+  uart_writeb(HOST_UART, '\r');
 }

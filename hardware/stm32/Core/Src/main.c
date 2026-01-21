@@ -74,7 +74,6 @@ __attribute__((section(".flash_data")))
 FLASH_DATA flash_data = {0};
 
 extern uint8_t __flash_data_start__;
-extern uint8_t __flash_data_end__;
 
 static UART_HandleTypeDef* const uart_base[2] = { [HOST_UART] = &huart2, [BOARD_UART] = &huart1 };
 /* USER CODE END PV */
@@ -117,50 +116,15 @@ void initHardware_car(int argc, char ** argv)
 void initHardware_fob(int argc, char ** argv)
 {
   initHardware(argc, argv);
-
-  char msg[] = "Initialization complete\n";
-  uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
 }
 
 void readVar(uint8_t* dest, char * var)
 {
-  size_t dataSize = 0;
-
-  char msg[] = "Inside readVar\n";
-  uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
-
-  if(!strcmp(var, "unlock"))
-  {
-    memcpy(dest, unlock_flag, UNLOCK_SIZE);
-    dataSize = UNLOCK_SIZE;
-  }
-  else if(!strcmp(var, "feature1"))
-  {
-    memcpy(dest, feature1_flag, FEATURE_SIZE);
-    dataSize = FEATURE_SIZE;
-  }
-  else if(!strcmp(var, "feature2"))
-  {
-    memcpy(dest, feature2_flag, FEATURE_SIZE);
-    dataSize = FEATURE_SIZE;
-  }
-  else if(!strcmp(var, "feature3"))
-  {
-    memcpy(dest, feature3_flag, FEATURE_SIZE);
-    dataSize = FEATURE_SIZE;
-  }
-  else if(!strcmp(var, "fob_state"))
-  {
-    char msg[] = "Fetching fob state\n";
-    uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
-    memcpy(dest, (uint8_t*)(&flash_data), sizeof(FLASH_DATA));
-    dataSize = sizeof(FLASH_DATA);
-  }
-
-  char msg2[] = "Data is: ";
-  uart_write(HOST_UART, (uint8_t*)msg2, strlen(msg2));
-  uart_write(HOST_UART, dest, dataSize);
-  uart_writeb(HOST_UART, '\n');
+  if(!strcmp(var, "unlock")) memcpy(dest, unlock_flag, UNLOCK_SIZE);
+  else if(!strcmp(var, "feature1")) memcpy(dest, feature1_flag, FEATURE_SIZE);
+  else if(!strcmp(var, "feature2")) memcpy(dest, feature2_flag, FEATURE_SIZE);
+  else if(!strcmp(var, "feature3")) memcpy(dest, feature3_flag, FEATURE_SIZE);
+  else if(!strcmp(var, "fob_state")) memcpy(dest, (uint8_t*)(&flash_data), sizeof(FLASH_DATA));
 }
 
 /* -----------------------------------------------------------
@@ -184,15 +148,7 @@ static uint32_t get_flash_sector(uint32_t addr)
 bool saveFobState(const FLASH_DATA *src)
 {
   uint32_t base = (uint32_t)&__flash_data_start__;
-  uint32_t end  = (uint32_t)&__flash_data_end__;
-  uint32_t size = end - base;
-
-  // Sanity check: config struct fits in sector
-  if (FLASH_DATA_BYTES > size)
-  {
-      return false;
-  }
-
+  
   // Erase the sector that holds .config_flash
   uint32_t sector = get_flash_sector(base);
   FLASH_EraseInitTypeDef erase =

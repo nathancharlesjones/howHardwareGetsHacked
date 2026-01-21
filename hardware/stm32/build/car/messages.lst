@@ -1,4 +1,4 @@
-ARM GAS  /tmp/ccAbxEFN.s 			page 1
+ARM GAS  /tmp/ccjCAnnG.s 			page 1
 
 
    1              		.cpu cortex-m4
@@ -58,7 +58,7 @@ ARM GAS  /tmp/ccAbxEFN.s 			page 1
   27:../../application/src/messages.c **** uint32_t send_board_message(MESSAGE_PACKET *message)
   28:../../application/src/messages.c **** {
   30              		.loc 1 28 1 view -0
-ARM GAS  /tmp/ccAbxEFN.s 			page 2
+ARM GAS  /tmp/ccjCAnnG.s 			page 2
 
 
   31              		.cfi_startproc
@@ -71,34 +71,37 @@ ARM GAS  /tmp/ccAbxEFN.s 			page 1
   38              		.cfi_offset 4, -8
   39              		.cfi_offset 14, -4
   40 0002 0446     		mov	r4, r0
-  29:../../application/src/messages.c ****   uart_write(BOARD_UART, (uint8_t*)message, message->message_len);
+  29:../../application/src/messages.c ****   uart_write(BOARD_UART, (uint8_t*)message, (message->message_len)+2);
   41              		.loc 1 29 3 is_stmt 1 view .LVU2
-  42 0004 4278     		ldrb	r2, [r0, #1]	@ zero_extendqisi2
-  43 0006 0146     		mov	r1, r0
-  44 0008 0120     		movs	r0, #1
-  45              	.LVL1:
-  46              		.loc 1 29 3 is_stmt 0 view .LVU3
-  47 000a FFF7FEFF 		bl	uart_write
-  48              	.LVL2:
+  42              		.loc 1 29 53 is_stmt 0 view .LVU3
+  43 0004 4278     		ldrb	r2, [r0, #1]	@ zero_extendqisi2
+  44              		.loc 1 29 3 view .LVU4
+  45 0006 0232     		adds	r2, r2, #2
+  46 0008 0146     		mov	r1, r0
+  47 000a 0120     		movs	r0, #1
+  48              	.LVL1:
+  49              		.loc 1 29 3 view .LVU5
+  50 000c FFF7FEFF 		bl	uart_write
+  51              	.LVL2:
   30:../../application/src/messages.c ****   return message->message_len;
-  49              		.loc 1 30 3 is_stmt 1 view .LVU4
+  52              		.loc 1 30 3 is_stmt 1 view .LVU6
   31:../../application/src/messages.c **** }
-  50              		.loc 1 31 1 is_stmt 0 view .LVU5
-  51 000e 6078     		ldrb	r0, [r4, #1]	@ zero_extendqisi2
-  52 0010 10BD     		pop	{r4, pc}
-  53              		.loc 1 31 1 view .LVU6
-  54              		.cfi_endproc
-  55              	.LFE0:
-  57              		.section	.text.receive_board_message,"ax",%progbits
-  58              		.align	1
-  59              		.global	receive_board_message
-  60              		.syntax unified
-  61              		.thumb
-  62              		.thumb_func
-  63              		.fpu fpv4-sp-d16
-  65              	receive_board_message:
-  66              	.LVL3:
-  67              	.LFB1:
+  53              		.loc 1 31 1 is_stmt 0 view .LVU7
+  54 0010 6078     		ldrb	r0, [r4, #1]	@ zero_extendqisi2
+  55 0012 10BD     		pop	{r4, pc}
+  56              		.loc 1 31 1 view .LVU8
+  57              		.cfi_endproc
+  58              	.LFE0:
+  60              		.section	.text.receive_board_message,"ax",%progbits
+  61              		.align	1
+  62              		.global	receive_board_message
+  63              		.syntax unified
+  64              		.thumb
+  65              		.thumb_func
+  66              		.fpu fpv4-sp-d16
+  68              	receive_board_message:
+  69              	.LVL3:
+  70              	.LFB1:
   32:../../application/src/messages.c **** 
   33:../../application/src/messages.c **** /**
   34:../../application/src/messages.c ****  * @brief Receive a message between boards
@@ -108,41 +111,41 @@ ARM GAS  /tmp/ccAbxEFN.s 			page 1
   38:../../application/src/messages.c ****  */
   39:../../application/src/messages.c **** uint32_t receive_board_message(MESSAGE_PACKET *message)
   40:../../application/src/messages.c **** {
-  68              		.loc 1 40 1 is_stmt 1 view -0
-  69              		.cfi_startproc
-  70              		@ args = 0, pretend = 0, frame = 0
-  71              		@ frame_needed = 0, uses_anonymous_args = 0
-  72              		.loc 1 40 1 is_stmt 0 view .LVU8
-  73 0000 10B5     		push	{r4, lr}
-  74              	.LCFI1:
-  75              		.cfi_def_cfa_offset 8
-  76              		.cfi_offset 4, -8
-  77              		.cfi_offset 14, -4
-ARM GAS  /tmp/ccAbxEFN.s 			page 3
+  71              		.loc 1 40 1 is_stmt 1 view -0
+  72              		.cfi_startproc
+  73              		@ args = 0, pretend = 0, frame = 0
+  74              		@ frame_needed = 0, uses_anonymous_args = 0
+  75              		.loc 1 40 1 is_stmt 0 view .LVU10
+  76 0000 10B5     		push	{r4, lr}
+  77              	.LCFI1:
+ARM GAS  /tmp/ccjCAnnG.s 			page 3
 
 
-  78 0002 0446     		mov	r4, r0
+  78              		.cfi_def_cfa_offset 8
+  79              		.cfi_offset 4, -8
+  80              		.cfi_offset 14, -4
+  81 0002 0446     		mov	r4, r0
   41:../../application/src/messages.c ****   message->magic = (uint8_t)uart_readb(BOARD_UART);
-  79              		.loc 1 41 3 is_stmt 1 view .LVU9
-  80              		.loc 1 41 29 is_stmt 0 view .LVU10
-  81 0004 0120     		movs	r0, #1
-  82              	.LVL4:
-  83              		.loc 1 41 29 view .LVU11
-  84 0006 FFF7FEFF 		bl	uart_readb
-  85              	.LVL5:
-  86              		.loc 1 41 20 view .LVU12
-  87 000a C0B2     		uxtb	r0, r0
-  88              		.loc 1 41 18 view .LVU13
-  89 000c 2070     		strb	r0, [r4]
+  82              		.loc 1 41 3 is_stmt 1 view .LVU11
+  83              		.loc 1 41 29 is_stmt 0 view .LVU12
+  84 0004 0120     		movs	r0, #1
+  85              	.LVL4:
+  86              		.loc 1 41 29 view .LVU13
+  87 0006 FFF7FEFF 		bl	uart_readb
+  88              	.LVL5:
+  89              		.loc 1 41 20 view .LVU14
+  90 000a C0B2     		uxtb	r0, r0
+  91              		.loc 1 41 18 view .LVU15
+  92 000c 2070     		strb	r0, [r4]
   42:../../application/src/messages.c **** 
   43:../../application/src/messages.c ****   if (message->magic == 0) {
-  90              		.loc 1 43 3 is_stmt 1 view .LVU14
-  91              		.loc 1 43 6 is_stmt 0 view .LVU15
-  92 000e 08B9     		cbnz	r0, .L7
+  93              		.loc 1 43 3 is_stmt 1 view .LVU16
+  94              		.loc 1 43 6 is_stmt 0 view .LVU17
+  95 000e 08B9     		cbnz	r0, .L7
   44:../../application/src/messages.c ****     return 0;
-  93              		.loc 1 44 12 view .LVU16
-  94 0010 0020     		movs	r0, #0
-  95              	.L3:
+  96              		.loc 1 44 12 view .LVU18
+  97 0010 0020     		movs	r0, #0
+  98              	.L3:
   45:../../application/src/messages.c ****   }
   46:../../application/src/messages.c **** 
   47:../../application/src/messages.c ****   message->message_len = (uint8_t)uart_readb(BOARD_UART);
@@ -150,50 +153,50 @@ ARM GAS  /tmp/ccAbxEFN.s 			page 1
   49:../../application/src/messages.c ****   
   50:../../application/src/messages.c ****   return message->message_len;
   51:../../application/src/messages.c **** }
-  96              		.loc 1 51 1 view .LVU17
-  97 0012 10BD     		pop	{r4, pc}
-  98              	.LVL6:
-  99              	.L7:
+  99              		.loc 1 51 1 view .LVU19
+ 100 0012 10BD     		pop	{r4, pc}
+ 101              	.LVL6:
+ 102              	.L7:
   47:../../application/src/messages.c ****   uart_read(BOARD_UART, (uint8_t*)(message->buffer), message->message_len);
- 100              		.loc 1 47 3 is_stmt 1 view .LVU18
+ 103              		.loc 1 47 3 is_stmt 1 view .LVU20
   47:../../application/src/messages.c ****   uart_read(BOARD_UART, (uint8_t*)(message->buffer), message->message_len);
- 101              		.loc 1 47 35 is_stmt 0 view .LVU19
- 102 0014 0120     		movs	r0, #1
- 103 0016 FFF7FEFF 		bl	uart_readb
- 104              	.LVL7:
+ 104              		.loc 1 47 35 is_stmt 0 view .LVU21
+ 105 0014 0120     		movs	r0, #1
+ 106 0016 FFF7FEFF 		bl	uart_readb
+ 107              	.LVL7:
   47:../../application/src/messages.c ****   uart_read(BOARD_UART, (uint8_t*)(message->buffer), message->message_len);
- 105              		.loc 1 47 26 view .LVU20
- 106 001a C2B2     		uxtb	r2, r0
+ 108              		.loc 1 47 26 view .LVU22
+ 109 001a C2B2     		uxtb	r2, r0
   47:../../application/src/messages.c ****   uart_read(BOARD_UART, (uint8_t*)(message->buffer), message->message_len);
- 107              		.loc 1 47 24 view .LVU21
- 108 001c 6270     		strb	r2, [r4, #1]
+ 110              		.loc 1 47 24 view .LVU23
+ 111 001c 6270     		strb	r2, [r4, #1]
   48:../../application/src/messages.c ****   
- 109              		.loc 1 48 3 is_stmt 1 view .LVU22
- 110 001e 6168     		ldr	r1, [r4, #4]
- 111 0020 0120     		movs	r0, #1
- 112 0022 FFF7FEFF 		bl	uart_read
- 113              	.LVL8:
+ 112              		.loc 1 48 3 is_stmt 1 view .LVU24
+ 113 001e 6168     		ldr	r1, [r4, #4]
+ 114 0020 0120     		movs	r0, #1
+ 115 0022 FFF7FEFF 		bl	uart_read
+ 116              	.LVL8:
   50:../../application/src/messages.c **** }
- 114              		.loc 1 50 3 view .LVU23
-  50:../../application/src/messages.c **** }
- 115              		.loc 1 50 17 is_stmt 0 view .LVU24
- 116 0026 6078     		ldrb	r0, [r4, #1]	@ zero_extendqisi2
-ARM GAS  /tmp/ccAbxEFN.s 			page 4
+ 117              		.loc 1 50 3 view .LVU25
+ARM GAS  /tmp/ccjCAnnG.s 			page 4
 
 
- 117 0028 F3E7     		b	.L3
- 118              		.cfi_endproc
- 119              	.LFE1:
- 121              		.section	.text.receive_board_message_by_type,"ax",%progbits
- 122              		.align	1
- 123              		.global	receive_board_message_by_type
- 124              		.syntax unified
- 125              		.thumb
- 126              		.thumb_func
- 127              		.fpu fpv4-sp-d16
- 129              	receive_board_message_by_type:
- 130              	.LVL9:
- 131              	.LFB2:
+  50:../../application/src/messages.c **** }
+ 118              		.loc 1 50 17 is_stmt 0 view .LVU26
+ 119 0026 6078     		ldrb	r0, [r4, #1]	@ zero_extendqisi2
+ 120 0028 F3E7     		b	.L3
+ 121              		.cfi_endproc
+ 122              	.LFE1:
+ 124              		.section	.text.receive_board_message_by_type,"ax",%progbits
+ 125              		.align	1
+ 126              		.global	receive_board_message_by_type
+ 127              		.syntax unified
+ 128              		.thumb
+ 129              		.thumb_func
+ 130              		.fpu fpv4-sp-d16
+ 132              	receive_board_message_by_type:
+ 133              	.LVL9:
+ 134              	.LFB2:
   52:../../application/src/messages.c **** 
   53:../../application/src/messages.c **** /**
   54:../../application/src/messages.c ****  * @brief Function that retreives messages until the specified message is found
@@ -203,65 +206,65 @@ ARM GAS  /tmp/ccAbxEFN.s 			page 1
   58:../../application/src/messages.c ****  * @return uint32_t the number of bytes received
   59:../../application/src/messages.c ****  */
   60:../../application/src/messages.c **** uint32_t receive_board_message_by_type(MESSAGE_PACKET *message, uint8_t type) {
- 132              		.loc 1 60 79 is_stmt 1 view -0
- 133              		.cfi_startproc
- 134              		@ args = 0, pretend = 0, frame = 0
- 135              		@ frame_needed = 0, uses_anonymous_args = 0
- 136              		.loc 1 60 79 is_stmt 0 view .LVU26
- 137 0000 38B5     		push	{r3, r4, r5, lr}
- 138              	.LCFI2:
- 139              		.cfi_def_cfa_offset 16
- 140              		.cfi_offset 3, -16
- 141              		.cfi_offset 4, -12
- 142              		.cfi_offset 5, -8
- 143              		.cfi_offset 14, -4
- 144 0002 0446     		mov	r4, r0
- 145 0004 0D46     		mov	r5, r1
- 146              	.LVL10:
- 147              	.L9:
+ 135              		.loc 1 60 79 is_stmt 1 view -0
+ 136              		.cfi_startproc
+ 137              		@ args = 0, pretend = 0, frame = 0
+ 138              		@ frame_needed = 0, uses_anonymous_args = 0
+ 139              		.loc 1 60 79 is_stmt 0 view .LVU28
+ 140 0000 38B5     		push	{r3, r4, r5, lr}
+ 141              	.LCFI2:
+ 142              		.cfi_def_cfa_offset 16
+ 143              		.cfi_offset 3, -16
+ 144              		.cfi_offset 4, -12
+ 145              		.cfi_offset 5, -8
+ 146              		.cfi_offset 14, -4
+ 147 0002 0446     		mov	r4, r0
+ 148 0004 0D46     		mov	r5, r1
+ 149              	.LVL10:
+ 150              	.L9:
   61:../../application/src/messages.c ****   do {
- 148              		.loc 1 61 3 is_stmt 1 discriminator 1 view .LVU27
+ 151              		.loc 1 61 3 is_stmt 1 discriminator 1 view .LVU29
   62:../../application/src/messages.c ****     receive_board_message(message);
- 149              		.loc 1 62 5 discriminator 1 view .LVU28
- 150 0006 2046     		mov	r0, r4
- 151 0008 FFF7FEFF 		bl	receive_board_message
- 152              	.LVL11:
+ 152              		.loc 1 62 5 discriminator 1 view .LVU30
+ 153 0006 2046     		mov	r0, r4
+ 154 0008 FFF7FEFF 		bl	receive_board_message
+ 155              	.LVL11:
   63:../../application/src/messages.c ****   } while (message->magic != type);
- 153              		.loc 1 63 11 discriminator 1 view .LVU29
- 154              		.loc 1 63 19 is_stmt 0 discriminator 1 view .LVU30
- 155 000c 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
- 156              		.loc 1 63 3 discriminator 1 view .LVU31
- 157 000e AB42     		cmp	r3, r5
- 158 0010 F9D1     		bne	.L9
+ 156              		.loc 1 63 11 discriminator 1 view .LVU31
+ 157              		.loc 1 63 19 is_stmt 0 discriminator 1 view .LVU32
+ 158 000c 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 159              		.loc 1 63 3 discriminator 1 view .LVU33
+ 160 000e AB42     		cmp	r3, r5
+ 161 0010 F9D1     		bne	.L9
   64:../../application/src/messages.c **** 
   65:../../application/src/messages.c ****   return message->message_len;
- 159              		.loc 1 65 3 is_stmt 1 view .LVU32
+ARM GAS  /tmp/ccjCAnnG.s 			page 5
+
+
+ 162              		.loc 1 65 3 is_stmt 1 view .LVU34
   66:../../application/src/messages.c **** }
- 160              		.loc 1 66 1 is_stmt 0 view .LVU33
-ARM GAS  /tmp/ccAbxEFN.s 			page 5
-
-
- 161 0012 6078     		ldrb	r0, [r4, #1]	@ zero_extendqisi2
- 162 0014 38BD     		pop	{r3, r4, r5, pc}
- 163              		.loc 1 66 1 view .LVU34
- 164              		.cfi_endproc
- 165              	.LFE2:
- 167              		.text
- 168              	.Letext0:
- 169              		.file 2 "/usr/lib/gcc/arm-none-eabi/10.3.1/include/stdint.h"
- 170              		.file 3 "../../application/inc/messages.h"
- 171              		.file 4 "../../application/inc/uart.h"
-ARM GAS  /tmp/ccAbxEFN.s 			page 6
+ 163              		.loc 1 66 1 is_stmt 0 view .LVU35
+ 164 0012 6078     		ldrb	r0, [r4, #1]	@ zero_extendqisi2
+ 165 0014 38BD     		pop	{r3, r4, r5, pc}
+ 166              		.loc 1 66 1 view .LVU36
+ 167              		.cfi_endproc
+ 168              	.LFE2:
+ 170              		.text
+ 171              	.Letext0:
+ 172              		.file 2 "/usr/lib/gcc/arm-none-eabi/10.3.1/include/stdint.h"
+ 173              		.file 3 "../../application/inc/messages.h"
+ 174              		.file 4 "../../application/inc/uart.h"
+ARM GAS  /tmp/ccjCAnnG.s 			page 6
 
 
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 messages.c
-     /tmp/ccAbxEFN.s:18     .text.send_board_message:0000000000000000 $t
-     /tmp/ccAbxEFN.s:26     .text.send_board_message:0000000000000000 send_board_message
-     /tmp/ccAbxEFN.s:58     .text.receive_board_message:0000000000000000 $t
-     /tmp/ccAbxEFN.s:65     .text.receive_board_message:0000000000000000 receive_board_message
-     /tmp/ccAbxEFN.s:122    .text.receive_board_message_by_type:0000000000000000 $t
-     /tmp/ccAbxEFN.s:129    .text.receive_board_message_by_type:0000000000000000 receive_board_message_by_type
+     /tmp/ccjCAnnG.s:18     .text.send_board_message:0000000000000000 $t
+     /tmp/ccjCAnnG.s:26     .text.send_board_message:0000000000000000 send_board_message
+     /tmp/ccjCAnnG.s:61     .text.receive_board_message:0000000000000000 $t
+     /tmp/ccjCAnnG.s:68     .text.receive_board_message:0000000000000000 receive_board_message
+     /tmp/ccjCAnnG.s:125    .text.receive_board_message_by_type:0000000000000000 $t
+     /tmp/ccjCAnnG.s:132    .text.receive_board_message_by_type:0000000000000000 receive_board_message_by_type
 
 UNDEFINED SYMBOLS
 uart_write
