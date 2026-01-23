@@ -68,7 +68,7 @@ clean_tivaware:
 	${MAKE} -C ${TIVA_ROOT}/driverlib clean BUILD_DIR=build
 
 # clean all build products
-clean: clean_tivaware
+clean:
 	@rm -rf build ${wildcard *~}
 
 # create the output directory
@@ -79,6 +79,10 @@ ${BUILD_DIR}:
 ${BUILD_DIR}/firmware.axf: ${BUILD_DIR}/uart_tm4c.o
 ${BUILD_DIR}/firmware.axf: ${BUILD_DIR}/messages.o
 ${BUILD_DIR}/firmware.axf: ${BUILD_DIR}/${FIRMWARE_OBJ}
+	#@echo "=== LINKING DEBUG ==="
+	#@echo "All prerequisites: $^"
+	#@echo "Filtered objects: $(filter %.o %.a, $^)"
+	#@ls -lh $(filter %.o, $^)
 ${BUILD_DIR}/firmware.axf: ${BUILD_DIR}/tm4c.o
 ${BUILD_DIR}/firmware.axf: ${BUILD_DIR}/startup_${COMPILER}.o
 ${BUILD_DIR}/firmware.axf: ${TIVA_ROOT}/driverlib/build/libdriver.a

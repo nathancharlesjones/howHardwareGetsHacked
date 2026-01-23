@@ -1,0 +1,15 @@
+[ ] Test Tiva unlock
+[X] Copy over host tools (just package_tool and enable_tool, since features are binary files)
+[X] Copy over deployment tool --> Nah, not yet.
+[ ] Make top-level make "ALL" call
+[X] Manually test: unlock (Y), package feature (Y), enable feature (Y), unlock (Y), pair fob (Y), unlock (Y)
+[ ] Separate out car and fob objects
+[ ] Add unit tests
+[ ] Fix strcmp in car firmware
+[ ] Should secrets, messages be put in a different folder?
+[ ] TM4C clean shouldn't clean tivaware
+[ ] Update on new car id? ("Building car didn't trigger new car secret, secrets.h if only car id changed")
+[ ] Delete unneccessary code in saveFobState
+[ ] Need "CAR SECRET"?
+[ ] Reflashing doesn't overwrite old flash_data?
+[ ] Double-check fob top of main; is it doing what I want it to?

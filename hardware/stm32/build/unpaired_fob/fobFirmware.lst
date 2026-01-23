@@ -1,4 +1,4 @@
-ARM GAS  /tmp/ccjHW1oU.s 			page 1
+ARM GAS  /tmp/cchX4GuU.s 			page 1
 
 
    1              		.cpu cortex-m4
@@ -35,164 +35,166 @@ ARM GAS  /tmp/ccjHW1oU.s 			page 1
   31              		.fpu fpv4-sp-d16
   33              	pairFob:
   34              	.LVL0:
-  35              	.LFB1:
-  36              		.file 1 "../../application/src/fobFirmware.c"
-   1:../../application/src/fobFirmware.c **** /**
-   2:../../application/src/fobFirmware.c ****  * @file main.c
-   3:../../application/src/fobFirmware.c ****  * @author Frederich Stine
-   4:../../application/src/fobFirmware.c ****  * @brief eCTF Fob Example Design Implementation
-   5:../../application/src/fobFirmware.c ****  * @date 2023
-   6:../../application/src/fobFirmware.c ****  *
-   7:../../application/src/fobFirmware.c ****  * This source file is part of an example system for MITRE's 2023 Embedded
-   8:../../application/src/fobFirmware.c ****  * System CTF (eCTF). This code is being provided only for educational purposes
-   9:../../application/src/fobFirmware.c ****  * for the 2023 MITRE eCTF competition, and may not meet MITRE standards for
-  10:../../application/src/fobFirmware.c ****  * quality. Use this code at your own risk!
-  11:../../application/src/fobFirmware.c ****  *
-  12:../../application/src/fobFirmware.c ****  * @copyright Copyright (c) 2023 The MITRE Corporation
-  13:../../application/src/fobFirmware.c ****  */
-  14:../../application/src/fobFirmware.c **** 
-  15:../../application/src/fobFirmware.c **** #include <stdbool.h>
-  16:../../application/src/fobFirmware.c **** #include <stdint.h>
-  17:../../application/src/fobFirmware.c **** #include <string.h>
-  18:../../application/src/fobFirmware.c **** 
-  19:../../application/src/fobFirmware.c **** #include "secrets.h"
-  20:../../application/src/fobFirmware.c **** #include "messages.h"
-  21:../../application/src/fobFirmware.c **** #include "dataFormats.h"
-ARM GAS  /tmp/ccjHW1oU.s 			page 2
+  35              	.LFB4:
+  36              		.file 1 "../../application/source/fobFirmware.c"
+   1:../../application/source/fobFirmware.c **** /**
+   2:../../application/source/fobFirmware.c ****  * @file main.c
+   3:../../application/source/fobFirmware.c ****  * @author Frederich Stine
+   4:../../application/source/fobFirmware.c ****  * @brief eCTF Fob Example Design Implementation
+   5:../../application/source/fobFirmware.c ****  * @date 2023
+   6:../../application/source/fobFirmware.c ****  *
+   7:../../application/source/fobFirmware.c ****  * This source file is part of an example system for MITRE's 2023 Embedded
+   8:../../application/source/fobFirmware.c ****  * System CTF (eCTF). This code is being provided only for educational purposes
+   9:../../application/source/fobFirmware.c ****  * for the 2023 MITRE eCTF competition, and may not meet MITRE standards for
+  10:../../application/source/fobFirmware.c ****  * quality. Use this code at your own risk!
+  11:../../application/source/fobFirmware.c ****  *
+  12:../../application/source/fobFirmware.c ****  * @copyright Copyright (c) 2023 The MITRE Corporation
+  13:../../application/source/fobFirmware.c ****  */
+  14:../../application/source/fobFirmware.c **** 
+  15:../../application/source/fobFirmware.c **** #include <stdbool.h>
+  16:../../application/source/fobFirmware.c **** #include <stdint.h>
+  17:../../application/source/fobFirmware.c **** #include <string.h>
+  18:../../application/source/fobFirmware.c **** #include <stdio.h>
+  19:../../application/source/fobFirmware.c **** 
+  20:../../application/source/fobFirmware.c **** #include "secrets.h"
+  21:../../application/source/fobFirmware.c **** #include "messages.h"
+ARM GAS  /tmp/cchX4GuU.s 			page 2
 
 
-  22:../../application/src/fobFirmware.c **** #include "uart.h"
-  23:../../application/src/fobFirmware.c **** #include "platform.h"
-  24:../../application/src/fobFirmware.c **** 
-  25:../../application/src/fobFirmware.c **** #define FLASH_PAIRED 0x00
-  26:../../application/src/fobFirmware.c **** #define FLASH_UNPAIRED 0xFF
-  27:../../application/src/fobFirmware.c **** 
-  28:../../application/src/fobFirmware.c **** /*** Structure definitions ***/
-  29:../../application/src/fobFirmware.c **** // Defines a struct for the format of an enable message
-  30:../../application/src/fobFirmware.c **** typedef struct
-  31:../../application/src/fobFirmware.c **** {
-  32:../../application/src/fobFirmware.c ****   uint8_t car_id[8];
-  33:../../application/src/fobFirmware.c ****   uint8_t feature;
-  34:../../application/src/fobFirmware.c **** } ENABLE_PACKET;
-  35:../../application/src/fobFirmware.c **** 
-  36:../../application/src/fobFirmware.c **** /*** Function definitions ***/
-  37:../../application/src/fobFirmware.c **** // Core functions - all functionality supported by fob
-  38:../../application/src/fobFirmware.c **** void pairFob(FLASH_DATA *fob_state_ram);
-  39:../../application/src/fobFirmware.c **** void unlockCar(FLASH_DATA *fob_state_ram);
-  40:../../application/src/fobFirmware.c **** void enableFeature(FLASH_DATA *fob_state_ram);
-  41:../../application/src/fobFirmware.c **** void startCar(FLASH_DATA *fob_state_ram);
-  42:../../application/src/fobFirmware.c **** 
-  43:../../application/src/fobFirmware.c **** // Helper functions - receive ack message
-  44:../../application/src/fobFirmware.c **** uint8_t receiveAck();
-  45:../../application/src/fobFirmware.c **** 
-  46:../../application/src/fobFirmware.c **** /**
-  47:../../application/src/fobFirmware.c ****  * @brief Main function for the fob example
-  48:../../application/src/fobFirmware.c ****  *
-  49:../../application/src/fobFirmware.c ****  * Listens over UART and SW1 for an unlock command. If unlock command presented,
-  50:../../application/src/fobFirmware.c ****  * attempts to unlock door. Listens over UART for pair command. If pair
-  51:../../application/src/fobFirmware.c ****  * command presented, attempts to either pair a new key, or be paired
-  52:../../application/src/fobFirmware.c ****  * based on firmware build.
-  53:../../application/src/fobFirmware.c ****  */
-  54:../../application/src/fobFirmware.c **** int main(int argc, char ** argv)
-  55:../../application/src/fobFirmware.c **** {
-  56:../../application/src/fobFirmware.c ****   FLASH_DATA fob_state_ram;
-  57:../../application/src/fobFirmware.c ****   FLASH_DATA fob_state_flash;
-  58:../../application/src/fobFirmware.c ****   readVar((uint8_t*)(&fob_state_flash), "fob_state");
-  59:../../application/src/fobFirmware.c **** 
-  60:../../application/src/fobFirmware.c **** // If paired fob, initialize the system information
-  61:../../application/src/fobFirmware.c **** #if PAIRED == 1
-  62:../../application/src/fobFirmware.c ****   if (fob_state_flash.paired == FLASH_UNPAIRED)
-  63:../../application/src/fobFirmware.c ****   {
-  64:../../application/src/fobFirmware.c ****     strcpy((char *)(fob_state_ram.pair_info.password), PASSWORD);
-  65:../../application/src/fobFirmware.c ****     strcpy((char *)(fob_state_ram.pair_info.pin), PAIR_PIN);
-  66:../../application/src/fobFirmware.c ****     strcpy((char *)(fob_state_ram.pair_info.car_id), CAR_ID);
-  67:../../application/src/fobFirmware.c ****     strcpy((char *)(fob_state_ram.feature_info.car_id), CAR_ID);
-  68:../../application/src/fobFirmware.c ****     fob_state_ram.paired = FLASH_PAIRED;
-  69:../../application/src/fobFirmware.c **** 
-  70:../../application/src/fobFirmware.c ****     saveFobState(&fob_state_ram);
-  71:../../application/src/fobFirmware.c ****   }
-  72:../../application/src/fobFirmware.c **** #else
-  73:../../application/src/fobFirmware.c ****   fob_state_ram.paired = FLASH_UNPAIRED;
-  74:../../application/src/fobFirmware.c **** #endif
-  75:../../application/src/fobFirmware.c **** 
-  76:../../application/src/fobFirmware.c ****   if (fob_state_flash.paired == FLASH_PAIRED)
-  77:../../application/src/fobFirmware.c ****   {
-  78:../../application/src/fobFirmware.c ****     memcpy(&fob_state_ram, &fob_state_flash, sizeof(FLASH_DATA));
-ARM GAS  /tmp/ccjHW1oU.s 			page 3
+  22:../../application/source/fobFirmware.c **** #include "dataFormats.h"
+  23:../../application/source/fobFirmware.c **** #include "uart.h"
+  24:../../application/source/fobFirmware.c **** #include "platform.h"
+  25:../../application/source/fobFirmware.c **** 
+  26:../../application/source/fobFirmware.c **** /*** Structure definitions ***/
+  27:../../application/source/fobFirmware.c **** // Defines a struct for the format of an enable message
+  28:../../application/source/fobFirmware.c **** typedef struct
+  29:../../application/source/fobFirmware.c **** {
+  30:../../application/source/fobFirmware.c ****   uint8_t car_id[8];
+  31:../../application/source/fobFirmware.c ****   uint8_t feature;
+  32:../../application/source/fobFirmware.c **** } ENABLE_PACKET;
+  33:../../application/source/fobFirmware.c **** 
+  34:../../application/source/fobFirmware.c **** /*** Function definitions ***/
+  35:../../application/source/fobFirmware.c **** // Core functions - all functionality supported by fob
+  36:../../application/source/fobFirmware.c **** void pairFob(FLASH_DATA *fob_state_ram);
+  37:../../application/source/fobFirmware.c **** void unlockCar(FLASH_DATA *fob_state_ram);
+  38:../../application/source/fobFirmware.c **** void enableFeature(FLASH_DATA *fob_state_ram);
+  39:../../application/source/fobFirmware.c **** void startCar(FLASH_DATA *fob_state_ram);
+  40:../../application/source/fobFirmware.c **** 
+  41:../../application/source/fobFirmware.c **** // Helper functions - receive ack message
+  42:../../application/source/fobFirmware.c **** uint8_t receiveAck();
+  43:../../application/source/fobFirmware.c **** 
+  44:../../application/source/fobFirmware.c **** /**
+  45:../../application/source/fobFirmware.c ****  * @brief Main function for the fob example
+  46:../../application/source/fobFirmware.c ****  *
+  47:../../application/source/fobFirmware.c ****  * Listens over UART and SW1 for an unlock command. If unlock command presented,
+  48:../../application/source/fobFirmware.c ****  * attempts to unlock door. Listens over UART for pair command. If pair
+  49:../../application/source/fobFirmware.c ****  * command presented, attempts to either pair a new key, or be paired
+  50:../../application/source/fobFirmware.c ****  * based on firmware build.
+  51:../../application/source/fobFirmware.c ****  */
+  52:../../application/source/fobFirmware.c **** int main(int argc, char ** argv)
+  53:../../application/source/fobFirmware.c **** {
+  54:../../application/source/fobFirmware.c ****   initHardware_fob(argc, argv);
+  55:../../application/source/fobFirmware.c **** 
+  56:../../application/source/fobFirmware.c ****   FLASH_DATA fob_state_ram;
+  57:../../application/source/fobFirmware.c ****   //FLASH_DATA fob_state_flash;
+  58:../../application/source/fobFirmware.c ****   //readVar((uint8_t*)(&fob_state_flash), "fob_state");
+  59:../../application/source/fobFirmware.c ****   readVar((uint8_t*)(&fob_state_ram), "fob_state");
+  60:../../application/source/fobFirmware.c **** 
+  61:../../application/source/fobFirmware.c **** // If paired fob, initialize the system information
+  62:../../application/source/fobFirmware.c **** #if PAIRED == 1
+  63:../../application/source/fobFirmware.c ****   //if (fob_state_flash.paired == FLASH_UNPAIRED)
+  64:../../application/source/fobFirmware.c ****   if (fob_state_ram.paired == FLASH_UNPAIRED)
+  65:../../application/source/fobFirmware.c ****   {
+  66:../../application/source/fobFirmware.c ****     strcpy((char *)(fob_state_ram.pair_info.password), PASSWORD);
+  67:../../application/source/fobFirmware.c ****     strcpy((char *)(fob_state_ram.pair_info.pin), PAIR_PIN);
+  68:../../application/source/fobFirmware.c ****     strcpy((char *)(fob_state_ram.pair_info.car_id), CAR_ID);
+  69:../../application/source/fobFirmware.c ****     strcpy((char *)(fob_state_ram.feature_info.car_id), CAR_ID);
+  70:../../application/source/fobFirmware.c ****     fob_state_ram.paired = FLASH_PAIRED;
+  71:../../application/source/fobFirmware.c **** 
+  72:../../application/source/fobFirmware.c ****     saveFobState(&fob_state_ram);
+  73:../../application/source/fobFirmware.c ****   }
+  74:../../application/source/fobFirmware.c **** //#else
+  75:../../application/source/fobFirmware.c ****   //fob_state_ram.paired = FLASH_UNPAIRED;
+  76:../../application/source/fobFirmware.c **** #endif
+  77:../../application/source/fobFirmware.c **** 
+  78:../../application/source/fobFirmware.c ****   /*
+ARM GAS  /tmp/cchX4GuU.s 			page 3
 
 
-  79:../../application/src/fobFirmware.c ****   }
-  80:../../application/src/fobFirmware.c **** 
-  81:../../application/src/fobFirmware.c ****   // This will run on first boot to initialize features
-  82:../../application/src/fobFirmware.c ****   if (fob_state_ram.feature_info.num_active == 0xFF)
-  83:../../application/src/fobFirmware.c ****   {
-  84:../../application/src/fobFirmware.c ****     fob_state_ram.feature_info.num_active = 0;
-  85:../../application/src/fobFirmware.c ****     saveFobState(&fob_state_ram);
-  86:../../application/src/fobFirmware.c ****   }
-  87:../../application/src/fobFirmware.c **** 
-  88:../../application/src/fobFirmware.c ****   initHardware_fob(argc, argv);
-  89:../../application/src/fobFirmware.c **** 
-  90:../../application/src/fobFirmware.c ****   // Declare a buffer for reading and writing to UART
-  91:../../application/src/fobFirmware.c ****   uint8_t uart_buffer[10];
-  92:../../application/src/fobFirmware.c ****   uint8_t uart_buffer_index = 0;
-  93:../../application/src/fobFirmware.c **** 
-  94:../../application/src/fobFirmware.c ****   // Infinite loop for polling UART
-  95:../../application/src/fobFirmware.c ****   while (true)
-  96:../../application/src/fobFirmware.c ****   {
-  97:../../application/src/fobFirmware.c **** 
-  98:../../application/src/fobFirmware.c ****     // Non blocking UART polling
-  99:../../application/src/fobFirmware.c ****     if (uart_avail(HOST_UART))
- 100:../../application/src/fobFirmware.c ****     {
- 101:../../application/src/fobFirmware.c ****       uint8_t uart_char = (uint8_t)uart_readb(HOST_UART);
- 102:../../application/src/fobFirmware.c **** 
- 103:../../application/src/fobFirmware.c ****       if ((uart_char != '\r') && (uart_char != '\n') && (uart_char != '\0') &&
- 104:../../application/src/fobFirmware.c ****           (uart_char != 0xD))
- 105:../../application/src/fobFirmware.c ****       {
- 106:../../application/src/fobFirmware.c ****         uart_buffer[uart_buffer_index] = uart_char;
- 107:../../application/src/fobFirmware.c ****         uart_buffer_index++;
- 108:../../application/src/fobFirmware.c ****       }
- 109:../../application/src/fobFirmware.c ****       else
- 110:../../application/src/fobFirmware.c ****       {
- 111:../../application/src/fobFirmware.c ****         uart_buffer[uart_buffer_index] = 0x00;
- 112:../../application/src/fobFirmware.c ****         uart_buffer_index = 0;
- 113:../../application/src/fobFirmware.c **** 
- 114:../../application/src/fobFirmware.c ****         if (!(strcmp((char *)uart_buffer, "enable")))
- 115:../../application/src/fobFirmware.c ****         {
- 116:../../application/src/fobFirmware.c ****           enableFeature(&fob_state_ram);
- 117:../../application/src/fobFirmware.c ****         }
- 118:../../application/src/fobFirmware.c ****         else if (!(strcmp((char *)uart_buffer, "pair")))
- 119:../../application/src/fobFirmware.c ****         {
- 120:../../application/src/fobFirmware.c ****           pairFob(&fob_state_ram);
- 121:../../application/src/fobFirmware.c ****         }
- 122:../../application/src/fobFirmware.c ****       }
- 123:../../application/src/fobFirmware.c ****     }
- 124:../../application/src/fobFirmware.c **** 
- 125:../../application/src/fobFirmware.c ****     if(buttonPressed())
- 126:../../application/src/fobFirmware.c ****     {
- 127:../../application/src/fobFirmware.c ****       unlockCar(&fob_state_ram);
- 128:../../application/src/fobFirmware.c ****       if (receiveAck())
- 129:../../application/src/fobFirmware.c ****       {
- 130:../../application/src/fobFirmware.c ****         startCar(&fob_state_ram);
- 131:../../application/src/fobFirmware.c ****       }
- 132:../../application/src/fobFirmware.c ****     }
- 133:../../application/src/fobFirmware.c ****   }
- 134:../../application/src/fobFirmware.c **** }
- 135:../../application/src/fobFirmware.c **** 
-ARM GAS  /tmp/ccjHW1oU.s 			page 4
+  79:../../application/source/fobFirmware.c ****   if (fob_state_flash.paired == FLASH_PAIRED)
+  80:../../application/source/fobFirmware.c ****   {
+  81:../../application/source/fobFirmware.c ****     memcpy(&fob_state_ram, &fob_state_flash, sizeof(FLASH_DATA));
+  82:../../application/source/fobFirmware.c ****   }
+  83:../../application/source/fobFirmware.c ****   */
+  84:../../application/source/fobFirmware.c **** 
+  85:../../application/source/fobFirmware.c ****   // This will run on first boot to initialize features
+  86:../../application/source/fobFirmware.c ****   if (fob_state_ram.feature_info.num_active == 0xFF)
+  87:../../application/source/fobFirmware.c ****   {
+  88:../../application/source/fobFirmware.c ****     fob_state_ram.feature_info.num_active = 0;
+  89:../../application/source/fobFirmware.c ****     saveFobState(&fob_state_ram);
+  90:../../application/source/fobFirmware.c ****   }
+  91:../../application/source/fobFirmware.c **** 
+  92:../../application/source/fobFirmware.c ****   // Declare a buffer for reading and writing to UART
+  93:../../application/source/fobFirmware.c ****   uint8_t uart_buffer[10];
+  94:../../application/source/fobFirmware.c ****   uint8_t uart_buffer_index = 0;
+  95:../../application/source/fobFirmware.c **** 
+  96:../../application/source/fobFirmware.c ****   // Infinite loop for polling UART
+  97:../../application/source/fobFirmware.c ****   while (true)
+  98:../../application/source/fobFirmware.c ****   {
+  99:../../application/source/fobFirmware.c **** 
+ 100:../../application/source/fobFirmware.c ****     // Non blocking UART polling
+ 101:../../application/source/fobFirmware.c ****     if (uart_avail(HOST_UART))
+ 102:../../application/source/fobFirmware.c ****     {
+ 103:../../application/source/fobFirmware.c ****       uint8_t uart_char = (uint8_t)uart_readb(HOST_UART);
+ 104:../../application/source/fobFirmware.c **** 
+ 105:../../application/source/fobFirmware.c ****       if ((uart_char != '\r') && (uart_char != '\n') && (uart_char != '\0') &&
+ 106:../../application/source/fobFirmware.c ****           (uart_char != 0xD))
+ 107:../../application/source/fobFirmware.c ****       {
+ 108:../../application/source/fobFirmware.c ****         uart_buffer[uart_buffer_index] = uart_char;
+ 109:../../application/source/fobFirmware.c ****         uart_buffer_index++;
+ 110:../../application/source/fobFirmware.c ****       }
+ 111:../../application/source/fobFirmware.c ****       else
+ 112:../../application/source/fobFirmware.c ****       {
+ 113:../../application/source/fobFirmware.c ****         uart_buffer[uart_buffer_index] = 0x00;
+ 114:../../application/source/fobFirmware.c ****         uart_buffer_index = 0;
+ 115:../../application/source/fobFirmware.c **** 
+ 116:../../application/source/fobFirmware.c ****         if (!(strcmp((char *)uart_buffer, "enable")))
+ 117:../../application/source/fobFirmware.c ****         {
+ 118:../../application/source/fobFirmware.c ****           enableFeature(&fob_state_ram);
+ 119:../../application/source/fobFirmware.c ****         }
+ 120:../../application/source/fobFirmware.c ****         else if (!(strcmp((char *)uart_buffer, "pair")))
+ 121:../../application/source/fobFirmware.c ****         {
+ 122:../../application/source/fobFirmware.c ****           pairFob(&fob_state_ram);
+ 123:../../application/source/fobFirmware.c ****         }
+ 124:../../application/source/fobFirmware.c ****       }
+ 125:../../application/source/fobFirmware.c ****     }
+ 126:../../application/source/fobFirmware.c **** 
+ 127:../../application/source/fobFirmware.c ****     if(buttonPressed())
+ 128:../../application/source/fobFirmware.c ****     {
+ 129:../../application/source/fobFirmware.c ****       unlockCar(&fob_state_ram);
+ 130:../../application/source/fobFirmware.c ****       if (receiveAck())
+ 131:../../application/source/fobFirmware.c ****       {
+ 132:../../application/source/fobFirmware.c ****         startCar(&fob_state_ram);
+ 133:../../application/source/fobFirmware.c ****       }
+ 134:../../application/source/fobFirmware.c ****     }
+ 135:../../application/source/fobFirmware.c ****   }
+ARM GAS  /tmp/cchX4GuU.s 			page 4
 
 
- 136:../../application/src/fobFirmware.c **** /**
- 137:../../application/src/fobFirmware.c ****  * @brief Function that carries out pairing of the fob
- 138:../../application/src/fobFirmware.c ****  *
- 139:../../application/src/fobFirmware.c ****  * @param fob_state_ram pointer to the current fob state in ram
- 140:../../application/src/fobFirmware.c ****  */
- 141:../../application/src/fobFirmware.c **** void pairFob(FLASH_DATA *fob_state_ram)
- 142:../../application/src/fobFirmware.c **** {
-  37              		.loc 1 142 1 view -0
+ 136:../../application/source/fobFirmware.c **** }
+ 137:../../application/source/fobFirmware.c **** 
+ 138:../../application/source/fobFirmware.c **** /**
+ 139:../../application/source/fobFirmware.c ****  * @brief Function that carries out pairing of the fob
+ 140:../../application/source/fobFirmware.c ****  *
+ 141:../../application/source/fobFirmware.c ****  * @param fob_state_ram pointer to the current fob state in ram
+ 142:../../application/source/fobFirmware.c ****  */
+ 143:../../application/source/fobFirmware.c **** void pairFob(FLASH_DATA *fob_state_ram)
+ 144:../../application/source/fobFirmware.c **** {
+  37              		.loc 1 144 1 view -0
   38              		.cfi_startproc
   39              		@ args = 0, pretend = 0, frame = 16
   40              		@ frame_needed = 0, uses_anonymous_args = 0
-  41              		.loc 1 142 1 is_stmt 0 view .LVU1
+  41              		.loc 1 144 1 is_stmt 0 view .LVU1
   42 0000 70B5     		push	{r4, r5, r6, lr}
   43              	.LCFI0:
   44              		.cfi_def_cfa_offset 16
@@ -204,147 +206,147 @@ ARM GAS  /tmp/ccjHW1oU.s 			page 1
   50              	.LCFI1:
   51              		.cfi_def_cfa_offset 32
   52 0004 0446     		mov	r4, r0
- 143:../../application/src/fobFirmware.c ****   MESSAGE_PACKET message;
-  53              		.loc 1 143 3 is_stmt 1 view .LVU2
- 144:../../application/src/fobFirmware.c ****   // Start pairing transaction - fob is already paired
- 145:../../application/src/fobFirmware.c ****   if (fob_state_ram->paired == FLASH_PAIRED)
-  54              		.loc 1 145 3 view .LVU3
-  55              		.loc 1 145 20 is_stmt 0 view .LVU4
+ 145:../../application/source/fobFirmware.c ****   MESSAGE_PACKET message;
+  53              		.loc 1 145 3 is_stmt 1 view .LVU2
+ 146:../../application/source/fobFirmware.c ****   // Start pairing transaction - fob is already paired
+ 147:../../application/source/fobFirmware.c ****   if (fob_state_ram->paired == FLASH_PAIRED)
+  54              		.loc 1 147 3 view .LVU3
+  55              		.loc 1 147 20 is_stmt 0 view .LVU4
   56 0006 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
-  57              		.loc 1 145 6 view .LVU5
+  57              		.loc 1 147 6 view .LVU5
   58 0008 EBB9     		cbnz	r3, .L2
   59              	.LBB2:
- 146:../../application/src/fobFirmware.c ****   {
- 147:../../application/src/fobFirmware.c ****     int16_t bytes_read;
-  60              		.loc 1 147 5 is_stmt 1 view .LVU6
- 148:../../application/src/fobFirmware.c ****     uint8_t uart_buffer[8];
-  61              		.loc 1 148 5 view .LVU7
- 149:../../application/src/fobFirmware.c ****     uart_write(HOST_UART, (uint8_t *)"P", 1);
-  62              		.loc 1 149 5 view .LVU8
+ 148:../../application/source/fobFirmware.c ****   {
+ 149:../../application/source/fobFirmware.c ****     int16_t bytes_read;
+  60              		.loc 1 149 5 is_stmt 1 view .LVU6
+ 150:../../application/source/fobFirmware.c ****     uint8_t uart_buffer[8];
+  61              		.loc 1 150 5 view .LVU7
+ 151:../../application/source/fobFirmware.c ****     uart_write(HOST_UART, (uint8_t *)"P", 1);
+  62              		.loc 1 151 5 view .LVU8
   63 000a 0122     		movs	r2, #1
   64 000c 1949     		ldr	r1, .L6
   65 000e 0020     		movs	r0, #0
   66              	.LVL1:
-  67              		.loc 1 149 5 is_stmt 0 view .LVU9
+  67              		.loc 1 151 5 is_stmt 0 view .LVU9
   68 0010 FFF7FEFF 		bl	uart_write
   69              	.LVL2:
- 150:../../application/src/fobFirmware.c ****     bytes_read = uart_readline(HOST_UART, uart_buffer);
-  70              		.loc 1 150 5 is_stmt 1 view .LVU10
-  71              		.loc 1 150 18 is_stmt 0 view .LVU11
+ 152:../../application/source/fobFirmware.c ****     bytes_read = uart_readline(HOST_UART, uart_buffer);
+  70              		.loc 1 152 5 is_stmt 1 view .LVU10
+  71              		.loc 1 152 18 is_stmt 0 view .LVU11
   72 0014 6946     		mov	r1, sp
   73 0016 0020     		movs	r0, #0
   74 0018 FFF7FEFF 		bl	uart_readline
   75              	.LVL3:
-  76              		.loc 1 150 16 view .LVU12
+  76              		.loc 1 152 16 view .LVU12
+ARM GAS  /tmp/cchX4GuU.s 			page 5
+
+
   77 001c 00B2     		sxth	r0, r0
   78              	.LVL4:
-ARM GAS  /tmp/ccjHW1oU.s 			page 5
-
-
- 151:../../application/src/fobFirmware.c **** 
- 152:../../application/src/fobFirmware.c ****     if (bytes_read == 6)
-  79              		.loc 1 152 5 is_stmt 1 view .LVU13
-  80              		.loc 1 152 8 is_stmt 0 view .LVU14
+ 153:../../application/source/fobFirmware.c **** 
+ 154:../../application/source/fobFirmware.c ****     if (bytes_read == 6)
+  79              		.loc 1 154 5 is_stmt 1 view .LVU13
+  80              		.loc 1 154 8 is_stmt 0 view .LVU14
   81 001e 0628     		cmp	r0, #6
   82 0020 26D1     		bne	.L1
- 153:../../application/src/fobFirmware.c ****     {
- 154:../../application/src/fobFirmware.c ****       // If the pin is correct
- 155:../../application/src/fobFirmware.c ****       if (!(strcmp((char *)uart_buffer,
-  83              		.loc 1 155 7 is_stmt 1 view .LVU15
-  84              		.loc 1 155 13 is_stmt 0 view .LVU16
+ 155:../../application/source/fobFirmware.c ****     {
+ 156:../../application/source/fobFirmware.c ****       // If the pin is correct
+ 157:../../application/source/fobFirmware.c ****       if (!(strcmp((char *)uart_buffer,
+  83              		.loc 1 157 7 is_stmt 1 view .LVU15
+  84              		.loc 1 157 13 is_stmt 0 view .LVU16
   85 0022 04F11101 		add	r1, r4, #17
   86 0026 6846     		mov	r0, sp
   87              	.LVL5:
-  88              		.loc 1 155 13 view .LVU17
+  88              		.loc 1 157 13 view .LVU17
   89 0028 FFF7FEFF 		bl	strcmp
   90              	.LVL6:
-  91              		.loc 1 155 10 view .LVU18
+  91              		.loc 1 157 10 view .LVU18
   92 002c 00BB     		cbnz	r0, .L1
- 156:../../application/src/fobFirmware.c ****                    (char *)fob_state_ram->pair_info.pin)))
- 157:../../application/src/fobFirmware.c ****       {
- 158:../../application/src/fobFirmware.c ****         // Pair the new key by sending a PAIR_PACKET structure
- 159:../../application/src/fobFirmware.c ****         // with required information to unlock door
- 160:../../application/src/fobFirmware.c ****         message.message_len = sizeof(PAIR_PACKET);
-  93              		.loc 1 160 9 is_stmt 1 view .LVU19
-  94              		.loc 1 160 29 is_stmt 0 view .LVU20
+ 158:../../application/source/fobFirmware.c ****                    (char *)fob_state_ram->pair_info.pin)))
+ 159:../../application/source/fobFirmware.c ****       {
+ 160:../../application/source/fobFirmware.c ****         // Pair the new key by sending a PAIR_PACKET structure
+ 161:../../application/source/fobFirmware.c ****         // with required information to unlock door
+ 162:../../application/source/fobFirmware.c ****         message.message_len = sizeof(PAIR_PACKET);
+  93              		.loc 1 162 9 is_stmt 1 view .LVU19
+  94              		.loc 1 162 29 is_stmt 0 view .LVU20
   95 002e 1823     		movs	r3, #24
   96 0030 8DF80930 		strb	r3, [sp, #9]
- 161:../../application/src/fobFirmware.c ****         message.magic = PAIR_MAGIC;
-  97              		.loc 1 161 9 is_stmt 1 view .LVU21
-  98              		.loc 1 161 23 is_stmt 0 view .LVU22
+ 163:../../application/source/fobFirmware.c ****         message.magic = PAIR_MAGIC;
+  97              		.loc 1 163 9 is_stmt 1 view .LVU21
+  98              		.loc 1 163 23 is_stmt 0 view .LVU22
   99 0034 5523     		movs	r3, #85
  100 0036 8DF80830 		strb	r3, [sp, #8]
- 162:../../application/src/fobFirmware.c ****         message.buffer = (uint8_t *)&fob_state_ram->pair_info;
- 101              		.loc 1 162 9 is_stmt 1 view .LVU23
- 102              		.loc 1 162 37 is_stmt 0 view .LVU24
+ 164:../../application/source/fobFirmware.c ****         message.buffer = (uint8_t *)&fob_state_ram->pair_info;
+ 101              		.loc 1 164 9 is_stmt 1 view .LVU23
+ 102              		.loc 1 164 37 is_stmt 0 view .LVU24
  103 003a 0134     		adds	r4, r4, #1
  104              	.LVL7:
- 105              		.loc 1 162 24 view .LVU25
+ 105              		.loc 1 164 24 view .LVU25
  106 003c 0394     		str	r4, [sp, #12]
- 163:../../application/src/fobFirmware.c ****         send_board_message(&message);
- 107              		.loc 1 163 9 is_stmt 1 view .LVU26
+ 165:../../application/source/fobFirmware.c ****         send_board_message(&message);
+ 107              		.loc 1 165 9 is_stmt 1 view .LVU26
  108 003e 02A8     		add	r0, sp, #8
  109 0040 FFF7FEFF 		bl	send_board_message
  110              	.LVL8:
  111 0044 14E0     		b	.L1
  112              	.LVL9:
  113              	.L2:
- 114              		.loc 1 163 9 is_stmt 0 view .LVU27
+ 114              		.loc 1 165 9 is_stmt 0 view .LVU27
  115              	.LBE2:
- 164:../../application/src/fobFirmware.c ****       }
- 165:../../application/src/fobFirmware.c ****     }
- 166:../../application/src/fobFirmware.c ****   }
- 167:../../application/src/fobFirmware.c **** 
- 168:../../application/src/fobFirmware.c ****   // Start pairing transaction - fob is not paired
- 169:../../application/src/fobFirmware.c ****   else
- 170:../../application/src/fobFirmware.c ****   {
-ARM GAS  /tmp/ccjHW1oU.s 			page 6
+ 166:../../application/source/fobFirmware.c ****       }
+ 167:../../application/source/fobFirmware.c ****     }
+ 168:../../application/source/fobFirmware.c ****   }
+ 169:../../application/source/fobFirmware.c **** 
+ 170:../../application/source/fobFirmware.c ****   // Start pairing transaction - fob is not paired
+ARM GAS  /tmp/cchX4GuU.s 			page 6
 
 
- 171:../../application/src/fobFirmware.c ****     message.buffer = (uint8_t *)&fob_state_ram->pair_info;
- 116              		.loc 1 171 5 is_stmt 1 view .LVU28
- 117              		.loc 1 171 33 is_stmt 0 view .LVU29
+ 171:../../application/source/fobFirmware.c ****   else
+ 172:../../application/source/fobFirmware.c ****   {
+ 173:../../application/source/fobFirmware.c ****     message.buffer = (uint8_t *)&fob_state_ram->pair_info;
+ 116              		.loc 1 173 5 is_stmt 1 view .LVU28
+ 117              		.loc 1 173 33 is_stmt 0 view .LVU29
  118 0046 461C     		adds	r6, r0, #1
- 119              		.loc 1 171 20 view .LVU30
+ 119              		.loc 1 173 20 view .LVU30
  120 0048 0396     		str	r6, [sp, #12]
- 172:../../application/src/fobFirmware.c ****     receive_board_message_by_type(&message, PAIR_MAGIC);
- 121              		.loc 1 172 5 is_stmt 1 view .LVU31
+ 174:../../application/source/fobFirmware.c ****     receive_board_message_by_type(&message, PAIR_MAGIC);
+ 121              		.loc 1 174 5 is_stmt 1 view .LVU31
  122 004a 5521     		movs	r1, #85
  123 004c 02A8     		add	r0, sp, #8
  124              	.LVL10:
- 125              		.loc 1 172 5 is_stmt 0 view .LVU32
+ 125              		.loc 1 174 5 is_stmt 0 view .LVU32
  126 004e FFF7FEFF 		bl	receive_board_message_by_type
  127              	.LVL11:
- 173:../../application/src/fobFirmware.c ****     fob_state_ram->paired = FLASH_PAIRED;
- 128              		.loc 1 173 5 is_stmt 1 view .LVU33
- 129              		.loc 1 173 27 is_stmt 0 view .LVU34
+ 175:../../application/source/fobFirmware.c ****     fob_state_ram->paired = FLASH_PAIRED;
+ 128              		.loc 1 175 5 is_stmt 1 view .LVU33
+ 129              		.loc 1 175 27 is_stmt 0 view .LVU34
  130 0052 0025     		movs	r5, #0
  131 0054 2046     		mov	r0, r4
  132 0056 00F8195B 		strb	r5, [r0], #25
- 174:../../application/src/fobFirmware.c ****     strcpy((char *)fob_state_ram->feature_info.car_id,
- 133              		.loc 1 174 5 is_stmt 1 view .LVU35
+ 176:../../application/source/fobFirmware.c ****     strcpy((char *)fob_state_ram->feature_info.car_id,
+ 133              		.loc 1 176 5 is_stmt 1 view .LVU35
  134 005a 3146     		mov	r1, r6
  135 005c FFF7FEFF 		bl	strcpy
  136              	.LVL12:
- 175:../../application/src/fobFirmware.c ****            (char *)fob_state_ram->pair_info.car_id);
- 176:../../application/src/fobFirmware.c **** 
- 177:../../application/src/fobFirmware.c ****     uart_write(HOST_UART, (uint8_t *)"Paired", 6);
- 137              		.loc 1 177 5 view .LVU36
+ 177:../../application/source/fobFirmware.c ****            (char *)fob_state_ram->pair_info.car_id);
+ 178:../../application/source/fobFirmware.c **** 
+ 179:../../application/source/fobFirmware.c ****     uart_write(HOST_UART, (uint8_t *)"Paired", 6);
+ 137              		.loc 1 179 5 view .LVU36
  138 0060 0622     		movs	r2, #6
  139 0062 0549     		ldr	r1, .L6+4
  140 0064 2846     		mov	r0, r5
  141 0066 FFF7FEFF 		bl	uart_write
  142              	.LVL13:
- 178:../../application/src/fobFirmware.c **** 
- 179:../../application/src/fobFirmware.c ****     saveFobState(fob_state_ram);
- 143              		.loc 1 179 5 view .LVU37
+ 180:../../application/source/fobFirmware.c **** 
+ 181:../../application/source/fobFirmware.c ****     saveFobState(fob_state_ram);
+ 143              		.loc 1 181 5 view .LVU37
  144 006a 2046     		mov	r0, r4
  145 006c FFF7FEFF 		bl	saveFobState
  146              	.LVL14:
  147              	.L1:
- 180:../../application/src/fobFirmware.c ****   }
- 181:../../application/src/fobFirmware.c **** }
- 148              		.loc 1 181 1 is_stmt 0 view .LVU38
+ 182:../../application/source/fobFirmware.c ****   }
+ 183:../../application/source/fobFirmware.c **** }
+ 148              		.loc 1 183 1 is_stmt 0 view .LVU38
  149 0070 04B0     		add	sp, sp, #16
  150              	.LCFI2:
  151              		.cfi_def_cfa_offset 16
@@ -356,759 +358,932 @@ ARM GAS  /tmp/ccjHW1oU.s 			page 1
  157 0074 00000000 		.word	.LC0
  158 0078 04000000 		.word	.LC1
  159              		.cfi_endproc
- 160              	.LFE1:
+ARM GAS  /tmp/cchX4GuU.s 			page 7
+
+
+ 160              	.LFE4:
  162              		.section	.rodata.enableFeature.str1.4,"aMS",%progbits,1
-ARM GAS  /tmp/ccjHW1oU.s 			page 7
-
-
  163              		.align	2
  164              	.LC2:
- 165 0000 456E6162 		.ascii	"Enabled\000"
- 165      6C656400 
- 166              		.section	.text.enableFeature,"ax",%progbits
- 167              		.align	1
- 168              		.global	enableFeature
- 169              		.syntax unified
- 170              		.thumb
- 171              		.thumb_func
- 172              		.fpu fpv4-sp-d16
- 174              	enableFeature:
- 175              	.LVL15:
- 176              	.LFB2:
- 182:../../application/src/fobFirmware.c **** 
- 183:../../application/src/fobFirmware.c **** /**
- 184:../../application/src/fobFirmware.c ****  * @brief Function that handles enabling a new feature on the fob
- 185:../../application/src/fobFirmware.c ****  *
- 186:../../application/src/fobFirmware.c ****  * @param fob_state_ram pointer to the current fob state in ram
- 187:../../application/src/fobFirmware.c ****  */
- 188:../../application/src/fobFirmware.c **** void enableFeature(FLASH_DATA *fob_state_ram)
- 189:../../application/src/fobFirmware.c **** {
- 177              		.loc 1 189 1 is_stmt 1 view -0
- 178              		.cfi_startproc
- 179              		@ args = 0, pretend = 0, frame = 24
- 180              		@ frame_needed = 0, uses_anonymous_args = 0
- 190:../../application/src/fobFirmware.c ****   if (fob_state_ram->paired == FLASH_PAIRED)
- 181              		.loc 1 190 3 view .LVU40
- 182              		.loc 1 190 20 is_stmt 0 view .LVU41
- 183 0000 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
- 184              		.loc 1 190 6 view .LVU42
- 185 0002 03B1     		cbz	r3, .L17
- 186 0004 7047     		bx	lr
- 187              	.L17:
- 189:../../application/src/fobFirmware.c ****   if (fob_state_ram->paired == FLASH_PAIRED)
- 188              		.loc 1 189 1 view .LVU43
- 189 0006 10B5     		push	{r4, lr}
- 190              	.LCFI3:
- 191              		.cfi_def_cfa_offset 8
- 192              		.cfi_offset 4, -8
- 193              		.cfi_offset 14, -4
- 194 0008 86B0     		sub	sp, sp, #24
- 195              	.LCFI4:
- 196              		.cfi_def_cfa_offset 32
- 197 000a 0446     		mov	r4, r0
- 198              	.LBB3:
- 191:../../application/src/fobFirmware.c ****   {
- 192:../../application/src/fobFirmware.c ****     uint8_t uart_buffer[20];
- 199              		.loc 1 192 5 is_stmt 1 view .LVU44
- 193:../../application/src/fobFirmware.c ****     uart_readline(HOST_UART, uart_buffer);
- 200              		.loc 1 193 5 view .LVU45
- 201 000c 01A9     		add	r1, sp, #4
- 202 000e 0020     		movs	r0, #0
- 203              	.LVL16:
- 204              		.loc 1 193 5 is_stmt 0 view .LVU46
- 205 0010 FFF7FEFF 		bl	uart_readline
- 206              	.LVL17:
-ARM GAS  /tmp/ccjHW1oU.s 			page 8
+ 165 0000 496E7369 		.ascii	"Inside enableFeature\012\000"
+ 165      64652065 
+ 165      6E61626C 
+ 165      65466561 
+ 165      74757265 
+ 166 0016 0000     		.align	2
+ 167              	.LC3:
+ 168 0018 4552524F 		.ascii	"ERROR: Car IDs don't match\012\000"
+ 168      523A2043 
+ 168      61722049 
+ 168      44732064 
+ 168      6F6E2774 
+ 169              		.align	2
+ 170              	.LC4:
+ 171 0034 45787065 		.ascii	"Expected %s, received %s\012\000"
+ 171      63746564 
+ 171      2025732C 
+ 171      20726563 
+ 171      65697665 
+ 172 004e 0000     		.align	2
+ 173              	.LC5:
+ 174 0050 4552524F 		.ascii	"ERROR: Feature list full\012\000"
+ 174      523A2046 
+ 174      65617475 
+ 174      7265206C 
+ 174      69737420 
+ 175 006a 0000     		.align	2
+ 176              	.LC6:
+ 177 006c 4552524F 		.ascii	"ERROR: Feature already enabled\012\000"
+ 177      523A2046 
+ 177      65617475 
+ 177      72652061 
+ 177      6C726561 
+ 178              		.align	2
+ 179              	.LC7:
+ 180 008c 456E6162 		.ascii	"Enabled\000"
+ 180      6C656400 
+ 181              		.section	.text.enableFeature,"ax",%progbits
+ 182              		.align	1
+ 183              		.global	enableFeature
+ 184              		.syntax unified
+ 185              		.thumb
+ 186              		.thumb_func
+ 187              		.fpu fpv4-sp-d16
+ 189              	enableFeature:
+ 190              	.LVL15:
+ 191              	.LFB5:
+ 184:../../application/source/fobFirmware.c **** 
+ 185:../../application/source/fobFirmware.c **** /**
+ 186:../../application/source/fobFirmware.c ****  * @brief Function that handles enabling a new feature on the fob
+ 187:../../application/source/fobFirmware.c ****  *
+ 188:../../application/source/fobFirmware.c ****  * @param fob_state_ram pointer to the current fob state in ram
+ 189:../../application/source/fobFirmware.c ****  */
+ARM GAS  /tmp/cchX4GuU.s 			page 8
 
 
- 194:../../application/src/fobFirmware.c **** 
- 195:../../application/src/fobFirmware.c ****     ENABLE_PACKET *enable_message = (ENABLE_PACKET *)uart_buffer;
- 207              		.loc 1 195 5 is_stmt 1 view .LVU47
- 196:../../application/src/fobFirmware.c ****     if (strcmp((char *)fob_state_ram->pair_info.car_id,
- 208              		.loc 1 196 5 view .LVU48
- 209              		.loc 1 196 9 is_stmt 0 view .LVU49
- 210 0014 01A9     		add	r1, sp, #4
- 211              	.LVL18:
- 212              		.loc 1 196 9 view .LVU50
- 213 0016 601C     		adds	r0, r4, #1
- 214 0018 FFF7FEFF 		bl	strcmp
- 215              	.LVL19:
- 216              		.loc 1 196 8 view .LVU51
- 217 001c 0346     		mov	r3, r0
- 218 001e F0B9     		cbnz	r0, .L8
- 197:../../application/src/fobFirmware.c ****                (char *)enable_message->car_id))
- 198:../../application/src/fobFirmware.c ****     {
- 199:../../application/src/fobFirmware.c ****       return;
- 200:../../application/src/fobFirmware.c ****     }
- 201:../../application/src/fobFirmware.c **** 
- 202:../../application/src/fobFirmware.c ****     // Feature list full
- 203:../../application/src/fobFirmware.c ****     if (fob_state_ram->feature_info.num_active == NUM_FEATURES)
- 219              		.loc 1 203 5 is_stmt 1 view .LVU52
- 220              		.loc 1 203 36 is_stmt 0 view .LVU53
- 221 0020 94F82100 		ldrb	r0, [r4, #33]	@ zero_extendqisi2
- 222              		.loc 1 203 8 view .LVU54
- 223 0024 0328     		cmp	r0, #3
- 224 0026 1AD0     		beq	.L8
- 225              	.L11:
- 226              	.LVL20:
- 227              	.LBB4:
- 204:../../application/src/fobFirmware.c ****     {
- 205:../../application/src/fobFirmware.c ****       return;
- 206:../../application/src/fobFirmware.c ****     }
- 207:../../application/src/fobFirmware.c **** 
- 208:../../application/src/fobFirmware.c ****     // Search for feature in list
- 209:../../application/src/fobFirmware.c ****     for (int i = 0; i < fob_state_ram->feature_info.num_active; i++)
- 228              		.loc 1 209 21 is_stmt 1 discriminator 1 view .LVU55
- 229              		.loc 1 209 5 is_stmt 0 discriminator 1 view .LVU56
- 230 0028 9842     		cmp	r0, r3
- 231 002a 08DD     		ble	.L18
- 210:../../application/src/fobFirmware.c ****     {
- 211:../../application/src/fobFirmware.c ****       if (fob_state_ram->feature_info.features[i] == enable_message->feature)
- 232              		.loc 1 211 7 is_stmt 1 view .LVU57
- 233              		.loc 1 211 47 is_stmt 0 view .LVU58
- 234 002c E218     		adds	r2, r4, r3
- 235 002e 92F82210 		ldrb	r1, [r2, #34]	@ zero_extendqisi2
- 236              		.loc 1 211 68 view .LVU59
- 237 0032 9DF80C20 		ldrb	r2, [sp, #12]	@ zero_extendqisi2
- 238              		.loc 1 211 10 view .LVU60
- 239 0036 9142     		cmp	r1, r2
- 240 0038 11D0     		beq	.L8
- 209:../../application/src/fobFirmware.c ****     {
- 241              		.loc 1 209 65 is_stmt 1 discriminator 2 view .LVU61
- 209:../../application/src/fobFirmware.c ****     {
- 242              		.loc 1 209 66 is_stmt 0 discriminator 2 view .LVU62
- 243 003a 0133     		adds	r3, r3, #1
-ARM GAS  /tmp/ccjHW1oU.s 			page 9
+ 190:../../application/source/fobFirmware.c **** void enableFeature(FLASH_DATA *fob_state_ram)
+ 191:../../application/source/fobFirmware.c **** {
+ 192              		.loc 1 191 1 is_stmt 1 view -0
+ 193              		.cfi_startproc
+ 194              		@ args = 0, pretend = 0, frame = 88
+ 195              		@ frame_needed = 0, uses_anonymous_args = 0
+ 192:../../application/source/fobFirmware.c ****   if (fob_state_ram->paired == FLASH_PAIRED)
+ 196              		.loc 1 192 3 view .LVU40
+ 197              		.loc 1 192 20 is_stmt 0 view .LVU41
+ 198 0000 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
+ 199              		.loc 1 192 6 view .LVU42
+ 200 0002 03B1     		cbz	r3, .L19
+ 201 0004 7047     		bx	lr
+ 202              	.L19:
+ 191:../../application/source/fobFirmware.c ****   if (fob_state_ram->paired == FLASH_PAIRED)
+ 203              		.loc 1 191 1 view .LVU43
+ 204 0006 70B5     		push	{r4, r5, r6, lr}
+ 205              	.LCFI3:
+ 206              		.cfi_def_cfa_offset 16
+ 207              		.cfi_offset 4, -16
+ 208              		.cfi_offset 5, -12
+ 209              		.cfi_offset 6, -8
+ 210              		.cfi_offset 14, -4
+ 211 0008 96B0     		sub	sp, sp, #88
+ 212              	.LCFI4:
+ 213              		.cfi_def_cfa_offset 104
+ 214 000a 0446     		mov	r4, r0
+ 215              	.LBB3:
+ 193:../../application/source/fobFirmware.c ****   {
+ 194:../../application/source/fobFirmware.c ****     uint8_t uart_buffer[20];
+ 216              		.loc 1 194 5 is_stmt 1 view .LVU44
+ 195:../../application/source/fobFirmware.c ****     uart_readline(HOST_UART, uart_buffer);
+ 217              		.loc 1 195 5 view .LVU45
+ 218 000c 01A9     		add	r1, sp, #4
+ 219 000e 0020     		movs	r0, #0
+ 220              	.LVL16:
+ 221              		.loc 1 195 5 is_stmt 0 view .LVU46
+ 222 0010 FFF7FEFF 		bl	uart_readline
+ 223              	.LVL17:
+ 196:../../application/source/fobFirmware.c **** 
+ 197:../../application/source/fobFirmware.c ****     char msg[64] = {0};
+ 224              		.loc 1 197 5 is_stmt 1 view .LVU47
+ 225              		.loc 1 197 10 is_stmt 0 view .LVU48
+ 226 0014 0021     		movs	r1, #0
+ 227 0016 0691     		str	r1, [sp, #24]
+ 228 0018 3C22     		movs	r2, #60
+ 229 001a 07A8     		add	r0, sp, #28
+ 230 001c FFF7FEFF 		bl	memset
+ 231              	.LVL18:
+ 198:../../application/source/fobFirmware.c ****     strcpy(msg, "Inside enableFeature\n");
+ 232              		.loc 1 198 5 is_stmt 1 view .LVU49
+ 233 0020 0DF1180C 		add	ip, sp, #24
+ 234 0024 3D4D     		ldr	r5, .L24
+ 235 0026 0FCD     		ldmia	r5!, {r0, r1, r2, r3}
+ 236 0028 ACE80F00 		stmia	ip!, {r0, r1, r2, r3}
+ 237 002c 95E80300 		ldm	r5, {r0, r1}
+ 238 0030 4CF8040B 		str	r0, [ip], #4
+ARM GAS  /tmp/cchX4GuU.s 			page 9
 
 
- 244              	.LVL21:
- 209:../../application/src/fobFirmware.c ****     {
- 245              		.loc 1 209 66 discriminator 2 view .LVU63
- 246 003c F4E7     		b	.L11
- 247              	.L18:
- 209:../../application/src/fobFirmware.c ****     {
- 248              		.loc 1 209 66 discriminator 2 view .LVU64
- 249              	.LBE4:
- 212:../../application/src/fobFirmware.c ****       {
- 213:../../application/src/fobFirmware.c ****         return;
- 214:../../application/src/fobFirmware.c ****       }
- 215:../../application/src/fobFirmware.c ****     }
- 216:../../application/src/fobFirmware.c **** 
- 217:../../application/src/fobFirmware.c ****     fob_state_ram->feature_info
- 250              		.loc 1 217 5 is_stmt 1 view .LVU65
- 218:../../application/src/fobFirmware.c ****         .features[fob_state_ram->feature_info.num_active] =
- 219:../../application/src/fobFirmware.c ****         enable_message->feature;
- 251              		.loc 1 219 23 is_stmt 0 view .LVU66
- 252 003e 9DF80C20 		ldrb	r2, [sp, #12]	@ zero_extendqisi2
- 218:../../application/src/fobFirmware.c ****         .features[fob_state_ram->feature_info.num_active] =
- 253              		.loc 1 218 59 view .LVU67
- 254 0042 2318     		adds	r3, r4, r0
- 255              	.LVL22:
- 218:../../application/src/fobFirmware.c ****         .features[fob_state_ram->feature_info.num_active] =
- 256              		.loc 1 218 59 view .LVU68
- 257 0044 83F82220 		strb	r2, [r3, #34]
- 220:../../application/src/fobFirmware.c ****     fob_state_ram->feature_info.num_active++;
- 258              		.loc 1 220 5 is_stmt 1 view .LVU69
- 259              		.loc 1 220 43 is_stmt 0 view .LVU70
- 260 0048 0130     		adds	r0, r0, #1
- 261 004a 84F82100 		strb	r0, [r4, #33]
- 221:../../application/src/fobFirmware.c **** 
- 222:../../application/src/fobFirmware.c ****     saveFobState(fob_state_ram);
- 262              		.loc 1 222 5 is_stmt 1 view .LVU71
- 263 004e 2046     		mov	r0, r4
- 264 0050 FFF7FEFF 		bl	saveFobState
- 265              	.LVL23:
- 223:../../application/src/fobFirmware.c ****     uart_write(HOST_UART, (uint8_t *)"Enabled", 7);
- 266              		.loc 1 223 5 view .LVU72
- 267 0054 0722     		movs	r2, #7
- 268 0056 0349     		ldr	r1, .L19
- 269 0058 0020     		movs	r0, #0
- 270 005a FFF7FEFF 		bl	uart_write
- 271              	.LVL24:
- 272              	.L8:
- 273              		.loc 1 223 5 is_stmt 0 view .LVU73
- 274              	.LBE3:
- 224:../../application/src/fobFirmware.c ****   }
- 225:../../application/src/fobFirmware.c **** }
- 275              		.loc 1 225 1 view .LVU74
- 276 005e 06B0     		add	sp, sp, #24
- 277              	.LCFI5:
- 278              		.cfi_def_cfa_offset 8
- 279              		@ sp needed
- 280 0060 10BD     		pop	{r4, pc}
- 281              	.LVL25:
- 282              	.L20:
-ARM GAS  /tmp/ccjHW1oU.s 			page 10
+ 239 0034 ACF80010 		strh	r1, [ip]	@ movhi
+ 199:../../application/source/fobFirmware.c ****     uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
+ 240              		.loc 1 199 5 view .LVU50
+ 241              		.loc 1 199 43 is_stmt 0 view .LVU51
+ 242 0038 06A8     		add	r0, sp, #24
+ 243 003a FFF7FEFF 		bl	strlen
+ 244              	.LVL19:
+ 245 003e 0246     		mov	r2, r0
+ 246              		.loc 1 199 5 view .LVU52
+ 247 0040 06A9     		add	r1, sp, #24
+ 248 0042 0120     		movs	r0, #1
+ 249 0044 FFF7FEFF 		bl	uart_write
+ 250              	.LVL20:
+ 200:../../application/source/fobFirmware.c **** 
+ 201:../../application/source/fobFirmware.c ****     ENABLE_PACKET *enable_message = (ENABLE_PACKET *)uart_buffer;
+ 251              		.loc 1 201 5 is_stmt 1 view .LVU53
+ 202:../../application/source/fobFirmware.c ****     if (strcmp((char *)fob_state_ram->pair_info.car_id,
+ 252              		.loc 1 202 5 view .LVU54
+ 253              		.loc 1 202 24 is_stmt 0 view .LVU55
+ 254 0048 651C     		adds	r5, r4, #1
+ 255              		.loc 1 202 9 view .LVU56
+ 256 004a 01A9     		add	r1, sp, #4
+ 257              	.LVL21:
+ 258              		.loc 1 202 9 view .LVU57
+ 259 004c 2846     		mov	r0, r5
+ 260 004e FFF7FEFF 		bl	strcmp
+ 261              	.LVL22:
+ 262              		.loc 1 202 8 view .LVU58
+ 263 0052 0346     		mov	r3, r0
+ 264 0054 70B9     		cbnz	r0, .L20
+ 203:../../application/source/fobFirmware.c ****                (char *)enable_message->car_id))
+ 204:../../application/source/fobFirmware.c ****     {
+ 205:../../application/source/fobFirmware.c ****       strcpy(msg, "ERROR: Car IDs don't match\n");
+ 206:../../application/source/fobFirmware.c ****       uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
+ 207:../../application/source/fobFirmware.c ****       sprintf(msg, "Expected %s, received %s\n", (char *)fob_state_ram->pair_info.car_id, (char *)e
+ 208:../../application/source/fobFirmware.c ****       uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
+ 209:../../application/source/fobFirmware.c ****       return;
+ 210:../../application/source/fobFirmware.c ****     }
+ 211:../../application/source/fobFirmware.c **** 
+ 212:../../application/source/fobFirmware.c ****     // Feature list full
+ 213:../../application/source/fobFirmware.c ****     if (fob_state_ram->feature_info.num_active == NUM_FEATURES)
+ 265              		.loc 1 213 5 is_stmt 1 view .LVU59
+ 266              		.loc 1 213 36 is_stmt 0 view .LVU60
+ 267 0056 94F82100 		ldrb	r0, [r4, #33]	@ zero_extendqisi2
+ 268              		.loc 1 213 8 view .LVU61
+ 269 005a 0328     		cmp	r0, #3
+ 270 005c 29D0     		beq	.L21
+ 271              	.L12:
+ 272              	.LVL23:
+ 273              	.LBB4:
+ 214:../../application/source/fobFirmware.c ****     {
+ 215:../../application/source/fobFirmware.c ****       strcpy(msg, "ERROR: Feature list full\n");
+ 216:../../application/source/fobFirmware.c ****       uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
+ 217:../../application/source/fobFirmware.c ****       return;
+ 218:../../application/source/fobFirmware.c ****     }
+ 219:../../application/source/fobFirmware.c **** 
+ 220:../../application/source/fobFirmware.c ****     // Search for feature in list
+ARM GAS  /tmp/cchX4GuU.s 			page 10
 
 
- 283              		.loc 1 225 1 view .LVU75
- 284 0062 00BF     		.align	2
- 285              	.L19:
- 286 0064 00000000 		.word	.LC2
- 287              		.cfi_endproc
- 288              	.LFE2:
- 290              		.section	.text.unlockCar,"ax",%progbits
- 291              		.align	1
- 292              		.global	unlockCar
- 293              		.syntax unified
- 294              		.thumb
- 295              		.thumb_func
- 296              		.fpu fpv4-sp-d16
- 298              	unlockCar:
+ 221:../../application/source/fobFirmware.c ****     for (int i = 0; i < fob_state_ram->feature_info.num_active; i++)
+ 274              		.loc 1 221 21 is_stmt 1 discriminator 1 view .LVU62
+ 275              		.loc 1 221 5 is_stmt 0 discriminator 1 view .LVU63
+ 276 005e 9842     		cmp	r0, r3
+ 277 0060 49DD     		ble	.L22
+ 222:../../application/source/fobFirmware.c ****     {
+ 223:../../application/source/fobFirmware.c ****       if (fob_state_ram->feature_info.features[i] == enable_message->feature)
+ 278              		.loc 1 223 7 is_stmt 1 view .LVU64
+ 279              		.loc 1 223 47 is_stmt 0 view .LVU65
+ 280 0062 E218     		adds	r2, r4, r3
+ 281 0064 92F82210 		ldrb	r1, [r2, #34]	@ zero_extendqisi2
+ 282              		.loc 1 223 68 view .LVU66
+ 283 0068 9DF80C20 		ldrb	r2, [sp, #12]	@ zero_extendqisi2
+ 284              		.loc 1 223 10 view .LVU67
+ 285 006c 9142     		cmp	r1, r2
+ 286 006e 31D0     		beq	.L23
+ 221:../../application/source/fobFirmware.c ****     {
+ 287              		.loc 1 221 65 is_stmt 1 discriminator 2 view .LVU68
+ 221:../../application/source/fobFirmware.c ****     {
+ 288              		.loc 1 221 66 is_stmt 0 discriminator 2 view .LVU69
+ 289 0070 0133     		adds	r3, r3, #1
+ 290              	.LVL24:
+ 221:../../application/source/fobFirmware.c ****     {
+ 291              		.loc 1 221 66 discriminator 2 view .LVU70
+ 292 0072 F4E7     		b	.L12
+ 293              	.LVL25:
+ 294              	.L20:
+ 221:../../application/source/fobFirmware.c ****     {
+ 295              		.loc 1 221 66 discriminator 2 view .LVU71
+ 296              	.LBE4:
+ 205:../../application/source/fobFirmware.c ****       uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
+ 297              		.loc 1 205 7 is_stmt 1 view .LVU72
+ 298 0074 06AC     		add	r4, sp, #24
  299              	.LVL26:
- 300              	.LFB3:
- 226:../../application/src/fobFirmware.c **** 
- 227:../../application/src/fobFirmware.c **** /**
- 228:../../application/src/fobFirmware.c ****  * @brief Function that handles the fob unlocking a car
- 229:../../application/src/fobFirmware.c ****  *
- 230:../../application/src/fobFirmware.c ****  * @param fob_state_ram pointer to the current fob state in ram
- 231:../../application/src/fobFirmware.c ****  */
- 232:../../application/src/fobFirmware.c **** void unlockCar(FLASH_DATA *fob_state_ram)
- 233:../../application/src/fobFirmware.c **** {
- 301              		.loc 1 233 1 is_stmt 1 view -0
- 302              		.cfi_startproc
- 303              		@ args = 0, pretend = 0, frame = 8
- 304              		@ frame_needed = 0, uses_anonymous_args = 0
- 234:../../application/src/fobFirmware.c ****   if (fob_state_ram->paired == FLASH_PAIRED)
- 305              		.loc 1 234 3 view .LVU77
- 306              		.loc 1 234 20 is_stmt 0 view .LVU78
- 307 0000 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
- 308              		.loc 1 234 6 view .LVU79
- 309 0002 03B1     		cbz	r3, .L27
- 310 0004 7047     		bx	lr
- 311              	.L27:
- 233:../../application/src/fobFirmware.c ****   if (fob_state_ram->paired == FLASH_PAIRED)
- 312              		.loc 1 233 1 view .LVU80
- 313 0006 00B5     		push	{lr}
- 314              	.LCFI6:
- 315              		.cfi_def_cfa_offset 4
- 316              		.cfi_offset 14, -4
- 317 0008 83B0     		sub	sp, sp, #12
- 318              	.LCFI7:
- 319              		.cfi_def_cfa_offset 16
- 320              	.LBB5:
- 235:../../application/src/fobFirmware.c ****   {
- 236:../../application/src/fobFirmware.c ****     MESSAGE_PACKET message;
- 321              		.loc 1 236 5 is_stmt 1 view .LVU81
- 237:../../application/src/fobFirmware.c ****     message.message_len = 6;
- 322              		.loc 1 237 5 view .LVU82
- 323              		.loc 1 237 25 is_stmt 0 view .LVU83
- 324 000a 0623     		movs	r3, #6
- 325 000c 8DF80130 		strb	r3, [sp, #1]
- 238:../../application/src/fobFirmware.c ****     message.magic = UNLOCK_MAGIC;
- 326              		.loc 1 238 5 is_stmt 1 view .LVU84
- 327              		.loc 1 238 19 is_stmt 0 view .LVU85
-ARM GAS  /tmp/ccjHW1oU.s 			page 11
+ 205:../../application/source/fobFirmware.c ****       uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
+ 300              		.loc 1 205 7 is_stmt 0 view .LVU73
+ 301 0076 2A4E     		ldr	r6, .L24+4
+ 302 0078 0FCE     		ldmia	r6!, {r0, r1, r2, r3}
+ 303 007a 0FC4     		stmia	r4!, {r0, r1, r2, r3}
+ 304 007c 96E80700 		ldm	r6, {r0, r1, r2}
+ 305 0080 84E80700 		stm	r4, {r0, r1, r2}
+ 206:../../application/source/fobFirmware.c ****       sprintf(msg, "Expected %s, received %s\n", (char *)fob_state_ram->pair_info.car_id, (char *)e
+ 306              		.loc 1 206 7 is_stmt 1 view .LVU74
+ 206:../../application/source/fobFirmware.c ****       sprintf(msg, "Expected %s, received %s\n", (char *)fob_state_ram->pair_info.car_id, (char *)e
+ 307              		.loc 1 206 45 is_stmt 0 view .LVU75
+ 308 0084 06A8     		add	r0, sp, #24
+ 309 0086 FFF7FEFF 		bl	strlen
+ 310              	.LVL27:
+ 311 008a 0246     		mov	r2, r0
+ 206:../../application/source/fobFirmware.c ****       sprintf(msg, "Expected %s, received %s\n", (char *)fob_state_ram->pair_info.car_id, (char *)e
+ 312              		.loc 1 206 7 view .LVU76
+ 313 008c 06A9     		add	r1, sp, #24
+ 314 008e 0120     		movs	r0, #1
+ 315 0090 FFF7FEFF 		bl	uart_write
+ 316              	.LVL28:
+ 207:../../application/source/fobFirmware.c ****       uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
+ 317              		.loc 1 207 7 is_stmt 1 view .LVU77
+ARM GAS  /tmp/cchX4GuU.s 			page 11
 
 
- 328 0010 5623     		movs	r3, #86
- 329 0012 8DF80030 		strb	r3, [sp]
- 239:../../application/src/fobFirmware.c ****     message.buffer = fob_state_ram->pair_info.password;
- 330              		.loc 1 239 5 is_stmt 1 view .LVU86
- 331              		.loc 1 239 22 is_stmt 0 view .LVU87
- 332 0016 0930     		adds	r0, r0, #9
- 333              	.LVL27:
- 334              		.loc 1 239 20 view .LVU88
- 335 0018 0190     		str	r0, [sp, #4]
- 240:../../application/src/fobFirmware.c ****     send_board_message(&message);
- 336              		.loc 1 240 5 is_stmt 1 view .LVU89
- 337 001a 6846     		mov	r0, sp
- 338              	.LVL28:
- 339              		.loc 1 240 5 is_stmt 0 view .LVU90
- 340 001c FFF7FEFF 		bl	send_board_message
- 341              	.LVL29:
- 342              		.loc 1 240 5 view .LVU91
- 343              	.LBE5:
- 241:../../application/src/fobFirmware.c ****   }
- 242:../../application/src/fobFirmware.c **** }
- 344              		.loc 1 242 1 view .LVU92
- 345 0020 03B0     		add	sp, sp, #12
- 346              	.LCFI8:
- 347              		.cfi_def_cfa_offset 4
- 348              		@ sp needed
- 349 0022 5DF804FB 		ldr	pc, [sp], #4
- 350              		.cfi_endproc
- 351              	.LFE3:
- 353              		.section	.text.startCar,"ax",%progbits
- 354              		.align	1
- 355              		.global	startCar
- 356              		.syntax unified
- 357              		.thumb
- 358              		.thumb_func
- 359              		.fpu fpv4-sp-d16
- 361              	startCar:
- 362              	.LVL30:
- 363              	.LFB4:
- 243:../../application/src/fobFirmware.c **** 
- 244:../../application/src/fobFirmware.c **** /**
- 245:../../application/src/fobFirmware.c ****  * @brief Function that handles the fob starting a car
- 246:../../application/src/fobFirmware.c ****  *
- 247:../../application/src/fobFirmware.c ****  * @param fob_state_ram pointer to the current fob state in ram
- 248:../../application/src/fobFirmware.c ****  */
- 249:../../application/src/fobFirmware.c **** void startCar(FLASH_DATA *fob_state_ram)
- 250:../../application/src/fobFirmware.c **** {
- 364              		.loc 1 250 1 is_stmt 1 view -0
- 365              		.cfi_startproc
- 366              		@ args = 0, pretend = 0, frame = 8
- 367              		@ frame_needed = 0, uses_anonymous_args = 0
- 251:../../application/src/fobFirmware.c ****   if (fob_state_ram->paired == FLASH_PAIRED)
- 368              		.loc 1 251 3 view .LVU94
- 369              		.loc 1 251 20 is_stmt 0 view .LVU95
- 370 0000 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
- 371              		.loc 1 251 6 view .LVU96
- 372 0002 03B1     		cbz	r3, .L34
- 373 0004 7047     		bx	lr
-ARM GAS  /tmp/ccjHW1oU.s 			page 12
+ 318 0094 01AB     		add	r3, sp, #4
+ 319              	.LVL29:
+ 207:../../application/source/fobFirmware.c ****       uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
+ 320              		.loc 1 207 7 is_stmt 0 view .LVU78
+ 321 0096 2A46     		mov	r2, r5
+ 322 0098 2249     		ldr	r1, .L24+8
+ 323 009a 06A8     		add	r0, sp, #24
+ 324 009c FFF7FEFF 		bl	sprintf
+ 325              	.LVL30:
+ 208:../../application/source/fobFirmware.c ****       return;
+ 326              		.loc 1 208 7 is_stmt 1 view .LVU79
+ 208:../../application/source/fobFirmware.c ****       return;
+ 327              		.loc 1 208 45 is_stmt 0 view .LVU80
+ 328 00a0 06A8     		add	r0, sp, #24
+ 329 00a2 FFF7FEFF 		bl	strlen
+ 330              	.LVL31:
+ 331 00a6 0246     		mov	r2, r0
+ 208:../../application/source/fobFirmware.c ****       return;
+ 332              		.loc 1 208 7 view .LVU81
+ 333 00a8 06A9     		add	r1, sp, #24
+ 334 00aa 0120     		movs	r0, #1
+ 335 00ac FFF7FEFF 		bl	uart_write
+ 336              	.LVL32:
+ 209:../../application/source/fobFirmware.c ****     }
+ 337              		.loc 1 209 7 is_stmt 1 view .LVU82
+ 338 00b0 31E0     		b	.L8
+ 339              	.LVL33:
+ 340              	.L21:
+ 215:../../application/source/fobFirmware.c ****       uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
+ 341              		.loc 1 215 7 view .LVU83
+ 342 00b2 06AC     		add	r4, sp, #24
+ 343              	.LVL34:
+ 215:../../application/source/fobFirmware.c ****       uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
+ 344              		.loc 1 215 7 is_stmt 0 view .LVU84
+ 345 00b4 1C4D     		ldr	r5, .L24+12
+ 346              	.LVL35:
+ 215:../../application/source/fobFirmware.c ****       uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
+ 347              		.loc 1 215 7 view .LVU85
+ 348 00b6 0FCD     		ldmia	r5!, {r0, r1, r2, r3}
+ 349 00b8 0FC4     		stmia	r4!, {r0, r1, r2, r3}
+ 350 00ba 95E80700 		ldm	r5, {r0, r1, r2}
+ 351 00be 03C4     		stmia	r4!, {r0, r1}
+ 352 00c0 2280     		strh	r2, [r4]	@ movhi
+ 216:../../application/source/fobFirmware.c ****       return;
+ 353              		.loc 1 216 7 is_stmt 1 view .LVU86
+ 216:../../application/source/fobFirmware.c ****       return;
+ 354              		.loc 1 216 45 is_stmt 0 view .LVU87
+ 355 00c2 06A8     		add	r0, sp, #24
+ 356 00c4 FFF7FEFF 		bl	strlen
+ 357              	.LVL36:
+ 358 00c8 0246     		mov	r2, r0
+ 216:../../application/source/fobFirmware.c ****       return;
+ 359              		.loc 1 216 7 view .LVU88
+ 360 00ca 06A9     		add	r1, sp, #24
+ 361 00cc 0120     		movs	r0, #1
+ 362 00ce FFF7FEFF 		bl	uart_write
+ 363              	.LVL37:
+ARM GAS  /tmp/cchX4GuU.s 			page 12
 
 
- 374              	.L34:
- 250:../../application/src/fobFirmware.c ****   if (fob_state_ram->paired == FLASH_PAIRED)
- 375              		.loc 1 250 1 view .LVU97
- 376 0006 00B5     		push	{lr}
- 377              	.LCFI9:
- 378              		.cfi_def_cfa_offset 4
- 379              		.cfi_offset 14, -4
- 380 0008 83B0     		sub	sp, sp, #12
- 381              	.LCFI10:
- 382              		.cfi_def_cfa_offset 16
- 383              	.LBB6:
- 252:../../application/src/fobFirmware.c ****   {
- 253:../../application/src/fobFirmware.c ****     MESSAGE_PACKET message;
- 384              		.loc 1 253 5 is_stmt 1 view .LVU98
- 254:../../application/src/fobFirmware.c ****     message.magic = START_MAGIC;
- 385              		.loc 1 254 5 view .LVU99
- 386              		.loc 1 254 19 is_stmt 0 view .LVU100
- 387 000a 5723     		movs	r3, #87
- 388 000c 8DF80030 		strb	r3, [sp]
- 255:../../application/src/fobFirmware.c ****     message.message_len = sizeof(FEATURE_DATA);
- 389              		.loc 1 255 5 is_stmt 1 view .LVU101
- 390              		.loc 1 255 25 is_stmt 0 view .LVU102
- 391 0010 0C23     		movs	r3, #12
- 392 0012 8DF80130 		strb	r3, [sp, #1]
- 256:../../application/src/fobFirmware.c ****     message.buffer = (uint8_t *)&fob_state_ram->feature_info;
- 393              		.loc 1 256 5 is_stmt 1 view .LVU103
- 394              		.loc 1 256 33 is_stmt 0 view .LVU104
- 395 0016 1930     		adds	r0, r0, #25
- 396              	.LVL31:
- 397              		.loc 1 256 20 view .LVU105
- 398 0018 0190     		str	r0, [sp, #4]
- 257:../../application/src/fobFirmware.c ****     send_board_message(&message);
- 399              		.loc 1 257 5 is_stmt 1 view .LVU106
- 400 001a 6846     		mov	r0, sp
- 401              	.LVL32:
- 402              		.loc 1 257 5 is_stmt 0 view .LVU107
- 403 001c FFF7FEFF 		bl	send_board_message
- 404              	.LVL33:
- 405              		.loc 1 257 5 view .LVU108
- 406              	.LBE6:
- 258:../../application/src/fobFirmware.c ****   }
- 259:../../application/src/fobFirmware.c **** }
- 407              		.loc 1 259 1 view .LVU109
- 408 0020 03B0     		add	sp, sp, #12
- 409              	.LCFI11:
- 410              		.cfi_def_cfa_offset 4
- 411              		@ sp needed
- 412 0022 5DF804FB 		ldr	pc, [sp], #4
- 413              		.cfi_endproc
- 414              	.LFE4:
- 416              		.section	.text.receiveAck,"ax",%progbits
- 417              		.align	1
- 418              		.global	receiveAck
- 419              		.syntax unified
- 420              		.thumb
- 421              		.thumb_func
- 422              		.fpu fpv4-sp-d16
-ARM GAS  /tmp/ccjHW1oU.s 			page 13
+ 217:../../application/source/fobFirmware.c ****     }
+ 364              		.loc 1 217 7 is_stmt 1 view .LVU89
+ 365 00d2 20E0     		b	.L8
+ 366              	.LVL38:
+ 367              	.L23:
+ 368              	.LBB5:
+ 224:../../application/source/fobFirmware.c ****       {
+ 225:../../application/source/fobFirmware.c ****         strcpy(msg, "ERROR: Feature already enabled\n");
+ 369              		.loc 1 225 9 view .LVU90
+ 370 00d4 06AC     		add	r4, sp, #24
+ 371              	.LVL39:
+ 372              		.loc 1 225 9 is_stmt 0 view .LVU91
+ 373 00d6 154D     		ldr	r5, .L24+16
+ 374              	.LVL40:
+ 375              		.loc 1 225 9 view .LVU92
+ 376 00d8 0FCD     		ldmia	r5!, {r0, r1, r2, r3}
+ 377              	.LVL41:
+ 378              		.loc 1 225 9 view .LVU93
+ 379 00da 0FC4     		stmia	r4!, {r0, r1, r2, r3}
+ 380 00dc 95E80F00 		ldm	r5, {r0, r1, r2, r3}
+ 381 00e0 84E80F00 		stm	r4, {r0, r1, r2, r3}
+ 226:../../application/source/fobFirmware.c ****         uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
+ 382              		.loc 1 226 9 is_stmt 1 view .LVU94
+ 383              		.loc 1 226 47 is_stmt 0 view .LVU95
+ 384 00e4 06A8     		add	r0, sp, #24
+ 385 00e6 FFF7FEFF 		bl	strlen
+ 386              	.LVL42:
+ 387 00ea 0246     		mov	r2, r0
+ 388              		.loc 1 226 9 view .LVU96
+ 389 00ec 06A9     		add	r1, sp, #24
+ 390 00ee 0120     		movs	r0, #1
+ 391 00f0 FFF7FEFF 		bl	uart_write
+ 392              	.LVL43:
+ 227:../../application/source/fobFirmware.c ****         return;
+ 393              		.loc 1 227 9 is_stmt 1 view .LVU97
+ 394 00f4 0FE0     		b	.L8
+ 395              	.LVL44:
+ 396              	.L22:
+ 397              		.loc 1 227 9 is_stmt 0 view .LVU98
+ 398              	.LBE5:
+ 228:../../application/source/fobFirmware.c ****       }
+ 229:../../application/source/fobFirmware.c ****     }
+ 230:../../application/source/fobFirmware.c **** 
+ 231:../../application/source/fobFirmware.c ****     fob_state_ram->feature_info
+ 399              		.loc 1 231 5 is_stmt 1 view .LVU99
+ 232:../../application/source/fobFirmware.c ****         .features[fob_state_ram->feature_info.num_active] =
+ 233:../../application/source/fobFirmware.c ****         enable_message->feature;
+ 400              		.loc 1 233 23 is_stmt 0 view .LVU100
+ 401 00f6 9DF80C20 		ldrb	r2, [sp, #12]	@ zero_extendqisi2
+ 232:../../application/source/fobFirmware.c ****         .features[fob_state_ram->feature_info.num_active] =
+ 402              		.loc 1 232 59 view .LVU101
+ 403 00fa 2318     		adds	r3, r4, r0
+ 404              	.LVL45:
+ 232:../../application/source/fobFirmware.c ****         .features[fob_state_ram->feature_info.num_active] =
+ 405              		.loc 1 232 59 view .LVU102
+ 406 00fc 83F82220 		strb	r2, [r3, #34]
+ 234:../../application/source/fobFirmware.c ****     fob_state_ram->feature_info.num_active++;
+ARM GAS  /tmp/cchX4GuU.s 			page 13
 
 
- 424              	receiveAck:
- 425              	.LFB5:
- 260:../../application/src/fobFirmware.c **** 
- 261:../../application/src/fobFirmware.c **** /**
- 262:../../application/src/fobFirmware.c ****  * @brief Function that receives an ack and returns whether ack was
- 263:../../application/src/fobFirmware.c ****  * success/failure
- 264:../../application/src/fobFirmware.c ****  *
- 265:../../application/src/fobFirmware.c ****  * @return uint8_t Ack success/failure
- 266:../../application/src/fobFirmware.c ****  */
- 267:../../application/src/fobFirmware.c **** uint8_t receiveAck()
- 268:../../application/src/fobFirmware.c **** {
- 426              		.loc 1 268 1 is_stmt 1 view -0
- 427              		.cfi_startproc
- 428              		@ args = 0, pretend = 0, frame = 264
- 429              		@ frame_needed = 0, uses_anonymous_args = 0
- 430 0000 00B5     		push	{lr}
- 431              	.LCFI12:
- 432              		.cfi_def_cfa_offset 4
- 433              		.cfi_offset 14, -4
- 434 0002 C3B0     		sub	sp, sp, #268
- 435              	.LCFI13:
- 436              		.cfi_def_cfa_offset 272
- 269:../../application/src/fobFirmware.c ****   MESSAGE_PACKET message;
- 437              		.loc 1 269 3 view .LVU111
- 270:../../application/src/fobFirmware.c ****   uint8_t buffer[255];
- 438              		.loc 1 270 3 view .LVU112
- 271:../../application/src/fobFirmware.c ****   message.buffer = buffer;
- 439              		.loc 1 271 3 view .LVU113
- 440              		.loc 1 271 18 is_stmt 0 view .LVU114
- 441 0004 CDF804D1 		str	sp, [sp, #260]
- 272:../../application/src/fobFirmware.c ****   receive_board_message_by_type(&message, ACK_MAGIC);
- 442              		.loc 1 272 3 is_stmt 1 view .LVU115
- 443 0008 5421     		movs	r1, #84
- 444 000a 40A8     		add	r0, sp, #256
- 445 000c FFF7FEFF 		bl	receive_board_message_by_type
- 446              	.LVL34:
- 273:../../application/src/fobFirmware.c **** 
- 274:../../application/src/fobFirmware.c ****   return message.buffer[0];
- 447              		.loc 1 274 3 view .LVU116
- 275:../../application/src/fobFirmware.c **** }
- 448              		.loc 1 275 1 is_stmt 0 view .LVU117
- 449 0010 419B     		ldr	r3, [sp, #260]
- 450 0012 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
- 451 0014 43B0     		add	sp, sp, #268
- 452              	.LCFI14:
- 453              		.cfi_def_cfa_offset 4
- 454              		@ sp needed
- 455 0016 5DF804FB 		ldr	pc, [sp], #4
- 456              		.cfi_endproc
- 457              	.LFE5:
- 459              		.section	.rodata.main.str1.4,"aMS",%progbits,1
- 460              		.align	2
- 461              	.LC3:
- 462 0000 666F625F 		.ascii	"fob_state\000"
- 462      73746174 
- 462      6500
- 463 000a 0000     		.align	2
-ARM GAS  /tmp/ccjHW1oU.s 			page 14
+ 407              		.loc 1 234 5 is_stmt 1 view .LVU103
+ 408              		.loc 1 234 43 is_stmt 0 view .LVU104
+ 409 0100 0130     		adds	r0, r0, #1
+ 410 0102 84F82100 		strb	r0, [r4, #33]
+ 235:../../application/source/fobFirmware.c **** 
+ 236:../../application/source/fobFirmware.c ****     saveFobState(fob_state_ram);
+ 411              		.loc 1 236 5 is_stmt 1 view .LVU105
+ 412 0106 2046     		mov	r0, r4
+ 413 0108 FFF7FEFF 		bl	saveFobState
+ 414              	.LVL46:
+ 237:../../application/source/fobFirmware.c ****     uart_write(HOST_UART, (uint8_t *)"Enabled", 7);
+ 415              		.loc 1 237 5 view .LVU106
+ 416 010c 0722     		movs	r2, #7
+ 417 010e 0849     		ldr	r1, .L24+20
+ 418 0110 0020     		movs	r0, #0
+ 419 0112 FFF7FEFF 		bl	uart_write
+ 420              	.LVL47:
+ 421              	.L8:
+ 422              		.loc 1 237 5 is_stmt 0 view .LVU107
+ 423              	.LBE3:
+ 238:../../application/source/fobFirmware.c ****   }
+ 239:../../application/source/fobFirmware.c **** }
+ 424              		.loc 1 239 1 view .LVU108
+ 425 0116 16B0     		add	sp, sp, #88
+ 426              	.LCFI5:
+ 427              		.cfi_def_cfa_offset 16
+ 428              		@ sp needed
+ 429 0118 70BD     		pop	{r4, r5, r6, pc}
+ 430              	.LVL48:
+ 431              	.L25:
+ 432              		.loc 1 239 1 view .LVU109
+ 433 011a 00BF     		.align	2
+ 434              	.L24:
+ 435 011c 00000000 		.word	.LC2
+ 436 0120 18000000 		.word	.LC3
+ 437 0124 34000000 		.word	.LC4
+ 438 0128 50000000 		.word	.LC5
+ 439 012c 6C000000 		.word	.LC6
+ 440 0130 8C000000 		.word	.LC7
+ 441              		.cfi_endproc
+ 442              	.LFE5:
+ 444              		.section	.text.unlockCar,"ax",%progbits
+ 445              		.align	1
+ 446              		.global	unlockCar
+ 447              		.syntax unified
+ 448              		.thumb
+ 449              		.thumb_func
+ 450              		.fpu fpv4-sp-d16
+ 452              	unlockCar:
+ 453              	.LVL49:
+ 454              	.LFB6:
+ 240:../../application/source/fobFirmware.c **** 
+ 241:../../application/source/fobFirmware.c **** /**
+ 242:../../application/source/fobFirmware.c ****  * @brief Function that handles the fob unlocking a car
+ 243:../../application/source/fobFirmware.c ****  *
+ 244:../../application/source/fobFirmware.c ****  * @param fob_state_ram pointer to the current fob state in ram
+ 245:../../application/source/fobFirmware.c ****  */
+ARM GAS  /tmp/cchX4GuU.s 			page 14
 
 
- 464              	.LC4:
- 465 000c 656E6162 		.ascii	"enable\000"
- 465      6C6500
- 466 0013 00       		.align	2
- 467              	.LC5:
- 468 0014 70616972 		.ascii	"pair\000"
- 468      00
- 469              		.section	.text.main,"ax",%progbits
- 470              		.align	1
- 471              		.global	main
- 472              		.syntax unified
- 473              		.thumb
- 474              		.thumb_func
- 475              		.fpu fpv4-sp-d16
- 477              	main:
- 478              	.LVL35:
- 479              	.LFB0:
-  55:../../application/src/fobFirmware.c ****   FLASH_DATA fob_state_ram;
- 480              		.loc 1 55 1 is_stmt 1 view -0
- 481              		.cfi_startproc
- 482              		@ args = 0, pretend = 0, frame = 96
- 483              		@ frame_needed = 0, uses_anonymous_args = 0
-  55:../../application/src/fobFirmware.c ****   FLASH_DATA fob_state_ram;
- 484              		.loc 1 55 1 is_stmt 0 view .LVU119
- 485 0000 70B5     		push	{r4, r5, r6, lr}
- 486              	.LCFI15:
- 487              		.cfi_def_cfa_offset 16
- 488              		.cfi_offset 4, -16
- 489              		.cfi_offset 5, -12
- 490              		.cfi_offset 6, -8
- 491              		.cfi_offset 14, -4
- 492 0002 98B0     		sub	sp, sp, #96
- 493              	.LCFI16:
- 494              		.cfi_def_cfa_offset 112
- 495 0004 0546     		mov	r5, r0
- 496 0006 0E46     		mov	r6, r1
-  56:../../application/src/fobFirmware.c ****   FLASH_DATA fob_state_flash;
- 497              		.loc 1 56 3 is_stmt 1 view .LVU120
-  57:../../application/src/fobFirmware.c ****   readVar((uint8_t*)(&fob_state_flash), "fob_state");
- 498              		.loc 1 57 3 view .LVU121
-  58:../../application/src/fobFirmware.c **** 
- 499              		.loc 1 58 3 view .LVU122
- 500 0008 3449     		ldr	r1, .L51
- 501              	.LVL36:
-  58:../../application/src/fobFirmware.c **** 
- 502              		.loc 1 58 3 is_stmt 0 view .LVU123
- 503 000a 04A8     		add	r0, sp, #16
- 504              	.LVL37:
-  58:../../application/src/fobFirmware.c **** 
- 505              		.loc 1 58 3 view .LVU124
- 506 000c FFF7FEFF 		bl	readVar
- 507              	.LVL38:
-  73:../../application/src/fobFirmware.c **** #endif
- 508              		.loc 1 73 3 is_stmt 1 view .LVU125
-  73:../../application/src/fobFirmware.c **** #endif
- 509              		.loc 1 73 24 is_stmt 0 view .LVU126
- 510 0010 FF23     		movs	r3, #255
-ARM GAS  /tmp/ccjHW1oU.s 			page 15
+ 246:../../application/source/fobFirmware.c **** void unlockCar(FLASH_DATA *fob_state_ram)
+ 247:../../application/source/fobFirmware.c **** {
+ 455              		.loc 1 247 1 is_stmt 1 view -0
+ 456              		.cfi_startproc
+ 457              		@ args = 0, pretend = 0, frame = 8
+ 458              		@ frame_needed = 0, uses_anonymous_args = 0
+ 248:../../application/source/fobFirmware.c ****   if (fob_state_ram->paired == FLASH_PAIRED)
+ 459              		.loc 1 248 3 view .LVU111
+ 460              		.loc 1 248 20 is_stmt 0 view .LVU112
+ 461 0000 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
+ 462              		.loc 1 248 6 view .LVU113
+ 463 0002 03B1     		cbz	r3, .L32
+ 464 0004 7047     		bx	lr
+ 465              	.L32:
+ 247:../../application/source/fobFirmware.c ****   if (fob_state_ram->paired == FLASH_PAIRED)
+ 466              		.loc 1 247 1 view .LVU114
+ 467 0006 00B5     		push	{lr}
+ 468              	.LCFI6:
+ 469              		.cfi_def_cfa_offset 4
+ 470              		.cfi_offset 14, -4
+ 471 0008 83B0     		sub	sp, sp, #12
+ 472              	.LCFI7:
+ 473              		.cfi_def_cfa_offset 16
+ 474              	.LBB6:
+ 249:../../application/source/fobFirmware.c ****   {
+ 250:../../application/source/fobFirmware.c ****     MESSAGE_PACKET message;
+ 475              		.loc 1 250 5 is_stmt 1 view .LVU115
+ 251:../../application/source/fobFirmware.c ****     message.message_len = 6;
+ 476              		.loc 1 251 5 view .LVU116
+ 477              		.loc 1 251 25 is_stmt 0 view .LVU117
+ 478 000a 0623     		movs	r3, #6
+ 479 000c 8DF80130 		strb	r3, [sp, #1]
+ 252:../../application/source/fobFirmware.c ****     message.magic = UNLOCK_MAGIC;
+ 480              		.loc 1 252 5 is_stmt 1 view .LVU118
+ 481              		.loc 1 252 19 is_stmt 0 view .LVU119
+ 482 0010 5623     		movs	r3, #86
+ 483 0012 8DF80030 		strb	r3, [sp]
+ 253:../../application/source/fobFirmware.c ****     message.buffer = fob_state_ram->pair_info.password;
+ 484              		.loc 1 253 5 is_stmt 1 view .LVU120
+ 485              		.loc 1 253 22 is_stmt 0 view .LVU121
+ 486 0016 0930     		adds	r0, r0, #9
+ 487              	.LVL50:
+ 488              		.loc 1 253 20 view .LVU122
+ 489 0018 0190     		str	r0, [sp, #4]
+ 254:../../application/source/fobFirmware.c **** 
+ 255:../../application/source/fobFirmware.c ****     send_board_message(&message);
+ 490              		.loc 1 255 5 is_stmt 1 view .LVU123
+ 491 001a 6846     		mov	r0, sp
+ 492              	.LVL51:
+ 493              		.loc 1 255 5 is_stmt 0 view .LVU124
+ 494 001c FFF7FEFF 		bl	send_board_message
+ 495              	.LVL52:
+ 496              		.loc 1 255 5 view .LVU125
+ 497              	.LBE6:
+ 256:../../application/source/fobFirmware.c ****   }
+ 257:../../application/source/fobFirmware.c **** }
+ 498              		.loc 1 257 1 view .LVU126
+ARM GAS  /tmp/cchX4GuU.s 			page 15
 
 
- 511 0012 8DF83830 		strb	r3, [sp, #56]
-  76:../../application/src/fobFirmware.c ****   {
- 512              		.loc 1 76 3 is_stmt 1 view .LVU127
-  76:../../application/src/fobFirmware.c ****   {
- 513              		.loc 1 76 22 is_stmt 0 view .LVU128
- 514 0016 9DF81030 		ldrb	r3, [sp, #16]	@ zero_extendqisi2
-  76:../../application/src/fobFirmware.c ****   {
- 515              		.loc 1 76 6 view .LVU129
- 516 001a 6BB9     		cbnz	r3, .L38
-  78:../../application/src/fobFirmware.c ****   }
- 517              		.loc 1 78 5 is_stmt 1 view .LVU130
- 518 001c 0EAC     		add	r4, sp, #56
- 519 001e 0DF1100C 		add	ip, sp, #16
- 520 0022 BCE80F00 		ldmia	ip!, {r0, r1, r2, r3}
- 521 0026 0FC4     		stmia	r4!, {r0, r1, r2, r3}
- 522 0028 BCE80F00 		ldmia	ip!, {r0, r1, r2, r3}
- 523 002c 0FC4     		stmia	r4!, {r0, r1, r2, r3}
- 524 002e 9CE80300 		ldm	ip, {r0, r1}
- 525 0032 44F8040B 		str	r0, [r4], #4
- 526 0036 2170     		strb	r1, [r4]
- 527              	.L38:
-  82:../../application/src/fobFirmware.c ****   {
- 528              		.loc 1 82 3 view .LVU131
-  82:../../application/src/fobFirmware.c ****   {
- 529              		.loc 1 82 33 is_stmt 0 view .LVU132
- 530 0038 9DF85930 		ldrb	r3, [sp, #89]	@ zero_extendqisi2
-  82:../../application/src/fobFirmware.c ****   {
- 531              		.loc 1 82 6 view .LVU133
- 532 003c FF2B     		cmp	r3, #255
- 533 003e 17D0     		beq	.L47
- 534              	.L39:
-  88:../../application/src/fobFirmware.c **** 
- 535              		.loc 1 88 3 is_stmt 1 view .LVU134
- 536 0040 3146     		mov	r1, r6
- 537 0042 2846     		mov	r0, r5
- 538 0044 FFF7FEFF 		bl	initHardware_fob
- 539              	.LVL39:
-  91:../../application/src/fobFirmware.c ****   uint8_t uart_buffer_index = 0;
- 540              		.loc 1 91 3 view .LVU135
-  92:../../application/src/fobFirmware.c **** 
- 541              		.loc 1 92 3 view .LVU136
-  92:../../application/src/fobFirmware.c **** 
- 542              		.loc 1 92 11 is_stmt 0 view .LVU137
- 543 0048 0024     		movs	r4, #0
- 544              	.LVL40:
- 545              	.L40:
-  95:../../application/src/fobFirmware.c ****   {
- 546              		.loc 1 95 3 is_stmt 1 view .LVU138
-  99:../../application/src/fobFirmware.c ****     {
- 547              		.loc 1 99 5 view .LVU139
-  99:../../application/src/fobFirmware.c ****     {
- 548              		.loc 1 99 9 is_stmt 0 view .LVU140
- 549 004a 0020     		movs	r0, #0
- 550 004c FFF7FEFF 		bl	uart_avail
- 551              	.LVL41:
-  99:../../application/src/fobFirmware.c ****     {
- 552              		.loc 1 99 8 view .LVU141
-ARM GAS  /tmp/ccjHW1oU.s 			page 16
+ 499 0020 03B0     		add	sp, sp, #12
+ 500              	.LCFI8:
+ 501              		.cfi_def_cfa_offset 4
+ 502              		@ sp needed
+ 503 0022 5DF804FB 		ldr	pc, [sp], #4
+ 504              		.cfi_endproc
+ 505              	.LFE6:
+ 507              		.section	.text.startCar,"ax",%progbits
+ 508              		.align	1
+ 509              		.global	startCar
+ 510              		.syntax unified
+ 511              		.thumb
+ 512              		.thumb_func
+ 513              		.fpu fpv4-sp-d16
+ 515              	startCar:
+ 516              	.LVL53:
+ 517              	.LFB7:
+ 258:../../application/source/fobFirmware.c **** 
+ 259:../../application/source/fobFirmware.c **** /**
+ 260:../../application/source/fobFirmware.c ****  * @brief Function that handles the fob starting a car
+ 261:../../application/source/fobFirmware.c ****  *
+ 262:../../application/source/fobFirmware.c ****  * @param fob_state_ram pointer to the current fob state in ram
+ 263:../../application/source/fobFirmware.c ****  */
+ 264:../../application/source/fobFirmware.c **** void startCar(FLASH_DATA *fob_state_ram)
+ 265:../../application/source/fobFirmware.c **** {
+ 518              		.loc 1 265 1 is_stmt 1 view -0
+ 519              		.cfi_startproc
+ 520              		@ args = 0, pretend = 0, frame = 8
+ 521              		@ frame_needed = 0, uses_anonymous_args = 0
+ 266:../../application/source/fobFirmware.c ****   if (fob_state_ram->paired == FLASH_PAIRED)
+ 522              		.loc 1 266 3 view .LVU128
+ 523              		.loc 1 266 20 is_stmt 0 view .LVU129
+ 524 0000 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
+ 525              		.loc 1 266 6 view .LVU130
+ 526 0002 03B1     		cbz	r3, .L39
+ 527 0004 7047     		bx	lr
+ 528              	.L39:
+ 265:../../application/source/fobFirmware.c ****   if (fob_state_ram->paired == FLASH_PAIRED)
+ 529              		.loc 1 265 1 view .LVU131
+ 530 0006 00B5     		push	{lr}
+ 531              	.LCFI9:
+ 532              		.cfi_def_cfa_offset 4
+ 533              		.cfi_offset 14, -4
+ 534 0008 83B0     		sub	sp, sp, #12
+ 535              	.LCFI10:
+ 536              		.cfi_def_cfa_offset 16
+ 537              	.LBB7:
+ 267:../../application/source/fobFirmware.c ****   {
+ 268:../../application/source/fobFirmware.c ****     MESSAGE_PACKET message;
+ 538              		.loc 1 268 5 is_stmt 1 view .LVU132
+ 269:../../application/source/fobFirmware.c ****     message.magic = START_MAGIC;
+ 539              		.loc 1 269 5 view .LVU133
+ 540              		.loc 1 269 19 is_stmt 0 view .LVU134
+ 541 000a 5723     		movs	r3, #87
+ 542 000c 8DF80030 		strb	r3, [sp]
+ 270:../../application/source/fobFirmware.c ****     message.message_len = sizeof(FEATURE_DATA);
+ 543              		.loc 1 270 5 is_stmt 1 view .LVU135
+ARM GAS  /tmp/cchX4GuU.s 			page 16
 
 
- 553 0050 A8B9     		cbnz	r0, .L48
- 554              	.LVL42:
- 555              	.L41:
- 125:../../application/src/fobFirmware.c ****     {
- 556              		.loc 1 125 5 is_stmt 1 view .LVU142
- 125:../../application/src/fobFirmware.c ****     {
- 557              		.loc 1 125 8 is_stmt 0 view .LVU143
- 558 0052 FFF7FEFF 		bl	buttonPressed
- 559              	.LVL43:
- 125:../../application/src/fobFirmware.c ****     {
- 560              		.loc 1 125 7 view .LVU144
- 561 0056 0028     		cmp	r0, #0
- 562 0058 F7D0     		beq	.L40
- 127:../../application/src/fobFirmware.c ****       if (receiveAck())
- 563              		.loc 1 127 7 is_stmt 1 view .LVU145
- 564 005a 0EA8     		add	r0, sp, #56
- 565 005c FFF7FEFF 		bl	unlockCar
- 566              	.LVL44:
- 128:../../application/src/fobFirmware.c ****       {
- 567              		.loc 1 128 7 view .LVU146
- 128:../../application/src/fobFirmware.c ****       {
- 568              		.loc 1 128 11 is_stmt 0 view .LVU147
- 569 0060 FFF7FEFF 		bl	receiveAck
- 570              	.LVL45:
- 128:../../application/src/fobFirmware.c ****       {
- 571              		.loc 1 128 10 view .LVU148
- 572 0064 0028     		cmp	r0, #0
- 573 0066 F0D0     		beq	.L40
- 130:../../application/src/fobFirmware.c ****       }
- 574              		.loc 1 130 9 is_stmt 1 view .LVU149
- 575 0068 0EA8     		add	r0, sp, #56
- 576 006a FFF7FEFF 		bl	startCar
- 577              	.LVL46:
- 578 006e ECE7     		b	.L40
- 579              	.LVL47:
- 580              	.L47:
-  84:../../application/src/fobFirmware.c ****     saveFobState(&fob_state_ram);
- 581              		.loc 1 84 5 view .LVU150
-  84:../../application/src/fobFirmware.c ****     saveFobState(&fob_state_ram);
- 582              		.loc 1 84 43 is_stmt 0 view .LVU151
- 583 0070 0023     		movs	r3, #0
- 584 0072 8DF85930 		strb	r3, [sp, #89]
-  85:../../application/src/fobFirmware.c ****   }
- 585              		.loc 1 85 5 is_stmt 1 view .LVU152
- 586 0076 0EA8     		add	r0, sp, #56
- 587 0078 FFF7FEFF 		bl	saveFobState
- 588              	.LVL48:
- 589 007c E0E7     		b	.L39
- 590              	.LVL49:
- 591              	.L48:
- 592              	.LBB7:
- 101:../../application/src/fobFirmware.c **** 
- 593              		.loc 1 101 7 view .LVU153
- 101:../../application/src/fobFirmware.c **** 
- 594              		.loc 1 101 36 is_stmt 0 view .LVU154
- 595 007e 0020     		movs	r0, #0
- 596 0080 FFF7FEFF 		bl	uart_readb
-ARM GAS  /tmp/ccjHW1oU.s 			page 17
+ 544              		.loc 1 270 25 is_stmt 0 view .LVU136
+ 545 0010 0C23     		movs	r3, #12
+ 546 0012 8DF80130 		strb	r3, [sp, #1]
+ 271:../../application/source/fobFirmware.c ****     message.buffer = (uint8_t *)&fob_state_ram->feature_info;  
+ 547              		.loc 1 271 5 is_stmt 1 view .LVU137
+ 548              		.loc 1 271 33 is_stmt 0 view .LVU138
+ 549 0016 1930     		adds	r0, r0, #25
+ 550              	.LVL54:
+ 551              		.loc 1 271 20 view .LVU139
+ 552 0018 0190     		str	r0, [sp, #4]
+ 272:../../application/source/fobFirmware.c **** 
+ 273:../../application/source/fobFirmware.c ****     send_board_message(&message);
+ 553              		.loc 1 273 5 is_stmt 1 view .LVU140
+ 554 001a 6846     		mov	r0, sp
+ 555              	.LVL55:
+ 556              		.loc 1 273 5 is_stmt 0 view .LVU141
+ 557 001c FFF7FEFF 		bl	send_board_message
+ 558              	.LVL56:
+ 559              		.loc 1 273 5 view .LVU142
+ 560              	.LBE7:
+ 274:../../application/source/fobFirmware.c ****   }
+ 275:../../application/source/fobFirmware.c **** }
+ 561              		.loc 1 275 1 view .LVU143
+ 562 0020 03B0     		add	sp, sp, #12
+ 563              	.LCFI11:
+ 564              		.cfi_def_cfa_offset 4
+ 565              		@ sp needed
+ 566 0022 5DF804FB 		ldr	pc, [sp], #4
+ 567              		.cfi_endproc
+ 568              	.LFE7:
+ 570              		.section	.text.receiveAck,"ax",%progbits
+ 571              		.align	1
+ 572              		.global	receiveAck
+ 573              		.syntax unified
+ 574              		.thumb
+ 575              		.thumb_func
+ 576              		.fpu fpv4-sp-d16
+ 578              	receiveAck:
+ 579              	.LFB8:
+ 276:../../application/source/fobFirmware.c **** 
+ 277:../../application/source/fobFirmware.c **** /**
+ 278:../../application/source/fobFirmware.c ****  * @brief Function that receives an ack and returns whether ack was
+ 279:../../application/source/fobFirmware.c ****  * success/failure
+ 280:../../application/source/fobFirmware.c ****  *
+ 281:../../application/source/fobFirmware.c ****  * @return uint8_t Ack success/failure
+ 282:../../application/source/fobFirmware.c ****  */
+ 283:../../application/source/fobFirmware.c **** uint8_t receiveAck()
+ 284:../../application/source/fobFirmware.c **** {
+ 580              		.loc 1 284 1 is_stmt 1 view -0
+ 581              		.cfi_startproc
+ 582              		@ args = 0, pretend = 0, frame = 264
+ 583              		@ frame_needed = 0, uses_anonymous_args = 0
+ 584 0000 00B5     		push	{lr}
+ 585              	.LCFI12:
+ 586              		.cfi_def_cfa_offset 4
+ 587              		.cfi_offset 14, -4
+ 588 0002 C3B0     		sub	sp, sp, #268
+ARM GAS  /tmp/cchX4GuU.s 			page 17
 
 
- 597              	.LVL50:
- 101:../../application/src/fobFirmware.c **** 
- 598              		.loc 1 101 15 view .LVU155
- 599 0084 C0B2     		uxtb	r0, r0
- 600              	.LVL51:
- 103:../../application/src/fobFirmware.c ****           (uart_char != 0xD))
- 601              		.loc 1 103 7 is_stmt 1 view .LVU156
- 103:../../application/src/fobFirmware.c ****           (uart_char != 0xD))
- 602              		.loc 1 103 10 is_stmt 0 view .LVU157
- 603 0086 0D28     		cmp	r0, #13
- 604 0088 0AD0     		beq	.L42
- 103:../../application/src/fobFirmware.c ****           (uart_char != 0xD))
- 605              		.loc 1 103 31 discriminator 1 view .LVU158
- 606 008a 0A28     		cmp	r0, #10
- 607 008c 08D0     		beq	.L42
- 103:../../application/src/fobFirmware.c ****           (uart_char != 0xD))
- 608              		.loc 1 103 54 discriminator 2 view .LVU159
- 609 008e 38B1     		cbz	r0, .L42
- 106:../../application/src/fobFirmware.c ****         uart_buffer_index++;
- 610              		.loc 1 106 9 is_stmt 1 view .LVU160
- 106:../../application/src/fobFirmware.c ****         uart_buffer_index++;
- 611              		.loc 1 106 40 is_stmt 0 view .LVU161
- 612 0090 04F16003 		add	r3, r4, #96
- 613 0094 6B44     		add	r3, sp, r3
- 614 0096 03F85C0C 		strb	r0, [r3, #-92]
- 107:../../application/src/fobFirmware.c ****       }
- 615              		.loc 1 107 9 is_stmt 1 view .LVU162
- 107:../../application/src/fobFirmware.c ****       }
- 616              		.loc 1 107 26 is_stmt 0 view .LVU163
- 617 009a 0134     		adds	r4, r4, #1
- 618              	.LVL52:
- 107:../../application/src/fobFirmware.c ****       }
- 619              		.loc 1 107 26 view .LVU164
- 620 009c E4B2     		uxtb	r4, r4
- 621              	.LVL53:
- 107:../../application/src/fobFirmware.c ****       }
- 622              		.loc 1 107 26 view .LVU165
- 623 009e D8E7     		b	.L41
- 624              	.L42:
- 111:../../application/src/fobFirmware.c ****         uart_buffer_index = 0;
- 625              		.loc 1 111 9 is_stmt 1 view .LVU166
- 111:../../application/src/fobFirmware.c ****         uart_buffer_index = 0;
- 626              		.loc 1 111 40 is_stmt 0 view .LVU167
- 627 00a0 04F16003 		add	r3, r4, #96
- 628 00a4 0DEB0304 		add	r4, sp, r3
- 629              	.LVL54:
- 111:../../application/src/fobFirmware.c ****         uart_buffer_index = 0;
- 630              		.loc 1 111 40 view .LVU168
- 631 00a8 0023     		movs	r3, #0
- 632 00aa 04F85C3C 		strb	r3, [r4, #-92]
- 112:../../application/src/fobFirmware.c **** 
- 633              		.loc 1 112 9 is_stmt 1 view .LVU169
- 634              	.LVL55:
- 114:../../application/src/fobFirmware.c ****         {
- 635              		.loc 1 114 9 view .LVU170
- 114:../../application/src/fobFirmware.c ****         {
- 636              		.loc 1 114 15 is_stmt 0 view .LVU171
-ARM GAS  /tmp/ccjHW1oU.s 			page 18
+ 589              	.LCFI13:
+ 590              		.cfi_def_cfa_offset 272
+ 285:../../application/source/fobFirmware.c ****   MESSAGE_PACKET message;
+ 591              		.loc 1 285 3 view .LVU145
+ 286:../../application/source/fobFirmware.c ****   uint8_t buffer[255];
+ 592              		.loc 1 286 3 view .LVU146
+ 287:../../application/source/fobFirmware.c ****   message.buffer = buffer;
+ 593              		.loc 1 287 3 view .LVU147
+ 594              		.loc 1 287 18 is_stmt 0 view .LVU148
+ 595 0004 CDF804D1 		str	sp, [sp, #260]
+ 288:../../application/source/fobFirmware.c ****   receive_board_message_by_type(&message, ACK_MAGIC);
+ 596              		.loc 1 288 3 is_stmt 1 view .LVU149
+ 597 0008 5421     		movs	r1, #84
+ 598 000a 40A8     		add	r0, sp, #256
+ 599 000c FFF7FEFF 		bl	receive_board_message_by_type
+ 600              	.LVL57:
+ 289:../../application/source/fobFirmware.c **** 
+ 290:../../application/source/fobFirmware.c ****   return message.buffer[0];
+ 601              		.loc 1 290 3 view .LVU150
+ 291:../../application/source/fobFirmware.c **** }...
+ 602              		.loc 1 291 1 is_stmt 0 view .LVU151
+ 603 0010 419B     		ldr	r3, [sp, #260]
+ 604 0012 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+ 605 0014 43B0     		add	sp, sp, #268
+ 606              	.LCFI14:
+ 607              		.cfi_def_cfa_offset 4
+ 608              		@ sp needed
+ 609 0016 5DF804FB 		ldr	pc, [sp], #4
+ 610              		.cfi_endproc
+ 611              	.LFE8:
+ 613              		.section	.rodata.main.str1.4,"aMS",%progbits,1
+ 614              		.align	2
+ 615              	.LC8:
+ 616 0000 666F625F 		.ascii	"fob_state\000"
+ 616      73746174 
+ 616      6500
+ 617 000a 0000     		.align	2
+ 618              	.LC9:
+ 619 000c 656E6162 		.ascii	"enable\000"
+ 619      6C6500
+ 620 0013 00       		.align	2
+ 621              	.LC10:
+ 622 0014 70616972 		.ascii	"pair\000"
+ 622      00
+ 623              		.section	.text.main,"ax",%progbits
+ 624              		.align	1
+ 625              		.global	main
+ 626              		.syntax unified
+ 627              		.thumb
+ 628              		.thumb_func
+ 629              		.fpu fpv4-sp-d16
+ 631              	main:
+ 632              	.LVL58:
+ 633              	.LFB3:
+  53:../../application/source/fobFirmware.c **** {
+ 634              		.loc 1 53 1 is_stmt 1 view -0
+ 635              		.cfi_startproc
+ARM GAS  /tmp/cchX4GuU.s 			page 18
 
 
- 637 00ae 0C49     		ldr	r1, .L51+4
- 638 00b0 01A8     		add	r0, sp, #4
- 639              	.LVL56:
- 114:../../application/src/fobFirmware.c ****         {
- 640              		.loc 1 114 15 view .LVU172
- 641 00b2 FFF7FEFF 		bl	strcmp
- 642              	.LVL57:
- 114:../../application/src/fobFirmware.c ****         {
- 643              		.loc 1 114 12 view .LVU173
- 644 00b6 30B1     		cbz	r0, .L49
- 118:../../application/src/fobFirmware.c ****         {
- 645              		.loc 1 118 14 is_stmt 1 view .LVU174
- 118:../../application/src/fobFirmware.c ****         {
- 646              		.loc 1 118 20 is_stmt 0 view .LVU175
- 647 00b8 0A49     		ldr	r1, .L51+8
- 648 00ba 01A8     		add	r0, sp, #4
- 649 00bc FFF7FEFF 		bl	strcmp
- 650              	.LVL58:
- 118:../../application/src/fobFirmware.c ****         {
- 651              		.loc 1 118 17 view .LVU176
- 652 00c0 30B1     		cbz	r0, .L50
- 112:../../application/src/fobFirmware.c **** 
- 653              		.loc 1 112 27 view .LVU177
- 654 00c2 0024     		movs	r4, #0
- 655 00c4 C5E7     		b	.L41
- 656              	.L49:
- 116:../../application/src/fobFirmware.c ****         }
- 657              		.loc 1 116 11 is_stmt 1 view .LVU178
- 658 00c6 0EA8     		add	r0, sp, #56
- 659 00c8 FFF7FEFF 		bl	enableFeature
- 660              	.LVL59:
- 112:../../application/src/fobFirmware.c **** 
- 661              		.loc 1 112 27 is_stmt 0 view .LVU179
- 662 00cc 0024     		movs	r4, #0
- 663 00ce C0E7     		b	.L41
- 664              	.L50:
- 120:../../application/src/fobFirmware.c ****         }
- 665              		.loc 1 120 11 is_stmt 1 view .LVU180
- 666 00d0 0EA8     		add	r0, sp, #56
- 667 00d2 FFF7FEFF 		bl	pairFob
- 668              	.LVL60:
- 112:../../application/src/fobFirmware.c **** 
- 669              		.loc 1 112 27 is_stmt 0 view .LVU181
- 670 00d6 0024     		movs	r4, #0
- 671 00d8 BBE7     		b	.L41
- 672              	.L52:
- 673 00da 00BF     		.align	2
- 674              	.L51:
- 675 00dc 00000000 		.word	.LC3
- 676 00e0 0C000000 		.word	.LC4
- 677 00e4 14000000 		.word	.LC5
- 678              	.LBE7:
- 679              		.cfi_endproc
- 680              	.LFE0:
- 682              		.text
- 683              	.Letext0:
- 684              		.file 2 "/usr/lib/gcc/arm-none-eabi/10.3.1/include/stdint.h"
-ARM GAS  /tmp/ccjHW1oU.s 			page 19
+ 636              		@ args = 0, pretend = 0, frame = 56
+ 637              		@ frame_needed = 0, uses_anonymous_args = 0
+  53:../../application/source/fobFirmware.c **** {
+ 638              		.loc 1 53 1 is_stmt 0 view .LVU153
+ 639 0000 10B5     		push	{r4, lr}
+ 640              	.LCFI15:
+ 641              		.cfi_def_cfa_offset 8
+ 642              		.cfi_offset 4, -8
+ 643              		.cfi_offset 14, -4
+ 644 0002 8EB0     		sub	sp, sp, #56
+ 645              	.LCFI16:
+ 646              		.cfi_def_cfa_offset 64
+  54:../../application/source/fobFirmware.c ****   initHardware_fob(argc, argv);
+ 647              		.loc 1 54 3 is_stmt 1 view .LVU154
+ 648 0004 FFF7FEFF 		bl	initHardware_fob
+ 649              	.LVL59:
+  56:../../application/source/fobFirmware.c ****   FLASH_DATA fob_state_ram;
+ 650              		.loc 1 56 3 view .LVU155
+  59:../../application/source/fobFirmware.c ****   readVar((uint8_t*)(&fob_state_ram), "fob_state");
+ 651              		.loc 1 59 3 view .LVU156
+ 652 0008 2849     		ldr	r1, .L55
+ 653 000a 04A8     		add	r0, sp, #16
+ 654 000c FFF7FEFF 		bl	readVar
+ 655              	.LVL60:
+  86:../../application/source/fobFirmware.c ****   if (fob_state_ram.feature_info.num_active == 0xFF)
+ 656              		.loc 1 86 3 view .LVU157
+  86:../../application/source/fobFirmware.c ****   if (fob_state_ram.feature_info.num_active == 0xFF)
+ 657              		.loc 1 86 33 is_stmt 0 view .LVU158
+ 658 0010 9DF83130 		ldrb	r3, [sp, #49]	@ zero_extendqisi2
+  86:../../application/source/fobFirmware.c ****   if (fob_state_ram.feature_info.num_active == 0xFF)
+ 659              		.loc 1 86 6 view .LVU159
+ 660 0014 FF2B     		cmp	r3, #255
+ 661 0016 13D0     		beq	.L51
+ 662              	.L43:
+  53:../../application/source/fobFirmware.c **** {
+ 663              		.loc 1 53 1 view .LVU160
+ 664 0018 0024     		movs	r4, #0
+ 665              	.L44:
+ 666              	.LVL61:
+  97:../../application/source/fobFirmware.c ****   while (true)
+ 667              		.loc 1 97 3 is_stmt 1 view .LVU161
+ 101:../../application/source/fobFirmware.c ****     if (uart_avail(HOST_UART))
+ 668              		.loc 1 101 5 view .LVU162
+ 101:../../application/source/fobFirmware.c ****     if (uart_avail(HOST_UART))
+ 669              		.loc 1 101 9 is_stmt 0 view .LVU163
+ 670 001a 0020     		movs	r0, #0
+ 671 001c FFF7FEFF 		bl	uart_avail
+ 672              	.LVL62:
+ 101:../../application/source/fobFirmware.c ****     if (uart_avail(HOST_UART))
+ 673              		.loc 1 101 8 view .LVU164
+ 674 0020 A8B9     		cbnz	r0, .L52
+ 675              	.LVL63:
+ 676              	.L45:
+ 127:../../application/source/fobFirmware.c ****     if(buttonPressed())
+ 677              		.loc 1 127 5 is_stmt 1 view .LVU165
+ 127:../../application/source/fobFirmware.c ****     if(buttonPressed())
+ 678              		.loc 1 127 8 is_stmt 0 view .LVU166
+ARM GAS  /tmp/cchX4GuU.s 			page 19
 
 
- 685              		.file 3 "../../application/inc/messages.h"
- 686              		.file 4 "../../application/inc/dataFormats.h"
- 687              		.file 5 "../../application/inc/uart.h"
- 688              		.file 6 "/usr/include/newlib/string.h"
- 689              		.file 7 "../../application/inc/platform.h"
-ARM GAS  /tmp/ccjHW1oU.s 			page 20
+ 679 0022 FFF7FEFF 		bl	buttonPressed
+ 680              	.LVL64:
+ 127:../../application/source/fobFirmware.c ****     if(buttonPressed())
+ 681              		.loc 1 127 7 view .LVU167
+ 682 0026 0028     		cmp	r0, #0
+ 683 0028 F7D0     		beq	.L44
+ 129:../../application/source/fobFirmware.c ****       unlockCar(&fob_state_ram);
+ 684              		.loc 1 129 7 is_stmt 1 view .LVU168
+ 685 002a 04A8     		add	r0, sp, #16
+ 686 002c FFF7FEFF 		bl	unlockCar
+ 687              	.LVL65:
+ 130:../../application/source/fobFirmware.c ****       if (receiveAck())
+ 688              		.loc 1 130 7 view .LVU169
+ 130:../../application/source/fobFirmware.c ****       if (receiveAck())
+ 689              		.loc 1 130 11 is_stmt 0 view .LVU170
+ 690 0030 FFF7FEFF 		bl	receiveAck
+ 691              	.LVL66:
+ 130:../../application/source/fobFirmware.c ****       if (receiveAck())
+ 692              		.loc 1 130 10 view .LVU171
+ 693 0034 0028     		cmp	r0, #0
+ 694 0036 F0D0     		beq	.L44
+ 132:../../application/source/fobFirmware.c ****         startCar(&fob_state_ram);
+ 695              		.loc 1 132 9 is_stmt 1 view .LVU172
+ 696 0038 04A8     		add	r0, sp, #16
+ 697 003a FFF7FEFF 		bl	startCar
+ 698              	.LVL67:
+ 699 003e ECE7     		b	.L44
+ 700              	.LVL68:
+ 701              	.L51:
+  88:../../application/source/fobFirmware.c ****     fob_state_ram.feature_info.num_active = 0;
+ 702              		.loc 1 88 5 view .LVU173
+  88:../../application/source/fobFirmware.c ****     fob_state_ram.feature_info.num_active = 0;
+ 703              		.loc 1 88 43 is_stmt 0 view .LVU174
+ 704 0040 0023     		movs	r3, #0
+ 705 0042 8DF83130 		strb	r3, [sp, #49]
+  89:../../application/source/fobFirmware.c ****     saveFobState(&fob_state_ram);
+ 706              		.loc 1 89 5 is_stmt 1 view .LVU175
+ 707 0046 04A8     		add	r0, sp, #16
+ 708 0048 FFF7FEFF 		bl	saveFobState
+ 709              	.LVL69:
+ 710 004c E4E7     		b	.L43
+ 711              	.LVL70:
+ 712              	.L52:
+ 713              	.LBB8:
+ 103:../../application/source/fobFirmware.c ****       uint8_t uart_char = (uint8_t)uart_readb(HOST_UART);
+ 714              		.loc 1 103 7 view .LVU176
+ 103:../../application/source/fobFirmware.c ****       uint8_t uart_char = (uint8_t)uart_readb(HOST_UART);
+ 715              		.loc 1 103 36 is_stmt 0 view .LVU177
+ 716 004e 0020     		movs	r0, #0
+ 717 0050 FFF7FEFF 		bl	uart_readb
+ 718              	.LVL71:
+ 103:../../application/source/fobFirmware.c ****       uint8_t uart_char = (uint8_t)uart_readb(HOST_UART);
+ 719              		.loc 1 103 15 view .LVU178
+ 720 0054 C0B2     		uxtb	r0, r0
+ 721              	.LVL72:
+ 105:../../application/source/fobFirmware.c ****       if ((uart_char != '\r') && (uart_char != '\n') && (uart_char != '\0') &&
+ 722              		.loc 1 105 7 is_stmt 1 view .LVU179
+ARM GAS  /tmp/cchX4GuU.s 			page 20
+
+
+ 105:../../application/source/fobFirmware.c ****       if ((uart_char != '\r') && (uart_char != '\n') && (uart_char != '\0') &&
+ 723              		.loc 1 105 10 is_stmt 0 view .LVU180
+ 724 0056 0D28     		cmp	r0, #13
+ 725 0058 0AD0     		beq	.L46
+ 105:../../application/source/fobFirmware.c ****       if ((uart_char != '\r') && (uart_char != '\n') && (uart_char != '\0') &&
+ 726              		.loc 1 105 31 discriminator 1 view .LVU181
+ 727 005a 0A28     		cmp	r0, #10
+ 728 005c 08D0     		beq	.L46
+ 105:../../application/source/fobFirmware.c ****       if ((uart_char != '\r') && (uart_char != '\n') && (uart_char != '\0') &&
+ 729              		.loc 1 105 54 discriminator 2 view .LVU182
+ 730 005e 38B1     		cbz	r0, .L46
+ 108:../../application/source/fobFirmware.c ****         uart_buffer[uart_buffer_index] = uart_char;
+ 731              		.loc 1 108 9 is_stmt 1 view .LVU183
+ 108:../../application/source/fobFirmware.c ****         uart_buffer[uart_buffer_index] = uart_char;
+ 732              		.loc 1 108 40 is_stmt 0 view .LVU184
+ 733 0060 04F13803 		add	r3, r4, #56
+ 734 0064 6B44     		add	r3, sp, r3
+ 735 0066 03F8340C 		strb	r0, [r3, #-52]
+ 109:../../application/source/fobFirmware.c ****         uart_buffer_index++;
+ 736              		.loc 1 109 9 is_stmt 1 view .LVU185
+ 109:../../application/source/fobFirmware.c ****         uart_buffer_index++;
+ 737              		.loc 1 109 26 is_stmt 0 view .LVU186
+ 738 006a 0134     		adds	r4, r4, #1
+ 739              	.LVL73:
+ 109:../../application/source/fobFirmware.c ****         uart_buffer_index++;
+ 740              		.loc 1 109 26 view .LVU187
+ 741 006c E4B2     		uxtb	r4, r4
+ 742              	.LVL74:
+ 109:../../application/source/fobFirmware.c ****         uart_buffer_index++;
+ 743              		.loc 1 109 26 view .LVU188
+ 744 006e D8E7     		b	.L45
+ 745              	.L46:
+ 113:../../application/source/fobFirmware.c ****         uart_buffer[uart_buffer_index] = 0x00;
+ 746              		.loc 1 113 9 is_stmt 1 view .LVU189
+ 113:../../application/source/fobFirmware.c ****         uart_buffer[uart_buffer_index] = 0x00;
+ 747              		.loc 1 113 40 is_stmt 0 view .LVU190
+ 748 0070 04F13803 		add	r3, r4, #56
+ 749 0074 0DEB0304 		add	r4, sp, r3
+ 750              	.LVL75:
+ 113:../../application/source/fobFirmware.c ****         uart_buffer[uart_buffer_index] = 0x00;
+ 751              		.loc 1 113 40 view .LVU191
+ 752 0078 0023     		movs	r3, #0
+ 753 007a 04F8343C 		strb	r3, [r4, #-52]
+ 114:../../application/source/fobFirmware.c ****         uart_buffer_index = 0;
+ 754              		.loc 1 114 9 is_stmt 1 view .LVU192
+ 755              	.LVL76:
+ 116:../../application/source/fobFirmware.c ****         if (!(strcmp((char *)uart_buffer, "enable")))
+ 756              		.loc 1 116 9 view .LVU193
+ 116:../../application/source/fobFirmware.c ****         if (!(strcmp((char *)uart_buffer, "enable")))
+ 757              		.loc 1 116 15 is_stmt 0 view .LVU194
+ 758 007e 0C49     		ldr	r1, .L55+4
+ 759 0080 01A8     		add	r0, sp, #4
+ 760              	.LVL77:
+ 116:../../application/source/fobFirmware.c ****         if (!(strcmp((char *)uart_buffer, "enable")))
+ 761              		.loc 1 116 15 view .LVU195
+ 762 0082 FFF7FEFF 		bl	strcmp
+ 763              	.LVL78:
+ARM GAS  /tmp/cchX4GuU.s 			page 21
+
+
+ 116:../../application/source/fobFirmware.c ****         if (!(strcmp((char *)uart_buffer, "enable")))
+ 764              		.loc 1 116 12 view .LVU196
+ 765 0086 30B1     		cbz	r0, .L53
+ 120:../../application/source/fobFirmware.c ****         else if (!(strcmp((char *)uart_buffer, "pair")))
+ 766              		.loc 1 120 14 is_stmt 1 view .LVU197
+ 120:../../application/source/fobFirmware.c ****         else if (!(strcmp((char *)uart_buffer, "pair")))
+ 767              		.loc 1 120 20 is_stmt 0 view .LVU198
+ 768 0088 0A49     		ldr	r1, .L55+8
+ 769 008a 01A8     		add	r0, sp, #4
+ 770 008c FFF7FEFF 		bl	strcmp
+ 771              	.LVL79:
+ 120:../../application/source/fobFirmware.c ****         else if (!(strcmp((char *)uart_buffer, "pair")))
+ 772              		.loc 1 120 17 view .LVU199
+ 773 0090 30B1     		cbz	r0, .L54
+ 114:../../application/source/fobFirmware.c ****         uart_buffer_index = 0;
+ 774              		.loc 1 114 27 view .LVU200
+ 775 0092 0024     		movs	r4, #0
+ 776 0094 C5E7     		b	.L45
+ 777              	.L53:
+ 118:../../application/source/fobFirmware.c ****           enableFeature(&fob_state_ram);
+ 778              		.loc 1 118 11 is_stmt 1 view .LVU201
+ 779 0096 04A8     		add	r0, sp, #16
+ 780 0098 FFF7FEFF 		bl	enableFeature
+ 781              	.LVL80:
+ 114:../../application/source/fobFirmware.c ****         uart_buffer_index = 0;
+ 782              		.loc 1 114 27 is_stmt 0 view .LVU202
+ 783 009c 0024     		movs	r4, #0
+ 784 009e C0E7     		b	.L45
+ 785              	.L54:
+ 122:../../application/source/fobFirmware.c ****           pairFob(&fob_state_ram);
+ 786              		.loc 1 122 11 is_stmt 1 view .LVU203
+ 787 00a0 04A8     		add	r0, sp, #16
+ 788 00a2 FFF7FEFF 		bl	pairFob
+ 789              	.LVL81:
+ 114:../../application/source/fobFirmware.c ****         uart_buffer_index = 0;
+ 790              		.loc 1 114 27 is_stmt 0 view .LVU204
+ 791 00a6 0024     		movs	r4, #0
+ 792 00a8 BBE7     		b	.L45
+ 793              	.L56:
+ 794 00aa 00BF     		.align	2
+ 795              	.L55:
+ 796 00ac 00000000 		.word	.LC8
+ 797 00b0 0C000000 		.word	.LC9
+ 798 00b4 14000000 		.word	.LC10
+ 799              	.LBE8:
+ 800              		.cfi_endproc
+ 801              	.LFE3:
+ 803              		.text
+ 804              	.Letext0:
+ 805              		.file 2 "/usr/lib/gcc/arm-none-eabi/10.3.1/include/stdint.h"
+ 806              		.file 3 "../../application/include/messages.h"
+ 807              		.file 4 "../../application/include/dataFormats.h"
+ 808              		.file 5 "/usr/include/newlib/string.h"
+ 809              		.file 6 "../include/uart.h"
+ 810              		.file 7 "/usr/include/newlib/stdio.h"
+ 811              		.file 8 "../include/platform.h"
+ 812              		.file 9 "<built-in>"
+ARM GAS  /tmp/cchX4GuU.s 			page 22
+
+
+ARM GAS  /tmp/cchX4GuU.s 			page 23
 
 
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 fobFirmware.c
-     /tmp/ccjHW1oU.s:18     .rodata.pairFob.str1.4:0000000000000000 $d
-     /tmp/ccjHW1oU.s:25     .text.pairFob:0000000000000000 $t
-     /tmp/ccjHW1oU.s:33     .text.pairFob:0000000000000000 pairFob
-     /tmp/ccjHW1oU.s:157    .text.pairFob:0000000000000074 $d
-     /tmp/ccjHW1oU.s:163    .rodata.enableFeature.str1.4:0000000000000000 $d
-     /tmp/ccjHW1oU.s:167    .text.enableFeature:0000000000000000 $t
-     /tmp/ccjHW1oU.s:174    .text.enableFeature:0000000000000000 enableFeature
-     /tmp/ccjHW1oU.s:286    .text.enableFeature:0000000000000064 $d
-     /tmp/ccjHW1oU.s:291    .text.unlockCar:0000000000000000 $t
-     /tmp/ccjHW1oU.s:298    .text.unlockCar:0000000000000000 unlockCar
-     /tmp/ccjHW1oU.s:354    .text.startCar:0000000000000000 $t
-     /tmp/ccjHW1oU.s:361    .text.startCar:0000000000000000 startCar
-     /tmp/ccjHW1oU.s:417    .text.receiveAck:0000000000000000 $t
-     /tmp/ccjHW1oU.s:424    .text.receiveAck:0000000000000000 receiveAck
-     /tmp/ccjHW1oU.s:460    .rodata.main.str1.4:0000000000000000 $d
-     /tmp/ccjHW1oU.s:470    .text.main:0000000000000000 $t
-     /tmp/ccjHW1oU.s:477    .text.main:0000000000000000 main
-     /tmp/ccjHW1oU.s:675    .text.main:00000000000000dc $d
+     /tmp/cchX4GuU.s:18     .rodata.pairFob.str1.4:0000000000000000 $d
+     /tmp/cchX4GuU.s:25     .text.pairFob:0000000000000000 $t
+     /tmp/cchX4GuU.s:33     .text.pairFob:0000000000000000 pairFob
+     /tmp/cchX4GuU.s:157    .text.pairFob:0000000000000074 $d
+     /tmp/cchX4GuU.s:163    .rodata.enableFeature.str1.4:0000000000000000 $d
+     /tmp/cchX4GuU.s:182    .text.enableFeature:0000000000000000 $t
+     /tmp/cchX4GuU.s:189    .text.enableFeature:0000000000000000 enableFeature
+     /tmp/cchX4GuU.s:435    .text.enableFeature:000000000000011c $d
+     /tmp/cchX4GuU.s:445    .text.unlockCar:0000000000000000 $t
+     /tmp/cchX4GuU.s:452    .text.unlockCar:0000000000000000 unlockCar
+     /tmp/cchX4GuU.s:508    .text.startCar:0000000000000000 $t
+     /tmp/cchX4GuU.s:515    .text.startCar:0000000000000000 startCar
+     /tmp/cchX4GuU.s:571    .text.receiveAck:0000000000000000 $t
+     /tmp/cchX4GuU.s:578    .text.receiveAck:0000000000000000 receiveAck
+     /tmp/cchX4GuU.s:614    .rodata.main.str1.4:0000000000000000 $d
+     /tmp/cchX4GuU.s:624    .text.main:0000000000000000 $t
+     /tmp/cchX4GuU.s:631    .text.main:0000000000000000 main
+     /tmp/cchX4GuU.s:796    .text.main:00000000000000ac $d
 
 UNDEFINED SYMBOLS
 uart_write
@@ -1118,8 +1293,11 @@ send_board_message
 receive_board_message_by_type
 strcpy
 saveFobState
-readVar
+memset
+strlen
+sprintf
 initHardware_fob
+readVar
 uart_avail
 buttonPressed
 uart_readb

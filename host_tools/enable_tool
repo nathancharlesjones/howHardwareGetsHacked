@@ -1,0 +1,80 @@
+#!/usr/bin/python3 -u
+
+# @file enable_tool
+# @author Frederich Stine
+# @brief host tool for enabling a feature on a fob
+# @date 2023
+#
+# This source file is part of an example system for MITRE's 2023 Embedded
+# CTF (eCTF). This code is being provided only for educational purposes for the
+# 2023 MITRE eCTF competition, and may not meet MITRE standards for quality.
+# Use this code at your own risk!
+#
+# @copyright Copyright (c) 2023 The MITRE Corporation
+
+import socket
+import argparse
+import sys
+import serial
+
+# @brief Function to send commands to enable a feature on a fob
+# @param fob_bridge, bridged serial connection to fob
+# @param package_name, name of the package file to read from
+def enable(fob_serial, package_name):
+
+    try:
+        # Connect to fob serial
+        fob_ser = serial.Serial(port=fob_serial, baudrate=115200, timeout=5)
+
+        # Send enable command to fob
+        fob_ser.write(b"enable\n")
+
+        # Open and read binary data from package file
+        with open(f"application/packages/{package_name}", "rb") as fhandle:
+            message = fhandle.read()
+
+        # Send package to fob
+        fob_ser.write(message)
+
+        received_bytes = fob_ser.read(7)
+        enable_success = received_bytes.decode('utf-8').strip()
+
+        if enable_success == "Enabled":
+            print(f"{enable_success}")
+        else:
+            print("Failed to enable feature")
+
+    except serial.SerialException as e:
+        print(f"Error opening serial port: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+    finally:
+        # 4. Close the port
+        if 'ser' in locals() and ser.is_open:
+            ser.close()
+            print("Serial port closed.")
+
+    return 0
+
+
+# @brief Main function
+#
+# Main function handles parsing arguments and passing them to program
+# function.
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--fob-serial", help="Serial port for the fob", type=str, required=True,
+    )
+    parser.add_argument(
+        "--package-name", help="Name of the package file", type=str, required=True,
+    )
+
+    args = parser.parse_args()
+
+    enable(args.fob_serial, args.package_name)
+
+
+if __name__ == "__main__":
+    main()

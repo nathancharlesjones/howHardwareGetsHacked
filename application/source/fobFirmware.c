@@ -15,6 +15,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "secrets.h"
 #include "messages.h"
@@ -70,8 +71,8 @@ int main(int argc, char ** argv)
 
     saveFobState(&fob_state_ram);
   }
-#else
-  fob_state_ram.paired = FLASH_UNPAIRED;
+//#else
+  //fob_state_ram.paired = FLASH_UNPAIRED;
 #endif
 
   /*
@@ -193,16 +194,26 @@ void enableFeature(FLASH_DATA *fob_state_ram)
     uint8_t uart_buffer[20];
     uart_readline(HOST_UART, uart_buffer);
 
+    char msg[64] = {0};
+    strcpy(msg, "Inside enableFeature\n");
+    uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
+
     ENABLE_PACKET *enable_message = (ENABLE_PACKET *)uart_buffer;
     if (strcmp((char *)fob_state_ram->pair_info.car_id,
                (char *)enable_message->car_id))
     {
+      strcpy(msg, "ERROR: Car IDs don't match\n");
+      uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
+      sprintf(msg, "Expected %s, received %s\n", (char *)fob_state_ram->pair_info.car_id, (char *)enable_message->car_id);
+      uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
       return;
     }
 
     // Feature list full
     if (fob_state_ram->feature_info.num_active == NUM_FEATURES)
     {
+      strcpy(msg, "ERROR: Feature list full\n");
+      uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
       return;
     }
 
@@ -211,6 +222,8 @@ void enableFeature(FLASH_DATA *fob_state_ram)
     {
       if (fob_state_ram->feature_info.features[i] == enable_message->feature)
       {
+        strcpy(msg, "ERROR: Feature already enabled\n");
+        uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
         return;
       }
     }

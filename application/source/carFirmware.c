@@ -15,6 +15,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "secrets.h"
 #include "messages.h"
@@ -43,6 +44,10 @@ const uint8_t car_id[] = CAR_ID;
  */
 int main(int argc, char ** argv) {
   initHardware_car(argc, argv);
+
+  char msg[64];
+  sprintf(msg, "Car ID: %s\n", (char*)car_id);
+  uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
 
   while (true) {
 
