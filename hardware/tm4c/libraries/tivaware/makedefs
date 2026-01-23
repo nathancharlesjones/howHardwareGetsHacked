@@ -165,7 +165,7 @@ CFLAGS+=${patsubst %,-I%,${subst :, ,${IPATH}}}
 #
 # The rule for building the object file from each C source file.
 #
-${COMPILER}${SUFFIX}/%.o: %.c
+${BUILD_DIR}${SUFFIX}/%.o: %.c
 	@if [ 'x${VERBOSE}' = x ];                            \
 	 then                                                 \
 	     echo "  CC    ${<}";                             \
@@ -183,7 +183,7 @@ endif
 #
 # The rule for building the object file from each assembly source file.
 #
-${COMPILER}${SUFFIX}/%.o: %.S
+${BUILD_DIR}${SUFFIX}/%.o: %.S
 	@if [ 'x${VERBOSE}' = x ];                               \
 	 then                                                    \
 	     echo "  AS    ${<}";                                \
@@ -201,7 +201,7 @@ endif
 #
 # The rule for creating an object library.
 #
-${COMPILER}${SUFFIX}/%.a:
+${BUILD_DIR}${SUFFIX}/%.a:
 	@if [ 'x${VERBOSE}' = x ];     \
 	 then                          \
 	     echo "  AR    ${@}";      \
@@ -213,7 +213,7 @@ ${COMPILER}${SUFFIX}/%.a:
 #
 # The rule for linking the application.
 #
-${COMPILER}${SUFFIX}/%.axf:
+${BUILD_DIR}${SUFFIX}/%.axf:
 	@if [ 'x${SCATTERgcc_${notdir ${@:.axf=}}}' = x ];                    \
 	 then                                                                 \
 	     ldname="${ROOT}/gcc/standalone.ld";                              \

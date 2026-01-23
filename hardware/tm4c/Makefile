@@ -17,21 +17,35 @@ ROOT=.
 DEBUG=1
 
 # additional base directories
-TIVA_ROOT=${ROOT}/tivaware
+TIVA_ROOT=${ROOT}/libraries/tivaware
+
+#ROLE ?=
+ifeq ($(ROLE),car)
+FIRMWARE_OBJ := carFirmware.o
+else ifeq ($(ROLE),paired_fob)
+FIRMWARE_OBJ := fobFirmware.o
+else ifeq ($(ROLE),unpaired_fob)
+FIRMWARE_OBJ := fobFirmware.o
+else
+$(error ROLE not set correctly)
+endif
+
+BUILD_DIR = build/$(ROLE)
 
 # add additional directories to search for source files to VPATH
 VPATH=${ROOT}/source
-VPATH+=${ROOT}/../../application/car/src
+VPATH+=$(ROOT)/../../application/source
 VPATH+=${TIVA_ROOT}
 
 # add additional directories to search for header files to IPATH
-IPATH=${ROOT}/..
-IPATH+=${ROOT}/../../application/car/inc
+IPATH=${ROOT}/../include
+IPATH+=$(ROOT)/../../application/include
+IPATH+=$(BUILD_DIR)
 IPATH+=${TIVA_ROOT}
 
 # Include common makedefs
 include ${TIVA_ROOT}/makedefs
-
+include ../../secrets/secrets.mk
 
 ########################################################
 ############### START car customization ################
@@ -39,98 +53,45 @@ include ${TIVA_ROOT}/makedefs
 # Optimizations
 CFLAGS+=-Os
 
-# check that parameters are defined
-check_defined = \
-	$(strip $(foreach 1,$1, \
-		$(call __check_defined,$1)))
-__check_defined = \
-	$(if $(value $1),, \
-	  $(error Undefined $1))
-
-
-car_arg_check:
-	$(call check_defined, CAR_ID SECRETS_DIR BIN_PATH ELF_PATH EEPROM_PATH)
-
-car_gen_secret:
-	python3 ${ROOT}/../../application/car/gen_secret.py --car-id ${CAR_ID} --secret-file ${SECRETS_DIR}/car_secrets.json --header-file ${ROOT}/../../application/car/inc/secrets.h
-
-################ END car customization ################
-#######################################################
-
-
-# this rule must come first in `car`
-car: ${COMPILER}
-car: car_arg_check
-car: car_gen_secret
-
-# these must be the last build rules of `car`
-car: ${COMPILER}/firmware.axf
-car: copy_artifacts
-
-
-################ start crypto example ################
-# example AES rules to build in tiny-AES-c: https://github.com/kokke/tiny-AES-c
-# make sure submodule has been pulled (run `git submodule update --init`)
-# uncomment next line to activate
-# EXAMPLE_AES=foo
-ifdef EXAMPLE_AES
-# path to crypto library
-CRYPTOPATH=${ROOT}/lib/tiny-AES-c
-
-# add path to crypto source files to source path
-VPATH+=${CRYPTOPATH}
-
-# add crypto library to includes path
-IPATH+=${CRYPTOPATH}
-
-# add crypto object file to includes path
-# LDFLAGS+=${COMPILER}/aes.o
-
-# add compiler flag to enable example AES code 
-CFLAGS+=-DEXAMPLE_AES
-
-# add rule to build crypto library
-${COMPILER}/firmware.axf: ${COMPILER}/aes.o
-endif
-################ end crypto example ################
+.DEFAULT_GOAL := all
+all: $(BUILD_DIR) $(SECRETS_HDR) $(BUILD_DIR)/firmware.axf copy_artifacts
 
 
 # build libraries
-${TIVA_ROOT}/driverlib/${COMPILER}/libdriver.a:
-	${MAKE} -C ${TIVA_ROOT}/driverlib
+${TIVA_ROOT}/driverlib/build/libdriver.a:
+	${MAKE} -C ${TIVA_ROOT}/driverlib BUILD_DIR=build
 
-tivaware: ${TIVA_ROOT}/driverlib/${COMPILER}/libdriver.a
+tivaware: ${TIVA_ROOT}/driverlib/build/libdriver.a
 
 # clean the libraries
 clean_tivaware:
-	${MAKE} -C ${TIVA_ROOT}/driverlib clean
+	${MAKE} -C ${TIVA_ROOT}/driverlib clean BUILD_DIR=build
 
 # clean all build products
 clean: clean_tivaware
-	@rm -rf ${COMPILER} ${wildcard *~}
+	@rm -rf build ${wildcard *~}
 
 # create the output directory
-${COMPILER}:
-	@mkdir ${COMPILER}
+${BUILD_DIR}:
+	@mkdir -p ${BUILD_DIR}
 
 
-# for each source file that needs to be compiled besides the file that defines `main`
-
-${COMPILER}/firmware.axf: ${COMPILER}/uart.o
-${COMPILER}/firmware.axf: ${COMPILER}/board_link.o
-${COMPILER}/firmware.axf: ${COMPILER}/firmware.o
-${COMPILER}/firmware.axf: ${COMPILER}/startup_${COMPILER}.o
-${COMPILER}/firmware.axf: ${TIVA_ROOT}/driverlib/${COMPILER}/libdriver.a
+${BUILD_DIR}/firmware.axf: ${BUILD_DIR}/uart_tm4c.o
+${BUILD_DIR}/firmware.axf: ${BUILD_DIR}/messages.o
+${BUILD_DIR}/firmware.axf: ${BUILD_DIR}/${FIRMWARE_OBJ}
+${BUILD_DIR}/firmware.axf: ${BUILD_DIR}/tm4c.o
+${BUILD_DIR}/firmware.axf: ${BUILD_DIR}/startup_${COMPILER}.o
+${BUILD_DIR}/firmware.axf: ${TIVA_ROOT}/driverlib/build/libdriver.a
 
 copy_artifacts:
-	cp ${COMPILER}/firmware.bin ${BIN_PATH}
-	cp ${COMPILER}/firmware.axf ${ELF_PATH}
-	cp ${SECRETS_DIR}/global_secrets.txt ${EEPROM_PATH}
+	# cp ${COMPILER}/firmware.bin ${BIN_PATH}
+	# cp ${COMPILER}/firmware.axf ${ELF_PATH}
+	cp ${SECRETS_DIR}/global_secrets.txt ${BUILD_DIR}
 
 SCATTERgcc_firmware=${TIVA_ROOT}/firmware.ld
 ENTRY_firmware=Firmware_Startup
 
 # Include the automatically generated dependency files.
 ifneq (${MAKECMDGOALS},clean)
--include ${wildcard ${COMPILER}/*.d} __dummy__
+-include ${wildcard ${BUILD_DIR}/*.d} __dummy__
 endif

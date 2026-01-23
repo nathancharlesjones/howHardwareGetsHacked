@@ -55,60 +55,60 @@ IPATH=..
 #
 # The default rule, which causes the driver library to be built.
 #
-all: ${COMPILER}
-all: ${COMPILER}/libdriver.a
+all: ${BUILD_DIR}
+all: ${BUILD_DIR}/libdriver.a
 
 #
 # The rule to clean out all the build products.
 #
 clean:
-	@rm -rf ${COMPILER} ${wildcard *~}
+	@rm -rf ${BUILD_DIR} ${wildcard *~}
 
 #
 # The rule to create the target directory.
 #
-${COMPILER}:
-	@mkdir -p ${COMPILER}
+${BUILD_DIR}:
+	@mkdir -p ${BUILD_DIR}
 
 #
 # Rules for building the driver library.
 #
-${COMPILER}/libdriver.a: ${COMPILER}/adc.o
-${COMPILER}/libdriver.a: ${COMPILER}/aes.o
-${COMPILER}/libdriver.a: ${COMPILER}/can.o
-${COMPILER}/libdriver.a: ${COMPILER}/comp.o
-${COMPILER}/libdriver.a: ${COMPILER}/cpu.o
-${COMPILER}/libdriver.a: ${COMPILER}/crc.o
-${COMPILER}/libdriver.a: ${COMPILER}/des.o
-${COMPILER}/libdriver.a: ${COMPILER}/eeprom.o
-${COMPILER}/libdriver.a: ${COMPILER}/emac.o
-${COMPILER}/libdriver.a: ${COMPILER}/epi.o
-${COMPILER}/libdriver.a: ${COMPILER}/flash.o
-${COMPILER}/libdriver.a: ${COMPILER}/fpu.o
-${COMPILER}/libdriver.a: ${COMPILER}/gpio.o
-${COMPILER}/libdriver.a: ${COMPILER}/hibernate.o
-${COMPILER}/libdriver.a: ${COMPILER}/i2c.o
-${COMPILER}/libdriver.a: ${COMPILER}/interrupt.o
-${COMPILER}/libdriver.a: ${COMPILER}/lcd.o
-${COMPILER}/libdriver.a: ${COMPILER}/mpu.o
-${COMPILER}/libdriver.a: ${COMPILER}/onewire.o
-${COMPILER}/libdriver.a: ${COMPILER}/pwm.o
-${COMPILER}/libdriver.a: ${COMPILER}/qei.o
-${COMPILER}/libdriver.a: ${COMPILER}/shamd5.o
-${COMPILER}/libdriver.a: ${COMPILER}/ssi.o
-${COMPILER}/libdriver.a: ${COMPILER}/sw_crc.o
-${COMPILER}/libdriver.a: ${COMPILER}/sysctl.o
-${COMPILER}/libdriver.a: ${COMPILER}/sysexc.o
-${COMPILER}/libdriver.a: ${COMPILER}/systick.o
-${COMPILER}/libdriver.a: ${COMPILER}/timer.o
-${COMPILER}/libdriver.a: ${COMPILER}/uart.o
-${COMPILER}/libdriver.a: ${COMPILER}/udma.o
-${COMPILER}/libdriver.a: ${COMPILER}/usb.o
-${COMPILER}/libdriver.a: ${COMPILER}/watchdog.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/adc.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/aes.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/can.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/comp.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/cpu.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/crc.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/des.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/eeprom.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/emac.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/epi.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/flash.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/fpu.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/gpio.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/hibernate.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/i2c.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/interrupt.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/lcd.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/mpu.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/onewire.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/pwm.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/qei.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/shamd5.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/ssi.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/sw_crc.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/sysctl.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/sysexc.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/systick.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/timer.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/uart.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/udma.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/usb.o
+${BUILD_DIR}/libdriver.a: ${BUILD_DIR}/watchdog.o
 
 #
 # Include the automatically generated dependency files.
 #
 ifneq (${MAKECMDGOALS},clean)
--include ${wildcard ${COMPILER}/*.d} __dummy__
+-include ${wildcard ${BUILD_DIR}/*.d} __dummy__
 endif

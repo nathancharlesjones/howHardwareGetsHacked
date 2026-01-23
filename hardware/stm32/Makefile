@@ -52,8 +52,8 @@ include ../../secrets/secrets.mk
 # C sources
 C_SOURCES =  \
 Core/Src/main.c \
-../../application/src/$(FIRMWARE_SRC) \
-../../application/src/messages.c \
+../../application/source/$(FIRMWARE_SRC) \
+../../application/source/messages.c \
 Core/Src/stm32f4xx_it.c \
 Core/Src/stm32f4xx_hal_msp.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c \
@@ -138,7 +138,7 @@ C_INCLUDES =  \
 -IDrivers/STM32F4xx_HAL_Driver/Inc/Legacy \
 -IDrivers/CMSIS/Device/ST/STM32F4xx/Include \
 -IDrivers/CMSIS/Include \
--I../../application/inc \
+-I../../application/include \
 -I../include \
 -I$(BUILD_DIR)
 
