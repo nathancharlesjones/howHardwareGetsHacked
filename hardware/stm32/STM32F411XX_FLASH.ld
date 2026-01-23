@@ -74,8 +74,9 @@ _Min_Stack_Size = 0x400; /* required amount of stack */
 /* Specify the memory areas */
 MEMORY
 {
-RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 128K
-FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 512K
+RAM (xrw)       : ORIGIN = 0x20000000, LENGTH = 128K
+FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 128K
+FLASH_DATA (rx) : ORIGIN = 0x08020000, LENGTH = 128K
 }
 
 /* Define output sections */
@@ -215,8 +216,8 @@ SECTIONS
 
   .flash_data (NOLOAD) :
   {
-    KEEP(*(.flash_data))
-  } > FLASH
+    *(.flash_data)
+  } > FLASH_DATA
 
   /* Remove information from the standard libraries */
   /DISCARD/ :

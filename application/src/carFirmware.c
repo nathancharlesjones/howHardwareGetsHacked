@@ -66,6 +66,7 @@ void unlockCar(void) {
   message.buffer[message.message_len] = 0;
 
   // If the data transfer is the password, unlock
+  // ***ERROR HERE?? The password portion of buffer isn't nul-terminated; won't strcmp not work?
   if (!strcmp((char *)(message.buffer), (char *)pass)) {
     uint8_t eeprom_message[UNLOCK_SIZE];
     // Read last 64B of EEPROM
@@ -97,6 +98,7 @@ void startCar(void) {
   FEATURE_DATA *feature_info = (FEATURE_DATA *)buffer;
 
   // Verify correct car id
+  // ***SAME ERROR HERE???
   if (strcmp((char *)car_id, (char *)feature_info->car_id)) {
     return;
   }

@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <string.h>
+#include <stdio.h>
 #include "messages.h"
 #include "platform.h"
 #include "dataFormats.h"
@@ -70,8 +71,15 @@ const char feature1_flag[FEATURE_SIZE] = FEATURE1_FLAG;
 const char feature2_flag[FEATURE_SIZE] = FEATURE2_FLAG;
 const char feature3_flag[FEATURE_SIZE] = FEATURE3_FLAG;
 
-__attribute__((section(".flash_data")))
-FLASH_DATA flash_data = {0};
+FLASH_DATA flash_data __attribute__((section(".flash_data"))) = {
+    .paired = FLASH_UNPAIRED,
+    .pair_info = {{0}},
+    .feature_info = {
+        .car_id = {0},
+        .num_active = 0xFF,
+        .features = {0}
+    }
+};
 
 extern uint8_t __flash_data_start__;
 
@@ -151,6 +159,7 @@ bool saveFobState(const FLASH_DATA *src)
   
   // Erase the sector that holds .config_flash
   uint32_t sector = get_flash_sector(base);
+
   FLASH_EraseInitTypeDef erase =
   {
       .TypeErase    = FLASH_TYPEERASE_SECTORS,
@@ -186,6 +195,7 @@ bool saveFobState(const FLASH_DATA *src)
   }
 
   HAL_FLASH_Lock();
+
   return true;
 }
 
@@ -305,7 +315,10 @@ uint32_t uart_readline(hw_uart_t uart, uint8_t *buf) {
  * @param uart is the base address of the UART port to write to.
  * @param data is the byte value to write.
  */
-void uart_writeb(hw_uart_t uart, uint8_t data) { HAL_UART_Transmit(uart_base[uart], &data, 1, HAL_MAX_DELAY); }
+void uart_writeb(hw_uart_t uart, uint8_t data)
+{
+  HAL_UART_Transmit(uart_base[uart], &data, 1, HAL_MAX_DELAY);
+}
 
 /**
  * @brief Write a sequence of bytes to a UART interface.
