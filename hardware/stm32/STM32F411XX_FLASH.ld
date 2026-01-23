@@ -216,7 +216,9 @@ SECTIONS
 
   .flash_data (NOLOAD) :
   {
+    . = ALIGN(4);
     *(.flash_data)
+    . = ALIGN(4);
   } > FLASH_DATA
 
   /* Remove information from the standard libraries */

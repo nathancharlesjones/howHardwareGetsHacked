@@ -1,4 +1,4 @@
-ARM GAS  /tmp/ccD0TByg.s 			page 1
+ARM GAS  /tmp/ccU7OCVV.s 			page 1
 
 
    1              		.cpu cortex-m4
@@ -58,7 +58,7 @@ ARM GAS  /tmp/ccD0TByg.s 			page 1
   12:../../application/src/carFirmware.c ****  * @copyright Copyright (c) 2023 The MITRE Corporation
   13:../../application/src/carFirmware.c ****  */
   14:../../application/src/carFirmware.c **** 
-ARM GAS  /tmp/ccD0TByg.s 			page 2
+ARM GAS  /tmp/ccU7OCVV.s 			page 2
 
 
   15:../../application/src/carFirmware.c **** #include <stdbool.h>
@@ -118,7 +118,7 @@ ARM GAS  /tmp/ccD0TByg.s 			page 1
   69:../../application/src/carFirmware.c ****   // ***ERROR HERE?? The password portion of buffer isn't nul-terminated; won't strcmp not work?
   70:../../application/src/carFirmware.c ****   if (!strcmp((char *)(message.buffer), (char *)pass)) {
   71:../../application/src/carFirmware.c ****     uint8_t eeprom_message[UNLOCK_SIZE];
-ARM GAS  /tmp/ccD0TByg.s 			page 3
+ARM GAS  /tmp/ccU7OCVV.s 			page 3
 
 
   72:../../application/src/carFirmware.c ****     // Read last 64B of EEPROM
@@ -178,7 +178,7 @@ ARM GAS  /tmp/ccD0TByg.s 			page 1
  102:../../application/src/carFirmware.c ****   if (strcmp((char *)car_id, (char *)feature_info->car_id)) {
   63              		.loc 1 102 3 view .LVU7
   64              		.loc 1 102 7 is_stmt 0 view .LVU8
-ARM GAS  /tmp/ccD0TByg.s 			page 4
+ARM GAS  /tmp/ccU7OCVV.s 			page 4
 
 
   65 0010 2146     		mov	r1, r4
@@ -238,7 +238,7 @@ ARM GAS  /tmp/ccD0TByg.s 			page 1
  107              	.LBE3:
  107:../../application/src/carFirmware.c ****     uint8_t eeprom_message[64];
  108              		.loc 1 107 49 discriminator 3 view .LVU20
-ARM GAS  /tmp/ccD0TByg.s 			page 5
+ARM GAS  /tmp/ccU7OCVV.s 			page 5
 
 
  107:../../application/src/carFirmware.c ****     uint8_t eeprom_message[64];
@@ -298,7 +298,7 @@ ARM GAS  /tmp/ccD0TByg.s 			page 1
  151              		.loc 1 124 27 is_stmt 1 view -0
  152              		.cfi_startproc
  153              		@ args = 0, pretend = 0, frame = 16
-ARM GAS  /tmp/ccD0TByg.s 			page 6
+ARM GAS  /tmp/ccU7OCVV.s 			page 6
 
 
  154              		@ frame_needed = 0, uses_anonymous_args = 0
@@ -358,7 +358,7 @@ ARM GAS  /tmp/ccD0TByg.s 			page 1
  198              		.fpu fpv4-sp-d16
  200              	sendAckFailure:
  201              	.LFB4:
-ARM GAS  /tmp/ccD0TByg.s 			page 7
+ARM GAS  /tmp/ccU7OCVV.s 			page 7
 
 
  136:../../application/src/carFirmware.c **** 
@@ -418,7 +418,7 @@ ARM GAS  /tmp/ccD0TByg.s 			page 1
  240 0022 5DF804FB 		ldr	pc, [sp], #4
  241              		.cfi_endproc
  242              	.LFE4:
-ARM GAS  /tmp/ccD0TByg.s 			page 8
+ARM GAS  /tmp/ccU7OCVV.s 			page 8
 
 
  244              		.section	.rodata.unlockCar.str1.4,"aMS",%progbits,1
@@ -478,7 +478,7 @@ ARM GAS  /tmp/ccD0TByg.s 			page 1
   70:../../application/src/carFirmware.c ****     uint8_t eeprom_message[UNLOCK_SIZE];
  288              		.loc 1 70 8 is_stmt 0 view .LVU64
  289 001a 0C49     		ldr	r1, .L16
-ARM GAS  /tmp/ccD0TByg.s 			page 9
+ARM GAS  /tmp/ccU7OCVV.s 			page 9
 
 
  290 001c 5198     		ldr	r0, [sp, #324]
@@ -538,7 +538,7 @@ ARM GAS  /tmp/ccD0TByg.s 			page 1
  335 0050 00000000 		.word	.LC6
  336              		.cfi_endproc
  337              	.LFE1:
-ARM GAS  /tmp/ccD0TByg.s 			page 10
+ARM GAS  /tmp/ccU7OCVV.s 			page 10
 
 
  339              		.section	.text.main,"ax",%progbits
@@ -598,7 +598,7 @@ ARM GAS  /tmp/ccD0TByg.s 			page 1
  389              		.set	.LANCHOR0,. + 0
  392              	car_id:
  393 0000 35343031 		.ascii	"5401\000"
-ARM GAS  /tmp/ccD0TByg.s 			page 11
+ARM GAS  /tmp/ccU7OCVV.s 			page 11
 
 
  393      00
@@ -616,30 +616,30 @@ ARM GAS  /tmp/ccD0TByg.s 			page 1
  406              		.file 5 "../../application/inc/uart.h"
  407              		.file 6 "../../application/inc/platform.h"
  408              		.file 7 "/usr/include/newlib/string.h"
-ARM GAS  /tmp/ccD0TByg.s 			page 12
+ARM GAS  /tmp/ccU7OCVV.s 			page 12
 
 
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 carFirmware.c
-     /tmp/ccD0TByg.s:15     .rodata.str1.4:0000000000000000 $d
-     /tmp/ccD0TByg.s:28     .text.startCar:0000000000000000 $t
-     /tmp/ccD0TByg.s:36     .text.startCar:0000000000000000 startCar
-     /tmp/ccD0TByg.s:136    .text.startCar:0000000000000058 $d
-     /tmp/ccD0TByg.s:142    .text.sendAckSuccess:0000000000000000 $t
-     /tmp/ccD0TByg.s:149    .text.sendAckSuccess:0000000000000000 sendAckSuccess
-     /tmp/ccD0TByg.s:193    .text.sendAckFailure:0000000000000000 $t
-     /tmp/ccD0TByg.s:200    .text.sendAckFailure:0000000000000000 sendAckFailure
-     /tmp/ccD0TByg.s:245    .rodata.unlockCar.str1.4:0000000000000000 $d
-     /tmp/ccD0TByg.s:249    .text.unlockCar:0000000000000000 $t
-     /tmp/ccD0TByg.s:256    .text.unlockCar:0000000000000000 unlockCar
-     /tmp/ccD0TByg.s:334    .text.unlockCar:000000000000004c $d
-     /tmp/ccD0TByg.s:340    .text.main:0000000000000000 $t
-     /tmp/ccD0TByg.s:347    .text.main:0000000000000000 main
-     /tmp/ccD0TByg.s:392    .rodata.car_id:0000000000000000 car_id
-     /tmp/ccD0TByg.s:399    .rodata.pass:0000000000000000 pass
-     /tmp/ccD0TByg.s:377    .rodata:0000000000000000 $d
-     /tmp/ccD0TByg.s:388    .rodata.car_id:0000000000000000 $d
-     /tmp/ccD0TByg.s:395    .rodata.pass:0000000000000000 $d
+     /tmp/ccU7OCVV.s:15     .rodata.str1.4:0000000000000000 $d
+     /tmp/ccU7OCVV.s:28     .text.startCar:0000000000000000 $t
+     /tmp/ccU7OCVV.s:36     .text.startCar:0000000000000000 startCar
+     /tmp/ccU7OCVV.s:136    .text.startCar:0000000000000058 $d
+     /tmp/ccU7OCVV.s:142    .text.sendAckSuccess:0000000000000000 $t
+     /tmp/ccU7OCVV.s:149    .text.sendAckSuccess:0000000000000000 sendAckSuccess
+     /tmp/ccU7OCVV.s:193    .text.sendAckFailure:0000000000000000 $t
+     /tmp/ccU7OCVV.s:200    .text.sendAckFailure:0000000000000000 sendAckFailure
+     /tmp/ccU7OCVV.s:245    .rodata.unlockCar.str1.4:0000000000000000 $d
+     /tmp/ccU7OCVV.s:249    .text.unlockCar:0000000000000000 $t
+     /tmp/ccU7OCVV.s:256    .text.unlockCar:0000000000000000 unlockCar
+     /tmp/ccU7OCVV.s:334    .text.unlockCar:000000000000004c $d
+     /tmp/ccU7OCVV.s:340    .text.main:0000000000000000 $t
+     /tmp/ccU7OCVV.s:347    .text.main:0000000000000000 main
+     /tmp/ccU7OCVV.s:392    .rodata.car_id:0000000000000000 car_id
+     /tmp/ccU7OCVV.s:399    .rodata.pass:0000000000000000 pass
+     /tmp/ccU7OCVV.s:377    .rodata:0000000000000000 $d
+     /tmp/ccU7OCVV.s:388    .rodata.car_id:0000000000000000 $d
+     /tmp/ccU7OCVV.s:395    .rodata.pass:0000000000000000 $d
 
 UNDEFINED SYMBOLS
 receive_board_message_by_type
