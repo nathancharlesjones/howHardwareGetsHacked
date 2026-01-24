@@ -1,4 +1,4 @@
-ARM GAS  /tmp/ccej0Zw2.s 			page 1
+ARM GAS  /tmp/ccp6A4Do.s 			page 1
 
 
    1              		.cpu cortex-m4
@@ -58,7 +58,7 @@ ARM GAS  /tmp/ccej0Zw2.s 			page 1
   12:../../application/source/carFirmware.c ****  * @copyright Copyright (c) 2023 The MITRE Corporation
   13:../../application/source/carFirmware.c ****  */
   14:../../application/source/carFirmware.c **** 
-ARM GAS  /tmp/ccej0Zw2.s 			page 2
+ARM GAS  /tmp/ccp6A4Do.s 			page 2
 
 
   15:../../application/source/carFirmware.c **** #include <stdbool.h>
@@ -118,7 +118,7 @@ ARM GAS  /tmp/ccej0Zw2.s 			page 1
   69:../../application/source/carFirmware.c **** 
   70:../../application/source/carFirmware.c ****   // Pad payload to a string
   71:../../application/source/carFirmware.c ****   message.buffer[message.message_len] = 0;
-ARM GAS  /tmp/ccej0Zw2.s 			page 3
+ARM GAS  /tmp/ccp6A4Do.s 			page 3
 
 
   72:../../application/source/carFirmware.c **** 
@@ -178,7 +178,7 @@ ARM GAS  /tmp/ccej0Zw2.s 			page 1
  103:../../application/source/carFirmware.c ****   FEATURE_DATA *feature_info = (FEATURE_DATA *)buffer;
   62              		.loc 1 103 3 view .LVU6
  104:../../application/source/carFirmware.c **** 
-ARM GAS  /tmp/ccej0Zw2.s 			page 4
+ARM GAS  /tmp/ccp6A4Do.s 			page 4
 
 
  105:../../application/source/carFirmware.c ****   // Verify correct car id
@@ -238,7 +238,7 @@ ARM GAS  /tmp/ccej0Zw2.s 			page 1
  102 0038 4022     		movs	r2, #64
  103 003a 04A9     		add	r1, sp, #16
  104 003c 0020     		movs	r0, #0
-ARM GAS  /tmp/ccej0Zw2.s 			page 5
+ARM GAS  /tmp/ccp6A4Do.s 			page 5
 
 
  105 003e FFF7FEFF 		bl	uart_write
@@ -298,7 +298,7 @@ ARM GAS  /tmp/ccej0Zw2.s 			page 1
  125:../../application/source/carFirmware.c **** 
  126:../../application/source/carFirmware.c **** /**
  127:../../application/source/carFirmware.c ****  * @brief Function to send successful ACK message
-ARM GAS  /tmp/ccej0Zw2.s 			page 6
+ARM GAS  /tmp/ccp6A4Do.s 			page 6
 
 
  128:../../application/source/carFirmware.c ****  */
@@ -358,7 +358,7 @@ ARM GAS  /tmp/ccej0Zw2.s 			page 1
  193              		.align	1
  194              		.global	sendAckFailure
  195              		.syntax unified
-ARM GAS  /tmp/ccej0Zw2.s 			page 7
+ARM GAS  /tmp/ccp6A4Do.s 			page 7
 
 
  196              		.thumb
@@ -418,7 +418,7 @@ ARM GAS  /tmp/ccej0Zw2.s 			page 1
  235              		.loc 1 156 1 is_stmt 0 view .LVU53
  236 0020 05B0     		add	sp, sp, #20
  237              	.LCFI8:
-ARM GAS  /tmp/ccej0Zw2.s 			page 8
+ARM GAS  /tmp/ccp6A4Do.s 			page 8
 
 
  238              		.cfi_def_cfa_offset 4
@@ -478,7 +478,7 @@ ARM GAS  /tmp/ccej0Zw2.s 			page 1
  284 0014 519A     		ldr	r2, [sp, #324]
  285 0016 0021     		movs	r1, #0
  286 0018 D154     		strb	r1, [r2, r3]
-ARM GAS  /tmp/ccej0Zw2.s 			page 9
+ARM GAS  /tmp/ccp6A4Do.s 			page 9
 
 
   75:../../application/source/carFirmware.c ****     uint8_t eeprom_message[UNLOCK_SIZE];
@@ -538,7 +538,7 @@ ARM GAS  /tmp/ccej0Zw2.s 			page 1
  330 0048 F9E7     		b	.L12
  331              	.L17:
  332 004a 00BF     		.align	2
-ARM GAS  /tmp/ccej0Zw2.s 			page 10
+ARM GAS  /tmp/ccp6A4Do.s 			page 10
 
 
  333              	.L16:
@@ -598,7 +598,7 @@ ARM GAS  /tmp/ccej0Zw2.s 			page 1
  380 0014 FFF7FEFF 		bl	strlen
  381              	.LVL24:
  382 0018 0246     		mov	r2, r0
-ARM GAS  /tmp/ccej0Zw2.s 			page 11
+ARM GAS  /tmp/ccp6A4Do.s 			page 11
 
 
   50:../../application/source/carFirmware.c **** 
@@ -641,7 +641,8 @@ ARM GAS  /tmp/ccej0Zw2.s 			page 1
  417              		.align	2
  418              		.set	.LANCHOR0,. + 0
  421              	car_id:
- 422 0000 39383700 		.ascii	"987\000"
+ 422 0000 31323334 		.ascii	"1234\000"
+ 422      00
  423              		.section	.rodata.pass,"a"
  424              		.align	2
  425              		.set	.LANCHOR2,. + 0
@@ -657,32 +658,35 @@ ARM GAS  /tmp/ccej0Zw2.s 			page 1
  436              		.file 6 "../include/platform.h"
  437              		.file 7 "/usr/include/newlib/string.h"
  438              		.file 8 "/usr/include/newlib/stdio.h"
-ARM GAS  /tmp/ccej0Zw2.s 			page 12
+ARM GAS  /tmp/ccp6A4Do.s 			page 12
+
+
+ARM GAS  /tmp/ccp6A4Do.s 			page 13
 
 
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 carFirmware.c
-     /tmp/ccej0Zw2.s:15     .rodata.str1.4:0000000000000000 $d
-     /tmp/ccej0Zw2.s:28     .text.startCar:0000000000000000 $t
-     /tmp/ccej0Zw2.s:36     .text.startCar:0000000000000000 startCar
-     /tmp/ccej0Zw2.s:136    .text.startCar:0000000000000058 $d
-     /tmp/ccej0Zw2.s:142    .text.sendAckSuccess:0000000000000000 $t
-     /tmp/ccej0Zw2.s:149    .text.sendAckSuccess:0000000000000000 sendAckSuccess
-     /tmp/ccej0Zw2.s:193    .text.sendAckFailure:0000000000000000 $t
-     /tmp/ccej0Zw2.s:200    .text.sendAckFailure:0000000000000000 sendAckFailure
-     /tmp/ccej0Zw2.s:245    .rodata.unlockCar.str1.4:0000000000000000 $d
-     /tmp/ccej0Zw2.s:249    .text.unlockCar:0000000000000000 $t
-     /tmp/ccej0Zw2.s:256    .text.unlockCar:0000000000000000 unlockCar
-     /tmp/ccej0Zw2.s:334    .text.unlockCar:000000000000004c $d
-     /tmp/ccej0Zw2.s:340    .rodata.main.str1.4:0000000000000000 $d
-     /tmp/ccej0Zw2.s:344    .text.main:0000000000000000 $t
-     /tmp/ccej0Zw2.s:351    .text.main:0000000000000000 main
-     /tmp/ccej0Zw2.s:398    .text.main:0000000000000028 $d
-     /tmp/ccej0Zw2.s:421    .rodata.car_id:0000000000000000 car_id
-     /tmp/ccej0Zw2.s:428    .rodata.pass:0000000000000000 pass
-     /tmp/ccej0Zw2.s:406    .rodata:0000000000000000 $d
-     /tmp/ccej0Zw2.s:417    .rodata.car_id:0000000000000000 $d
-     /tmp/ccej0Zw2.s:424    .rodata.pass:0000000000000000 $d
+     /tmp/ccp6A4Do.s:15     .rodata.str1.4:0000000000000000 $d
+     /tmp/ccp6A4Do.s:28     .text.startCar:0000000000000000 $t
+     /tmp/ccp6A4Do.s:36     .text.startCar:0000000000000000 startCar
+     /tmp/ccp6A4Do.s:136    .text.startCar:0000000000000058 $d
+     /tmp/ccp6A4Do.s:142    .text.sendAckSuccess:0000000000000000 $t
+     /tmp/ccp6A4Do.s:149    .text.sendAckSuccess:0000000000000000 sendAckSuccess
+     /tmp/ccp6A4Do.s:193    .text.sendAckFailure:0000000000000000 $t
+     /tmp/ccp6A4Do.s:200    .text.sendAckFailure:0000000000000000 sendAckFailure
+     /tmp/ccp6A4Do.s:245    .rodata.unlockCar.str1.4:0000000000000000 $d
+     /tmp/ccp6A4Do.s:249    .text.unlockCar:0000000000000000 $t
+     /tmp/ccp6A4Do.s:256    .text.unlockCar:0000000000000000 unlockCar
+     /tmp/ccp6A4Do.s:334    .text.unlockCar:000000000000004c $d
+     /tmp/ccp6A4Do.s:340    .rodata.main.str1.4:0000000000000000 $d
+     /tmp/ccp6A4Do.s:344    .text.main:0000000000000000 $t
+     /tmp/ccp6A4Do.s:351    .text.main:0000000000000000 main
+     /tmp/ccp6A4Do.s:398    .text.main:0000000000000028 $d
+     /tmp/ccp6A4Do.s:421    .rodata.car_id:0000000000000000 car_id
+     /tmp/ccp6A4Do.s:428    .rodata.pass:0000000000000000 pass
+     /tmp/ccp6A4Do.s:406    .rodata:0000000000000000 $d
+     /tmp/ccp6A4Do.s:417    .rodata.car_id:0000000000000000 $d
+     /tmp/ccp6A4Do.s:424    .rodata.pass:0000000000000000 $d
 
 UNDEFINED SYMBOLS
 receive_board_message_by_type

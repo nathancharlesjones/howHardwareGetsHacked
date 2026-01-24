@@ -1,0 +1,83 @@
+# ==============================================
+# TM4C Unpaired Fob Firmware Build (Ninja)
+# ==============================================
+
+# Build directory
+builddir = build/unpaired_fob
+
+# Build directory
+builddir = build/unpaired_fob
+
+# Toolchain
+cc = arm-none-eabi-gcc
+ld = arm-none-eabi-ld
+objcopy = arm-none-eabi-objcopy
+
+# MCU Configuration
+mcu = -mcpu=cortex-m4 -mthumb
+part = TM4C123GH6PM
+
+# Compiler flags
+cflags = $mcu -ffunction-sections -fdata-sections -std=c99 -Wall -pedantic -DPART_$part -DTARGET_IS_TM4C123_RB1 -c -Os -g
+
+# Include paths
+includes = -I../include -I../application/include -I$builddir -Ilibraries/tivaware
+
+# Linker flags
+ldflags = --gc-sections
+linker_script = libraries/tivaware/firmware.ld
+entry_point = Firmware_Startup
+
+# Build rules
+rule cc
+  command = $cc $cflags $includes -MMD -MF $out.d -c $in -o $out
+  description = CC $in
+  depfile = $out.d
+  deps = gcc
+
+rule ld
+  command = $ld -T $linker_script --entry $entry_point $ldflags -o $out $in -lm -lc -lgcc
+  description = LD $out
+
+rule objcopy
+  command = $objcopy -O binary $in $out
+  description = OBJCOPY $out
+
+rule secrets
+  command = python3 $script --header-file $out $args
+  description = Generating secrets for unpaired_fob
+
+rule mkdir
+  command = mkdir -p $out
+  description = MKDIR $out
+
+# Create build directory
+build $builddir: mkdir
+
+# Platform sources
+build $builddir/uart_tm4c.o: cc source/uart_tm4c.c | $builddir/secrets.h
+build $builddir/tm4c.o: cc source/tm4c.c | $builddir/secrets.h
+build $builddir/syscalls.o: cc source/syscalls.c | $builddir/secrets.h
+
+# Application sources  
+build $builddir/messages.o: cc ../application/source/messages.c | $builddir/secrets.h
+build $builddir/fobFirmware.o: cc ../application/source/fobFirmware.c | $builddir/secrets.h
+
+# Startup code
+build $builddir/startup_gcc.o: cc libraries/tivaware/startup_gcc.c | $builddir/secrets.h
+
+# Link firmware
+build $builddir/firmware.axf: ld $
+  libraries/tivaware/build/libdriver.a $
+  $builddir/startup_gcc.o $
+  $builddir/tm4c.o $
+  $builddir/uart_tm4c.o $
+  $builddir/messages.o $
+  $builddir/syscalls.o $
+  $builddir/fobFirmware.o
+
+# Generate binary
+build $builddir/firmware.bin: objcopy $builddir/firmware.axf
+
+# Default target
+default $builddir/firmware.bin

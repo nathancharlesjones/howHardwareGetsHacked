@@ -17,7 +17,8 @@ ROOT=.
 DEBUG=1
 
 # additional base directories
-TIVA_ROOT=${ROOT}/libraries/tivaware
+#TIVA_ROOT=${ROOT}/libraries/tivaware
+TIVA_ROOT=libraries/tivaware
 
 #ROLE ?=
 ifeq ($(ROLE),car)
@@ -33,8 +34,10 @@ endif
 BUILD_DIR = build/$(ROLE)
 
 # add additional directories to search for source files to VPATH
-VPATH=${ROOT}/source
-VPATH+=$(ROOT)/../../application/source
+#VPATH=${ROOT}/source
+#VPATH+=$(ROOT)/../../application/source
+VPATH=source
+VPATH+=../../application/source
 VPATH+=${TIVA_ROOT}
 
 # add additional directories to search for header files to IPATH
@@ -69,7 +72,7 @@ clean_tivaware:
 
 # clean all build products
 clean:
-	@rm -rf build ${wildcard *~}
+	@rm -rf $(BUILD_DIR) ${wildcard *~}
 
 # create the output directory
 ${BUILD_DIR}:
@@ -79,17 +82,11 @@ ${BUILD_DIR}:
 ${BUILD_DIR}/firmware.axf: ${BUILD_DIR}/uart_tm4c.o
 ${BUILD_DIR}/firmware.axf: ${BUILD_DIR}/messages.o
 ${BUILD_DIR}/firmware.axf: ${BUILD_DIR}/${FIRMWARE_OBJ}
-	#@echo "=== LINKING DEBUG ==="
-	#@echo "All prerequisites: $^"
-	#@echo "Filtered objects: $(filter %.o %.a, $^)"
-	#@ls -lh $(filter %.o, $^)
 ${BUILD_DIR}/firmware.axf: ${BUILD_DIR}/tm4c.o
 ${BUILD_DIR}/firmware.axf: ${BUILD_DIR}/startup_${COMPILER}.o
 ${BUILD_DIR}/firmware.axf: ${TIVA_ROOT}/driverlib/build/libdriver.a
 
 copy_artifacts:
-	# cp ${COMPILER}/firmware.bin ${BIN_PATH}
-	# cp ${COMPILER}/firmware.axf ${ELF_PATH}
 	cp ${SECRETS_DIR}/global_secrets.txt ${BUILD_DIR}
 
 SCATTERgcc_firmware=${TIVA_ROOT}/firmware.ld

@@ -3,8 +3,8 @@
 
 #define PAIRED 1
 #define PAIR_PIN "123456"
-#define CAR_ID "987"
-#define CAR_SECRET "988"
+#define CAR_ID "1234"
+#define CAR_SECRET "1235"
 
 #define PASSWORD "unlock"
 

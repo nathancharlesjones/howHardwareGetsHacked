@@ -1,4 +1,4 @@
-ARM GAS  /tmp/cchX4GuU.s 			page 1
+ARM GAS  /tmp/cckdThJz.s 			page 1
 
 
    1              		.cpu cortex-m4
@@ -58,7 +58,7 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
   19:../../application/source/fobFirmware.c **** 
   20:../../application/source/fobFirmware.c **** #include "secrets.h"
   21:../../application/source/fobFirmware.c **** #include "messages.h"
-ARM GAS  /tmp/cchX4GuU.s 			page 2
+ARM GAS  /tmp/cckdThJz.s 			page 2
 
 
   22:../../application/source/fobFirmware.c **** #include "dataFormats.h"
@@ -118,7 +118,7 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
   76:../../application/source/fobFirmware.c **** #endif
   77:../../application/source/fobFirmware.c **** 
   78:../../application/source/fobFirmware.c ****   /*
-ARM GAS  /tmp/cchX4GuU.s 			page 3
+ARM GAS  /tmp/cckdThJz.s 			page 3
 
 
   79:../../application/source/fobFirmware.c ****   if (fob_state_flash.paired == FLASH_PAIRED)
@@ -178,7 +178,7 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
  133:../../application/source/fobFirmware.c ****       }
  134:../../application/source/fobFirmware.c ****     }
  135:../../application/source/fobFirmware.c ****   }
-ARM GAS  /tmp/cchX4GuU.s 			page 4
+ARM GAS  /tmp/cckdThJz.s 			page 4
 
 
  136:../../application/source/fobFirmware.c **** }
@@ -238,7 +238,7 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
   74 0018 FFF7FEFF 		bl	uart_readline
   75              	.LVL3:
   76              		.loc 1 152 16 view .LVU12
-ARM GAS  /tmp/cchX4GuU.s 			page 5
+ARM GAS  /tmp/cckdThJz.s 			page 5
 
 
   77 001c 00B2     		sxth	r0, r0
@@ -298,7 +298,7 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
  168:../../application/source/fobFirmware.c ****   }
  169:../../application/source/fobFirmware.c **** 
  170:../../application/source/fobFirmware.c ****   // Start pairing transaction - fob is not paired
-ARM GAS  /tmp/cchX4GuU.s 			page 6
+ARM GAS  /tmp/cckdThJz.s 			page 6
 
 
  171:../../application/source/fobFirmware.c ****   else
@@ -358,7 +358,7 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
  157 0074 00000000 		.word	.LC0
  158 0078 04000000 		.word	.LC1
  159              		.cfi_endproc
-ARM GAS  /tmp/cchX4GuU.s 			page 7
+ARM GAS  /tmp/cckdThJz.s 			page 7
 
 
  160              	.LFE4:
@@ -418,7 +418,7 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
  187:../../application/source/fobFirmware.c ****  *
  188:../../application/source/fobFirmware.c ****  * @param fob_state_ram pointer to the current fob state in ram
  189:../../application/source/fobFirmware.c ****  */
-ARM GAS  /tmp/cchX4GuU.s 			page 8
+ARM GAS  /tmp/cckdThJz.s 			page 8
 
 
  190:../../application/source/fobFirmware.c **** void enableFeature(FLASH_DATA *fob_state_ram)
@@ -478,7 +478,7 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
  236 0028 ACE80F00 		stmia	ip!, {r0, r1, r2, r3}
  237 002c 95E80300 		ldm	r5, {r0, r1}
  238 0030 4CF8040B 		str	r0, [ip], #4
-ARM GAS  /tmp/cchX4GuU.s 			page 9
+ARM GAS  /tmp/cckdThJz.s 			page 9
 
 
  239 0034 ACF80010 		strh	r1, [ip]	@ movhi
@@ -538,7 +538,7 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
  218:../../application/source/fobFirmware.c ****     }
  219:../../application/source/fobFirmware.c **** 
  220:../../application/source/fobFirmware.c ****     // Search for feature in list
-ARM GAS  /tmp/cchX4GuU.s 			page 10
+ARM GAS  /tmp/cckdThJz.s 			page 10
 
 
  221:../../application/source/fobFirmware.c ****     for (int i = 0; i < fob_state_ram->feature_info.num_active; i++)
@@ -598,7 +598,7 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
  316              	.LVL28:
  207:../../application/source/fobFirmware.c ****       uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
  317              		.loc 1 207 7 is_stmt 1 view .LVU77
-ARM GAS  /tmp/cchX4GuU.s 			page 11
+ARM GAS  /tmp/cckdThJz.s 			page 11
 
 
  318 0094 01AB     		add	r3, sp, #4
@@ -658,7 +658,7 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
  361 00cc 0120     		movs	r0, #1
  362 00ce FFF7FEFF 		bl	uart_write
  363              	.LVL37:
-ARM GAS  /tmp/cchX4GuU.s 			page 12
+ARM GAS  /tmp/cckdThJz.s 			page 12
 
 
  217:../../application/source/fobFirmware.c ****     }
@@ -718,7 +718,7 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
  405              		.loc 1 232 59 view .LVU102
  406 00fc 83F82220 		strb	r2, [r3, #34]
  234:../../application/source/fobFirmware.c ****     fob_state_ram->feature_info.num_active++;
-ARM GAS  /tmp/cchX4GuU.s 			page 13
+ARM GAS  /tmp/cckdThJz.s 			page 13
 
 
  407              		.loc 1 234 5 is_stmt 1 view .LVU103
@@ -778,7 +778,7 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
  243:../../application/source/fobFirmware.c ****  *
  244:../../application/source/fobFirmware.c ****  * @param fob_state_ram pointer to the current fob state in ram
  245:../../application/source/fobFirmware.c ****  */
-ARM GAS  /tmp/cchX4GuU.s 			page 14
+ARM GAS  /tmp/cckdThJz.s 			page 14
 
 
  246:../../application/source/fobFirmware.c **** void unlockCar(FLASH_DATA *fob_state_ram)
@@ -838,7 +838,7 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
  256:../../application/source/fobFirmware.c ****   }
  257:../../application/source/fobFirmware.c **** }
  498              		.loc 1 257 1 view .LVU126
-ARM GAS  /tmp/cchX4GuU.s 			page 15
+ARM GAS  /tmp/cckdThJz.s 			page 15
 
 
  499 0020 03B0     		add	sp, sp, #12
@@ -898,7 +898,7 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
  542 000c 8DF80030 		strb	r3, [sp]
  270:../../application/source/fobFirmware.c ****     message.message_len = sizeof(FEATURE_DATA);
  543              		.loc 1 270 5 is_stmt 1 view .LVU135
-ARM GAS  /tmp/cchX4GuU.s 			page 16
+ARM GAS  /tmp/cckdThJz.s 			page 16
 
 
  544              		.loc 1 270 25 is_stmt 0 view .LVU136
@@ -958,7 +958,7 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
  586              		.cfi_def_cfa_offset 4
  587              		.cfi_offset 14, -4
  588 0002 C3B0     		sub	sp, sp, #268
-ARM GAS  /tmp/cchX4GuU.s 			page 17
+ARM GAS  /tmp/cckdThJz.s 			page 17
 
 
  589              	.LCFI13:
@@ -1018,7 +1018,7 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
   53:../../application/source/fobFirmware.c **** {
  634              		.loc 1 53 1 is_stmt 1 view -0
  635              		.cfi_startproc
-ARM GAS  /tmp/cchX4GuU.s 			page 18
+ARM GAS  /tmp/cckdThJz.s 			page 18
 
 
  636              		@ args = 0, pretend = 0, frame = 56
@@ -1078,7 +1078,7 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
  677              		.loc 1 127 5 is_stmt 1 view .LVU165
  127:../../application/source/fobFirmware.c ****     if(buttonPressed())
  678              		.loc 1 127 8 is_stmt 0 view .LVU166
-ARM GAS  /tmp/cchX4GuU.s 			page 19
+ARM GAS  /tmp/cckdThJz.s 			page 19
 
 
  679 0022 FFF7FEFF 		bl	buttonPressed
@@ -1138,7 +1138,7 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
  721              	.LVL72:
  105:../../application/source/fobFirmware.c ****       if ((uart_char != '\r') && (uart_char != '\n') && (uart_char != '\0') &&
  722              		.loc 1 105 7 is_stmt 1 view .LVU179
-ARM GAS  /tmp/cchX4GuU.s 			page 20
+ARM GAS  /tmp/cckdThJz.s 			page 20
 
 
  105:../../application/source/fobFirmware.c ****       if ((uart_char != '\r') && (uart_char != '\n') && (uart_char != '\0') &&
@@ -1198,7 +1198,7 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
  761              		.loc 1 116 15 view .LVU195
  762 0082 FFF7FEFF 		bl	strcmp
  763              	.LVL78:
-ARM GAS  /tmp/cchX4GuU.s 			page 21
+ARM GAS  /tmp/cckdThJz.s 			page 21
 
 
  116:../../application/source/fobFirmware.c ****         if (!(strcmp((char *)uart_buffer, "enable")))
@@ -1258,32 +1258,32 @@ ARM GAS  /tmp/cchX4GuU.s 			page 1
  810              		.file 7 "/usr/include/newlib/stdio.h"
  811              		.file 8 "../include/platform.h"
  812              		.file 9 "<built-in>"
-ARM GAS  /tmp/cchX4GuU.s 			page 22
+ARM GAS  /tmp/cckdThJz.s 			page 22
 
 
-ARM GAS  /tmp/cchX4GuU.s 			page 23
+ARM GAS  /tmp/cckdThJz.s 			page 23
 
 
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 fobFirmware.c
-     /tmp/cchX4GuU.s:18     .rodata.pairFob.str1.4:0000000000000000 $d
-     /tmp/cchX4GuU.s:25     .text.pairFob:0000000000000000 $t
-     /tmp/cchX4GuU.s:33     .text.pairFob:0000000000000000 pairFob
-     /tmp/cchX4GuU.s:157    .text.pairFob:0000000000000074 $d
-     /tmp/cchX4GuU.s:163    .rodata.enableFeature.str1.4:0000000000000000 $d
-     /tmp/cchX4GuU.s:182    .text.enableFeature:0000000000000000 $t
-     /tmp/cchX4GuU.s:189    .text.enableFeature:0000000000000000 enableFeature
-     /tmp/cchX4GuU.s:435    .text.enableFeature:000000000000011c $d
-     /tmp/cchX4GuU.s:445    .text.unlockCar:0000000000000000 $t
-     /tmp/cchX4GuU.s:452    .text.unlockCar:0000000000000000 unlockCar
-     /tmp/cchX4GuU.s:508    .text.startCar:0000000000000000 $t
-     /tmp/cchX4GuU.s:515    .text.startCar:0000000000000000 startCar
-     /tmp/cchX4GuU.s:571    .text.receiveAck:0000000000000000 $t
-     /tmp/cchX4GuU.s:578    .text.receiveAck:0000000000000000 receiveAck
-     /tmp/cchX4GuU.s:614    .rodata.main.str1.4:0000000000000000 $d
-     /tmp/cchX4GuU.s:624    .text.main:0000000000000000 $t
-     /tmp/cchX4GuU.s:631    .text.main:0000000000000000 main
-     /tmp/cchX4GuU.s:796    .text.main:00000000000000ac $d
+     /tmp/cckdThJz.s:18     .rodata.pairFob.str1.4:0000000000000000 $d
+     /tmp/cckdThJz.s:25     .text.pairFob:0000000000000000 $t
+     /tmp/cckdThJz.s:33     .text.pairFob:0000000000000000 pairFob
+     /tmp/cckdThJz.s:157    .text.pairFob:0000000000000074 $d
+     /tmp/cckdThJz.s:163    .rodata.enableFeature.str1.4:0000000000000000 $d
+     /tmp/cckdThJz.s:182    .text.enableFeature:0000000000000000 $t
+     /tmp/cckdThJz.s:189    .text.enableFeature:0000000000000000 enableFeature
+     /tmp/cckdThJz.s:435    .text.enableFeature:000000000000011c $d
+     /tmp/cckdThJz.s:445    .text.unlockCar:0000000000000000 $t
+     /tmp/cckdThJz.s:452    .text.unlockCar:0000000000000000 unlockCar
+     /tmp/cckdThJz.s:508    .text.startCar:0000000000000000 $t
+     /tmp/cckdThJz.s:515    .text.startCar:0000000000000000 startCar
+     /tmp/cckdThJz.s:571    .text.receiveAck:0000000000000000 $t
+     /tmp/cckdThJz.s:578    .text.receiveAck:0000000000000000 receiveAck
+     /tmp/cckdThJz.s:614    .rodata.main.str1.4:0000000000000000 $d
+     /tmp/cckdThJz.s:624    .text.main:0000000000000000 $t
+     /tmp/cckdThJz.s:631    .text.main:0000000000000000 main
+     /tmp/cckdThJz.s:796    .text.main:00000000000000ac $d
 
 UNDEFINED SYMBOLS
 uart_write

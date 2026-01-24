@@ -1,4 +1,4 @@
-ARM GAS  /tmp/ccVaGKXX.s 			page 1
+ARM GAS  /tmp/ccgRjVac.s 			page 1
 
 
    1              		.cpu cortex-m4
@@ -58,7 +58,7 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
   19:../../application/source/fobFirmware.c **** 
   20:../../application/source/fobFirmware.c **** #include "secrets.h"
   21:../../application/source/fobFirmware.c **** #include "messages.h"
-ARM GAS  /tmp/ccVaGKXX.s 			page 2
+ARM GAS  /tmp/ccgRjVac.s 			page 2
 
 
   22:../../application/source/fobFirmware.c **** #include "dataFormats.h"
@@ -118,7 +118,7 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
   76:../../application/source/fobFirmware.c **** #endif
   77:../../application/source/fobFirmware.c **** 
   78:../../application/source/fobFirmware.c ****   /*
-ARM GAS  /tmp/ccVaGKXX.s 			page 3
+ARM GAS  /tmp/ccgRjVac.s 			page 3
 
 
   79:../../application/source/fobFirmware.c ****   if (fob_state_flash.paired == FLASH_PAIRED)
@@ -178,7 +178,7 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
  133:../../application/source/fobFirmware.c ****       }
  134:../../application/source/fobFirmware.c ****     }
  135:../../application/source/fobFirmware.c ****   }
-ARM GAS  /tmp/ccVaGKXX.s 			page 4
+ARM GAS  /tmp/ccgRjVac.s 			page 4
 
 
  136:../../application/source/fobFirmware.c **** }
@@ -238,7 +238,7 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
   74 0018 FFF7FEFF 		bl	uart_readline
   75              	.LVL3:
   76              		.loc 1 152 16 view .LVU12
-ARM GAS  /tmp/ccVaGKXX.s 			page 5
+ARM GAS  /tmp/ccgRjVac.s 			page 5
 
 
   77 001c 00B2     		sxth	r0, r0
@@ -298,7 +298,7 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
  168:../../application/source/fobFirmware.c ****   }
  169:../../application/source/fobFirmware.c **** 
  170:../../application/source/fobFirmware.c ****   // Start pairing transaction - fob is not paired
-ARM GAS  /tmp/ccVaGKXX.s 			page 6
+ARM GAS  /tmp/ccgRjVac.s 			page 6
 
 
  171:../../application/source/fobFirmware.c ****   else
@@ -358,7 +358,7 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
  157 0074 00000000 		.word	.LC0
  158 0078 04000000 		.word	.LC1
  159              		.cfi_endproc
-ARM GAS  /tmp/ccVaGKXX.s 			page 7
+ARM GAS  /tmp/ccgRjVac.s 			page 7
 
 
  160              	.LFE4:
@@ -418,7 +418,7 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
  187:../../application/source/fobFirmware.c ****  *
  188:../../application/source/fobFirmware.c ****  * @param fob_state_ram pointer to the current fob state in ram
  189:../../application/source/fobFirmware.c ****  */
-ARM GAS  /tmp/ccVaGKXX.s 			page 8
+ARM GAS  /tmp/ccgRjVac.s 			page 8
 
 
  190:../../application/source/fobFirmware.c **** void enableFeature(FLASH_DATA *fob_state_ram)
@@ -478,7 +478,7 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
  236 0028 ACE80F00 		stmia	ip!, {r0, r1, r2, r3}
  237 002c 95E80300 		ldm	r5, {r0, r1}
  238 0030 4CF8040B 		str	r0, [ip], #4
-ARM GAS  /tmp/ccVaGKXX.s 			page 9
+ARM GAS  /tmp/ccgRjVac.s 			page 9
 
 
  239 0034 ACF80010 		strh	r1, [ip]	@ movhi
@@ -538,7 +538,7 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
  218:../../application/source/fobFirmware.c ****     }
  219:../../application/source/fobFirmware.c **** 
  220:../../application/source/fobFirmware.c ****     // Search for feature in list
-ARM GAS  /tmp/ccVaGKXX.s 			page 10
+ARM GAS  /tmp/ccgRjVac.s 			page 10
 
 
  221:../../application/source/fobFirmware.c ****     for (int i = 0; i < fob_state_ram->feature_info.num_active; i++)
@@ -598,7 +598,7 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
  316              	.LVL28:
  207:../../application/source/fobFirmware.c ****       uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
  317              		.loc 1 207 7 is_stmt 1 view .LVU77
-ARM GAS  /tmp/ccVaGKXX.s 			page 11
+ARM GAS  /tmp/ccgRjVac.s 			page 11
 
 
  318 0094 01AB     		add	r3, sp, #4
@@ -658,7 +658,7 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
  361 00cc 0120     		movs	r0, #1
  362 00ce FFF7FEFF 		bl	uart_write
  363              	.LVL37:
-ARM GAS  /tmp/ccVaGKXX.s 			page 12
+ARM GAS  /tmp/ccgRjVac.s 			page 12
 
 
  217:../../application/source/fobFirmware.c ****     }
@@ -718,7 +718,7 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
  405              		.loc 1 232 59 view .LVU102
  406 00fc 83F82220 		strb	r2, [r3, #34]
  234:../../application/source/fobFirmware.c ****     fob_state_ram->feature_info.num_active++;
-ARM GAS  /tmp/ccVaGKXX.s 			page 13
+ARM GAS  /tmp/ccgRjVac.s 			page 13
 
 
  407              		.loc 1 234 5 is_stmt 1 view .LVU103
@@ -778,7 +778,7 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
  243:../../application/source/fobFirmware.c ****  *
  244:../../application/source/fobFirmware.c ****  * @param fob_state_ram pointer to the current fob state in ram
  245:../../application/source/fobFirmware.c ****  */
-ARM GAS  /tmp/ccVaGKXX.s 			page 14
+ARM GAS  /tmp/ccgRjVac.s 			page 14
 
 
  246:../../application/source/fobFirmware.c **** void unlockCar(FLASH_DATA *fob_state_ram)
@@ -838,7 +838,7 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
  256:../../application/source/fobFirmware.c ****   }
  257:../../application/source/fobFirmware.c **** }
  498              		.loc 1 257 1 view .LVU126
-ARM GAS  /tmp/ccVaGKXX.s 			page 15
+ARM GAS  /tmp/ccgRjVac.s 			page 15
 
 
  499 0020 03B0     		add	sp, sp, #12
@@ -898,7 +898,7 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
  542 000c 8DF80030 		strb	r3, [sp]
  270:../../application/source/fobFirmware.c ****     message.message_len = sizeof(FEATURE_DATA);
  543              		.loc 1 270 5 is_stmt 1 view .LVU135
-ARM GAS  /tmp/ccVaGKXX.s 			page 16
+ARM GAS  /tmp/ccgRjVac.s 			page 16
 
 
  544              		.loc 1 270 25 is_stmt 0 view .LVU136
@@ -958,7 +958,7 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
  586              		.cfi_def_cfa_offset 4
  587              		.cfi_offset 14, -4
  588 0002 C3B0     		sub	sp, sp, #268
-ARM GAS  /tmp/ccVaGKXX.s 			page 17
+ARM GAS  /tmp/ccgRjVac.s 			page 17
 
 
  589              	.LCFI13:
@@ -1007,20 +1007,21 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
  622      353600
  623 001b 00       		.align	2
  624              	.LC11:
- 625 001c 39383700 		.ascii	"987\000"
- 626              		.align	2
+ 625 001c 31323334 		.ascii	"1234\000"
+ 625      00
+ 626 0021 000000   		.align	2
  627              	.LC12:
- 628 0020 656E6162 		.ascii	"enable\000"
+ 628 0024 656E6162 		.ascii	"enable\000"
  628      6C6500
- 629 0027 00       		.align	2
+ 629 002b 00       		.align	2
  630              	.LC13:
- 631 0028 70616972 		.ascii	"pair\000"
+ 631 002c 70616972 		.ascii	"pair\000"
  631      00
  632              		.section	.text.main,"ax",%progbits
+ARM GAS  /tmp/ccgRjVac.s 			page 18
+
+
  633              		.align	1
-ARM GAS  /tmp/ccVaGKXX.s 			page 18
-
-
  634              		.global	main
  635              		.syntax unified
  636              		.thumb
@@ -1052,7 +1053,7 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
  659              		.loc 1 56 3 view .LVU155
   59:../../application/source/fobFirmware.c ****   readVar((uint8_t*)(&fob_state_ram), "fob_state");
  660              		.loc 1 59 3 view .LVU156
- 661 0008 3B49     		ldr	r1, .L57
+ 661 0008 3D49     		ldr	r1, .L57
  662 000a 04A8     		add	r0, sp, #16
  663 000c FFF7FEFF 		bl	readVar
  664              	.LVL60:
@@ -1074,13 +1075,13 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
   86:../../application/source/fobFirmware.c ****   if (fob_state_ram.feature_info.num_active == 0xFF)
  675              		.loc 1 86 6 view .LVU162
  676 001c FF2B     		cmp	r3, #255
- 677 001e 35D0     		beq	.L53
+ 677 001e 3AD0     		beq	.L53
  678              	.L44:
   53:../../application/source/fobFirmware.c **** {
+ARM GAS  /tmp/ccgRjVac.s 			page 19
+
+
  679              		.loc 1 53 1 view .LVU163
-ARM GAS  /tmp/ccVaGKXX.s 			page 19
-
-
  680 0020 0024     		movs	r4, #0
  681              	.L45:
  682              	.LVL61:
@@ -1096,7 +1097,7 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
  101:../../application/source/fobFirmware.c ****     if (uart_avail(HOST_UART))
  689              		.loc 1 101 8 view .LVU167
  690 0028 0028     		cmp	r0, #0
- 691 002a 36D1     		bne	.L54
+ 691 002a 3BD1     		bne	.L54
  692              	.LVL63:
  693              	.L46:
  127:../../application/source/fobFirmware.c ****     if(buttonPressed())
@@ -1134,19 +1135,19 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
  718              	.L52:
   66:../../application/source/fobFirmware.c ****     strcpy((char *)(fob_state_ram.pair_info.password), PASSWORD);
  719              		.loc 1 66 5 view .LVU176
- 720 004a 2C4B     		ldr	r3, .L57+4
+ 720 004a 2E4B     		ldr	r3, .L57+4
  721 004c 1868     		ldr	r0, [r3]
  722 004e CDF81900 		str	r0, [sp, #25]	@ unaligned
+ARM GAS  /tmp/ccgRjVac.s 			page 20
+
+
  723 0052 9A88     		ldrh	r2, [r3, #4]	@ unaligned
-ARM GAS  /tmp/ccVaGKXX.s 			page 20
-
-
  724 0054 9B79     		ldrb	r3, [r3, #6]	@ zero_extendqisi2
  725 0056 ADF81D20 		strh	r2, [sp, #29]	@ unaligned
  726 005a 8DF81F30 		strb	r3, [sp, #31]
   67:../../application/source/fobFirmware.c ****     strcpy((char *)(fob_state_ram.pair_info.pin), PAIR_PIN);
  727              		.loc 1 67 5 view .LVU177
- 728 005e 284B     		ldr	r3, .L57+8
+ 728 005e 2A4B     		ldr	r3, .L57+8
  729 0060 1868     		ldr	r0, [r3]
  730 0062 CDF82100 		str	r0, [sp, #33]	@ unaligned
  731 0066 9A88     		ldrh	r2, [r3, #4]	@ unaligned
@@ -1155,202 +1156,205 @@ ARM GAS  /tmp/ccVaGKXX.s 			page 1
  734 006e 8DF82730 		strb	r3, [sp, #39]
   68:../../application/source/fobFirmware.c ****     strcpy((char *)(fob_state_ram.pair_info.car_id), CAR_ID);
  735              		.loc 1 68 5 view .LVU178
- 736 0072 244B     		ldr	r3, .L57+12
+ 736 0072 264B     		ldr	r3, .L57+12
  737 0074 1868     		ldr	r0, [r3]
  738 0076 CDF81100 		str	r0, [sp, #17]	@ unaligned
+ 739 007a 1B79     		ldrb	r3, [r3, #4]	@ zero_extendqisi2
+ 740 007c 8DF81530 		strb	r3, [sp, #21]
   69:../../application/source/fobFirmware.c ****     strcpy((char *)(fob_state_ram.feature_info.car_id), CAR_ID);
- 739              		.loc 1 69 5 view .LVU179
- 740 007a CDF82900 		str	r0, [sp, #41]	@ unaligned
+ 741              		.loc 1 69 5 view .LVU179
+ 742 0080 CDF82900 		str	r0, [sp, #41]	@ unaligned
+ 743 0084 8DF82D30 		strb	r3, [sp, #45]
   70:../../application/source/fobFirmware.c ****     fob_state_ram.paired = FLASH_PAIRED;
- 741              		.loc 1 70 5 view .LVU180
+ 744              		.loc 1 70 5 view .LVU180
   70:../../application/source/fobFirmware.c ****     fob_state_ram.paired = FLASH_PAIRED;
- 742              		.loc 1 70 26 is_stmt 0 view .LVU181
- 743 007e 0023     		movs	r3, #0
- 744 0080 8DF81030 		strb	r3, [sp, #16]
+ 745              		.loc 1 70 26 is_stmt 0 view .LVU181
+ 746 0088 0023     		movs	r3, #0
+ 747 008a 8DF81030 		strb	r3, [sp, #16]
   72:../../application/source/fobFirmware.c ****     saveFobState(&fob_state_ram);
- 745              		.loc 1 72 5 is_stmt 1 view .LVU182
- 746 0084 04A8     		add	r0, sp, #16
- 747 0086 FFF7FEFF 		bl	saveFobState
- 748              	.LVL69:
- 749 008a C5E7     		b	.L43
- 750              	.L53:
+ 748              		.loc 1 72 5 is_stmt 1 view .LVU182
+ 749 008e 04A8     		add	r0, sp, #16
+ 750 0090 FFF7FEFF 		bl	saveFobState
+ 751              	.LVL69:
+ 752 0094 C0E7     		b	.L43
+ 753              	.L53:
   88:../../application/source/fobFirmware.c ****     fob_state_ram.feature_info.num_active = 0;
- 751              		.loc 1 88 5 view .LVU183
+ 754              		.loc 1 88 5 view .LVU183
   88:../../application/source/fobFirmware.c ****     fob_state_ram.feature_info.num_active = 0;
- 752              		.loc 1 88 43 is_stmt 0 view .LVU184
- 753 008c 0023     		movs	r3, #0
- 754 008e 8DF83130 		strb	r3, [sp, #49]
+ 755              		.loc 1 88 43 is_stmt 0 view .LVU184
+ 756 0096 0023     		movs	r3, #0
+ 757 0098 8DF83130 		strb	r3, [sp, #49]
   89:../../application/source/fobFirmware.c ****     saveFobState(&fob_state_ram);
- 755              		.loc 1 89 5 is_stmt 1 view .LVU185
- 756 0092 04A8     		add	r0, sp, #16
- 757 0094 FFF7FEFF 		bl	saveFobState
- 758              	.LVL70:
- 759 0098 C2E7     		b	.L44
- 760              	.LVL71:
- 761              	.L54:
- 762              	.LBB8:
+ 758              		.loc 1 89 5 is_stmt 1 view .LVU185
+ 759 009c 04A8     		add	r0, sp, #16
+ 760 009e FFF7FEFF 		bl	saveFobState
+ 761              	.LVL70:
+ 762 00a2 BDE7     		b	.L44
+ 763              	.LVL71:
+ 764              	.L54:
+ 765              	.LBB8:
  103:../../application/source/fobFirmware.c ****       uint8_t uart_char = (uint8_t)uart_readb(HOST_UART);
- 763              		.loc 1 103 7 view .LVU186
+ 766              		.loc 1 103 7 view .LVU186
  103:../../application/source/fobFirmware.c ****       uint8_t uart_char = (uint8_t)uart_readb(HOST_UART);
- 764              		.loc 1 103 36 is_stmt 0 view .LVU187
- 765 009a 0020     		movs	r0, #0
- 766 009c FFF7FEFF 		bl	uart_readb
- 767              	.LVL72:
- 103:../../application/source/fobFirmware.c ****       uint8_t uart_char = (uint8_t)uart_readb(HOST_UART);
- 768              		.loc 1 103 15 view .LVU188
-ARM GAS  /tmp/ccVaGKXX.s 			page 21
+ 767              		.loc 1 103 36 is_stmt 0 view .LVU187
+ 768 00a4 0020     		movs	r0, #0
+ARM GAS  /tmp/ccgRjVac.s 			page 21
 
 
- 769 00a0 C0B2     		uxtb	r0, r0
- 770              	.LVL73:
+ 769 00a6 FFF7FEFF 		bl	uart_readb
+ 770              	.LVL72:
+ 103:../../application/source/fobFirmware.c ****       uint8_t uart_char = (uint8_t)uart_readb(HOST_UART);
+ 771              		.loc 1 103 15 view .LVU188
+ 772 00aa C0B2     		uxtb	r0, r0
+ 773              	.LVL73:
  105:../../application/source/fobFirmware.c ****       if ((uart_char != '\r') && (uart_char != '\n') && (uart_char != '\0') &&
- 771              		.loc 1 105 7 is_stmt 1 view .LVU189
+ 774              		.loc 1 105 7 is_stmt 1 view .LVU189
  105:../../application/source/fobFirmware.c ****       if ((uart_char != '\r') && (uart_char != '\n') && (uart_char != '\0') &&
- 772              		.loc 1 105 10 is_stmt 0 view .LVU190
- 773 00a2 0D28     		cmp	r0, #13
- 774 00a4 0AD0     		beq	.L47
+ 775              		.loc 1 105 10 is_stmt 0 view .LVU190
+ 776 00ac 0D28     		cmp	r0, #13
+ 777 00ae 0AD0     		beq	.L47
  105:../../application/source/fobFirmware.c ****       if ((uart_char != '\r') && (uart_char != '\n') && (uart_char != '\0') &&
- 775              		.loc 1 105 31 discriminator 1 view .LVU191
- 776 00a6 0A28     		cmp	r0, #10
- 777 00a8 08D0     		beq	.L47
+ 778              		.loc 1 105 31 discriminator 1 view .LVU191
+ 779 00b0 0A28     		cmp	r0, #10
+ 780 00b2 08D0     		beq	.L47
  105:../../application/source/fobFirmware.c ****       if ((uart_char != '\r') && (uart_char != '\n') && (uart_char != '\0') &&
- 778              		.loc 1 105 54 discriminator 2 view .LVU192
- 779 00aa 38B1     		cbz	r0, .L47
+ 781              		.loc 1 105 54 discriminator 2 view .LVU192
+ 782 00b4 38B1     		cbz	r0, .L47
  108:../../application/source/fobFirmware.c ****         uart_buffer[uart_buffer_index] = uart_char;
- 780              		.loc 1 108 9 is_stmt 1 view .LVU193
+ 783              		.loc 1 108 9 is_stmt 1 view .LVU193
  108:../../application/source/fobFirmware.c ****         uart_buffer[uart_buffer_index] = uart_char;
- 781              		.loc 1 108 40 is_stmt 0 view .LVU194
- 782 00ac 04F13803 		add	r3, r4, #56
- 783 00b0 6B44     		add	r3, sp, r3
- 784 00b2 03F8340C 		strb	r0, [r3, #-52]
+ 784              		.loc 1 108 40 is_stmt 0 view .LVU194
+ 785 00b6 04F13803 		add	r3, r4, #56
+ 786 00ba 6B44     		add	r3, sp, r3
+ 787 00bc 03F8340C 		strb	r0, [r3, #-52]
  109:../../application/source/fobFirmware.c ****         uart_buffer_index++;
- 785              		.loc 1 109 9 is_stmt 1 view .LVU195
+ 788              		.loc 1 109 9 is_stmt 1 view .LVU195
  109:../../application/source/fobFirmware.c ****         uart_buffer_index++;
- 786              		.loc 1 109 26 is_stmt 0 view .LVU196
- 787 00b6 0134     		adds	r4, r4, #1
- 788              	.LVL74:
+ 789              		.loc 1 109 26 is_stmt 0 view .LVU196
+ 790 00c0 0134     		adds	r4, r4, #1
+ 791              	.LVL74:
  109:../../application/source/fobFirmware.c ****         uart_buffer_index++;
- 789              		.loc 1 109 26 view .LVU197
- 790 00b8 E4B2     		uxtb	r4, r4
- 791              	.LVL75:
+ 792              		.loc 1 109 26 view .LVU197
+ 793 00c2 E4B2     		uxtb	r4, r4
+ 794              	.LVL75:
  109:../../application/source/fobFirmware.c ****         uart_buffer_index++;
- 792              		.loc 1 109 26 view .LVU198
- 793 00ba B7E7     		b	.L46
- 794              	.L47:
+ 795              		.loc 1 109 26 view .LVU198
+ 796 00c4 B2E7     		b	.L46
+ 797              	.L47:
  113:../../application/source/fobFirmware.c ****         uart_buffer[uart_buffer_index] = 0x00;
- 795              		.loc 1 113 9 is_stmt 1 view .LVU199
+ 798              		.loc 1 113 9 is_stmt 1 view .LVU199
  113:../../application/source/fobFirmware.c ****         uart_buffer[uart_buffer_index] = 0x00;
- 796              		.loc 1 113 40 is_stmt 0 view .LVU200
- 797 00bc 04F13803 		add	r3, r4, #56
- 798 00c0 0DEB0304 		add	r4, sp, r3
- 799              	.LVL76:
+ 799              		.loc 1 113 40 is_stmt 0 view .LVU200
+ 800 00c6 04F13803 		add	r3, r4, #56
+ 801 00ca 0DEB0304 		add	r4, sp, r3
+ 802              	.LVL76:
  113:../../application/source/fobFirmware.c ****         uart_buffer[uart_buffer_index] = 0x00;
- 800              		.loc 1 113 40 view .LVU201
- 801 00c4 0023     		movs	r3, #0
- 802 00c6 04F8343C 		strb	r3, [r4, #-52]
+ 803              		.loc 1 113 40 view .LVU201
+ 804 00ce 0023     		movs	r3, #0
+ 805 00d0 04F8343C 		strb	r3, [r4, #-52]
  114:../../application/source/fobFirmware.c ****         uart_buffer_index = 0;
- 803              		.loc 1 114 9 is_stmt 1 view .LVU202
- 804              	.LVL77:
+ 806              		.loc 1 114 9 is_stmt 1 view .LVU202
+ 807              	.LVL77:
  116:../../application/source/fobFirmware.c ****         if (!(strcmp((char *)uart_buffer, "enable")))
- 805              		.loc 1 116 9 view .LVU203
+ 808              		.loc 1 116 9 view .LVU203
  116:../../application/source/fobFirmware.c ****         if (!(strcmp((char *)uart_buffer, "enable")))
- 806              		.loc 1 116 15 is_stmt 0 view .LVU204
- 807 00ca 0F49     		ldr	r1, .L57+16
- 808 00cc 01A8     		add	r0, sp, #4
- 809              	.LVL78:
-ARM GAS  /tmp/ccVaGKXX.s 			page 22
+ARM GAS  /tmp/ccgRjVac.s 			page 22
 
 
+ 809              		.loc 1 116 15 is_stmt 0 view .LVU204
+ 810 00d4 0E49     		ldr	r1, .L57+16
+ 811 00d6 01A8     		add	r0, sp, #4
+ 812              	.LVL78:
  116:../../application/source/fobFirmware.c ****         if (!(strcmp((char *)uart_buffer, "enable")))
- 810              		.loc 1 116 15 view .LVU205
- 811 00ce FFF7FEFF 		bl	strcmp
- 812              	.LVL79:
+ 813              		.loc 1 116 15 view .LVU205
+ 814 00d8 FFF7FEFF 		bl	strcmp
+ 815              	.LVL79:
  116:../../application/source/fobFirmware.c ****         if (!(strcmp((char *)uart_buffer, "enable")))
- 813              		.loc 1 116 12 view .LVU206
- 814 00d2 30B1     		cbz	r0, .L55
+ 816              		.loc 1 116 12 view .LVU206
+ 817 00dc 30B1     		cbz	r0, .L55
  120:../../application/source/fobFirmware.c ****         else if (!(strcmp((char *)uart_buffer, "pair")))
- 815              		.loc 1 120 14 is_stmt 1 view .LVU207
+ 818              		.loc 1 120 14 is_stmt 1 view .LVU207
  120:../../application/source/fobFirmware.c ****         else if (!(strcmp((char *)uart_buffer, "pair")))
- 816              		.loc 1 120 20 is_stmt 0 view .LVU208
- 817 00d4 0D49     		ldr	r1, .L57+20
- 818 00d6 01A8     		add	r0, sp, #4
- 819 00d8 FFF7FEFF 		bl	strcmp
- 820              	.LVL80:
+ 819              		.loc 1 120 20 is_stmt 0 view .LVU208
+ 820 00de 0D49     		ldr	r1, .L57+20
+ 821 00e0 01A8     		add	r0, sp, #4
+ 822 00e2 FFF7FEFF 		bl	strcmp
+ 823              	.LVL80:
  120:../../application/source/fobFirmware.c ****         else if (!(strcmp((char *)uart_buffer, "pair")))
- 821              		.loc 1 120 17 view .LVU209
- 822 00dc 30B1     		cbz	r0, .L56
+ 824              		.loc 1 120 17 view .LVU209
+ 825 00e6 30B1     		cbz	r0, .L56
  114:../../application/source/fobFirmware.c ****         uart_buffer_index = 0;
- 823              		.loc 1 114 27 view .LVU210
- 824 00de 0024     		movs	r4, #0
- 825 00e0 A4E7     		b	.L46
- 826              	.L55:
+ 826              		.loc 1 114 27 view .LVU210
+ 827 00e8 0024     		movs	r4, #0
+ 828 00ea 9FE7     		b	.L46
+ 829              	.L55:
  118:../../application/source/fobFirmware.c ****           enableFeature(&fob_state_ram);
- 827              		.loc 1 118 11 is_stmt 1 view .LVU211
- 828 00e2 04A8     		add	r0, sp, #16
- 829 00e4 FFF7FEFF 		bl	enableFeature
- 830              	.LVL81:
+ 830              		.loc 1 118 11 is_stmt 1 view .LVU211
+ 831 00ec 04A8     		add	r0, sp, #16
+ 832 00ee FFF7FEFF 		bl	enableFeature
+ 833              	.LVL81:
  114:../../application/source/fobFirmware.c ****         uart_buffer_index = 0;
- 831              		.loc 1 114 27 is_stmt 0 view .LVU212
- 832 00e8 0024     		movs	r4, #0
- 833 00ea 9FE7     		b	.L46
- 834              	.L56:
+ 834              		.loc 1 114 27 is_stmt 0 view .LVU212
+ 835 00f2 0024     		movs	r4, #0
+ 836 00f4 9AE7     		b	.L46
+ 837              	.L56:
  122:../../application/source/fobFirmware.c ****           pairFob(&fob_state_ram);
- 835              		.loc 1 122 11 is_stmt 1 view .LVU213
- 836 00ec 04A8     		add	r0, sp, #16
- 837 00ee FFF7FEFF 		bl	pairFob
- 838              	.LVL82:
+ 838              		.loc 1 122 11 is_stmt 1 view .LVU213
+ 839 00f6 04A8     		add	r0, sp, #16
+ 840 00f8 FFF7FEFF 		bl	pairFob
+ 841              	.LVL82:
  114:../../application/source/fobFirmware.c ****         uart_buffer_index = 0;
- 839              		.loc 1 114 27 is_stmt 0 view .LVU214
- 840 00f2 0024     		movs	r4, #0
- 841 00f4 9AE7     		b	.L46
- 842              	.L58:
- 843 00f6 00BF     		.align	2
- 844              	.L57:
- 845 00f8 00000000 		.word	.LC8
- 846 00fc 0C000000 		.word	.LC9
- 847 0100 14000000 		.word	.LC10
- 848 0104 1C000000 		.word	.LC11
- 849 0108 20000000 		.word	.LC12
- 850 010c 28000000 		.word	.LC13
- 851              	.LBE8:
- 852              		.cfi_endproc
- 853              	.LFE3:
- 855              		.text
- 856              	.Letext0:
- 857              		.file 2 "/usr/lib/gcc/arm-none-eabi/10.3.1/include/stdint.h"
-ARM GAS  /tmp/ccVaGKXX.s 			page 23
+ 842              		.loc 1 114 27 is_stmt 0 view .LVU214
+ 843 00fc 0024     		movs	r4, #0
+ 844 00fe 95E7     		b	.L46
+ 845              	.L58:
+ 846              		.align	2
+ 847              	.L57:
+ 848 0100 00000000 		.word	.LC8
+ 849 0104 0C000000 		.word	.LC9
+ 850 0108 14000000 		.word	.LC10
+ 851 010c 1C000000 		.word	.LC11
+ 852 0110 24000000 		.word	.LC12
+ 853 0114 2C000000 		.word	.LC13
+ 854              	.LBE8:
+ 855              		.cfi_endproc
+ARM GAS  /tmp/ccgRjVac.s 			page 23
 
 
- 858              		.file 3 "../../application/include/messages.h"
- 859              		.file 4 "../../application/include/dataFormats.h"
- 860              		.file 5 "/usr/include/newlib/string.h"
- 861              		.file 6 "../include/uart.h"
- 862              		.file 7 "/usr/include/newlib/stdio.h"
- 863              		.file 8 "../include/platform.h"
- 864              		.file 9 "<built-in>"
-ARM GAS  /tmp/ccVaGKXX.s 			page 24
+ 856              	.LFE3:
+ 858              		.text
+ 859              	.Letext0:
+ 860              		.file 2 "/usr/lib/gcc/arm-none-eabi/10.3.1/include/stdint.h"
+ 861              		.file 3 "../../application/include/messages.h"
+ 862              		.file 4 "../../application/include/dataFormats.h"
+ 863              		.file 5 "/usr/include/newlib/string.h"
+ 864              		.file 6 "../include/uart.h"
+ 865              		.file 7 "/usr/include/newlib/stdio.h"
+ 866              		.file 8 "../include/platform.h"
+ 867              		.file 9 "<built-in>"
+ARM GAS  /tmp/ccgRjVac.s 			page 24
 
 
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 fobFirmware.c
-     /tmp/ccVaGKXX.s:18     .rodata.pairFob.str1.4:0000000000000000 $d
-     /tmp/ccVaGKXX.s:25     .text.pairFob:0000000000000000 $t
-     /tmp/ccVaGKXX.s:33     .text.pairFob:0000000000000000 pairFob
-     /tmp/ccVaGKXX.s:157    .text.pairFob:0000000000000074 $d
-     /tmp/ccVaGKXX.s:163    .rodata.enableFeature.str1.4:0000000000000000 $d
-     /tmp/ccVaGKXX.s:182    .text.enableFeature:0000000000000000 $t
-     /tmp/ccVaGKXX.s:189    .text.enableFeature:0000000000000000 enableFeature
-     /tmp/ccVaGKXX.s:435    .text.enableFeature:000000000000011c $d
-     /tmp/ccVaGKXX.s:445    .text.unlockCar:0000000000000000 $t
-     /tmp/ccVaGKXX.s:452    .text.unlockCar:0000000000000000 unlockCar
-     /tmp/ccVaGKXX.s:508    .text.startCar:0000000000000000 $t
-     /tmp/ccVaGKXX.s:515    .text.startCar:0000000000000000 startCar
-     /tmp/ccVaGKXX.s:571    .text.receiveAck:0000000000000000 $t
-     /tmp/ccVaGKXX.s:578    .text.receiveAck:0000000000000000 receiveAck
-     /tmp/ccVaGKXX.s:614    .rodata.main.str1.4:0000000000000000 $d
-     /tmp/ccVaGKXX.s:633    .text.main:0000000000000000 $t
-     /tmp/ccVaGKXX.s:640    .text.main:0000000000000000 main
-     /tmp/ccVaGKXX.s:845    .text.main:00000000000000f8 $d
+     /tmp/ccgRjVac.s:18     .rodata.pairFob.str1.4:0000000000000000 $d
+     /tmp/ccgRjVac.s:25     .text.pairFob:0000000000000000 $t
+     /tmp/ccgRjVac.s:33     .text.pairFob:0000000000000000 pairFob
+     /tmp/ccgRjVac.s:157    .text.pairFob:0000000000000074 $d
+     /tmp/ccgRjVac.s:163    .rodata.enableFeature.str1.4:0000000000000000 $d
+     /tmp/ccgRjVac.s:182    .text.enableFeature:0000000000000000 $t
+     /tmp/ccgRjVac.s:189    .text.enableFeature:0000000000000000 enableFeature
+     /tmp/ccgRjVac.s:435    .text.enableFeature:000000000000011c $d
+     /tmp/ccgRjVac.s:445    .text.unlockCar:0000000000000000 $t
+     /tmp/ccgRjVac.s:452    .text.unlockCar:0000000000000000 unlockCar
+     /tmp/ccgRjVac.s:508    .text.startCar:0000000000000000 $t
+     /tmp/ccgRjVac.s:515    .text.startCar:0000000000000000 startCar
+     /tmp/ccgRjVac.s:571    .text.receiveAck:0000000000000000 $t
+     /tmp/ccgRjVac.s:578    .text.receiveAck:0000000000000000 receiveAck
+     /tmp/ccgRjVac.s:614    .rodata.main.str1.4:0000000000000000 $d
+     /tmp/ccgRjVac.s:633    .text.main:0000000000000000 $t
+     /tmp/ccgRjVac.s:640    .text.main:0000000000000000 main
+     /tmp/ccgRjVac.s:848    .text.main:0000000000000100 $d
 
 UNDEFINED SYMBOLS
 uart_write
