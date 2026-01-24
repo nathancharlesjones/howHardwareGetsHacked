@@ -11,11 +11,11 @@ ld = arm-none-eabi-ld
 objcopy = arm-none-eabi-objcopy
 
 # MCU Configuration
-mcu = -mcpu=cortex-m4 -mthumb
+mcu = -mthumb -mcpu=cortex-m4
 part = TM4C123GH6PM
 
 # Compiler flags
-cflags = $mcu -ffunction-sections -fdata-sections -std=c99 -Wall -pedantic -DPART_$part -DTARGET_IS_TM4C123_RB1 -c -Os -g
+cflags = $mcu -ffunction-sections -fdata-sections -MD -std=c99 -Wall -pedantic -DPART_$part -c -g -D DEBUG -O0 -DTARGET_IS_TM4C123_RB1
 
 # Include paths
 includes = -I../include -I../../application/include -I$builddir -Ilibraries/tivaware
@@ -27,15 +27,23 @@ entry_point = Firmware_Startup
 
 # Build rules
 rule cc
-  command = $cc $cflags $includes -MMD -MF $out.d -c $in -o $out
+  # command = $cc $cflags $includes -MMD -MF $out.d -c $in -o $out
+  command = $cc $cflags $includes -Os -Dgcc -o $out $in
   description = CC $in
   depfile = $out.d
-  deps = gcc
+
+# Define full library paths
+libdir = /usr/lib/gcc/arm-none-eabi/10.3.1/thumb/v7e-m/nofp
+arm_libdir = /usr/lib/arm-none-eabi/lib/thumb/v7e-m/nofp
 
 rule ld
-  #command = $cc -Wl,--entry=$entry_point -Wl,$ldflags -T $linker_script $in -lm -lc -lgcc -o $out
-  command = $cc -Wl,$ldflags -T $linker_script $includes $in -lm -lc -lgcc -o $out
+  command = $ld -T $linker_script --entry $entry_point --gc-sections -o $out $in $arm_libdir/libm.a $arm_libdir/libc.a $libdir/libgcc.a
   description = LD $out
+
+#rule ld
+#  command = $cc -T $linker_script -Wl,--entry=$entry_point -Wl,$ldflags $in -lm -lc -lgcc -lnosys -o $out
+#  command = $cc $mcu -Wl,$ldflags -T $linker_script $includes $in -lm -lc -lgcc -o $out
+#  description = LD $out
 
 rule objcopy
   command = $objcopy -O binary $in $out
@@ -55,7 +63,6 @@ build $builddir: mkdir
 # Platform sources
 build $builddir/uart_tm4c.o: cc source/uart_tm4c.c | $builddir/secrets.h
 build $builddir/tm4c.o: cc source/tm4c.c | $builddir/secrets.h
-build $builddir/syscalls.o: cc source/syscalls.c | $builddir/secrets.h
 
 # Application sources  
 build $builddir/messages.o: cc ../../application/source/messages.c | $builddir/secrets.h

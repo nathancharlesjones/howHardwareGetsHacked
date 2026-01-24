@@ -21,7 +21,7 @@ part = TM4C123GH6PM
 cflags = $mcu -ffunction-sections -fdata-sections -std=c99 -Wall -pedantic -DPART_$part -DTARGET_IS_TM4C123_RB1 -c -Os -g
 
 # Include paths
-includes = -I../include -I../application/include -I$builddir -Ilibraries/tivaware
+includes = -I../include -I../../application/include -I$builddir -Ilibraries/tivaware
 
 # Linker flags
 ldflags = --gc-sections
@@ -35,8 +35,12 @@ rule cc
   depfile = $out.d
   deps = gcc
 
+# Define full library paths
+libdir = /usr/lib/gcc/arm-none-eabi/10.3.1/thumb/v7e-m/nofp
+arm_libdir = /usr/lib/arm-none-eabi/lib/thumb/v7e-m/nofp
+
 rule ld
-  command = $ld -T $linker_script --entry $entry_point $ldflags -o $out $in -lm -lc -lgcc
+  command = $ld -T $linker_script --entry $entry_point --gc-sections -o $out $in $arm_libdir/libm.a $arm_libdir/libc.a $libdir/libgcc.a
   description = LD $out
 
 rule objcopy
@@ -57,24 +61,22 @@ build $builddir: mkdir
 # Platform sources
 build $builddir/uart_tm4c.o: cc source/uart_tm4c.c | $builddir/secrets.h
 build $builddir/tm4c.o: cc source/tm4c.c | $builddir/secrets.h
-build $builddir/syscalls.o: cc source/syscalls.c | $builddir/secrets.h
 
 # Application sources  
-build $builddir/messages.o: cc ../application/source/messages.c | $builddir/secrets.h
-build $builddir/fobFirmware.o: cc ../application/source/fobFirmware.c | $builddir/secrets.h
+build $builddir/messages.o: cc ../../application/source/messages.c | $builddir/secrets.h
+build $builddir/fobFirmware.o: cc ../../application/source/fobFirmware.c | $builddir/secrets.h
 
 # Startup code
 build $builddir/startup_gcc.o: cc libraries/tivaware/startup_gcc.c | $builddir/secrets.h
 
 # Link firmware
 build $builddir/firmware.axf: ld $
-  libraries/tivaware/build/libdriver.a $
   $builddir/startup_gcc.o $
   $builddir/tm4c.o $
   $builddir/uart_tm4c.o $
   $builddir/messages.o $
-  $builddir/syscalls.o $
-  $builddir/fobFirmware.o
+  $builddir/fobFirmware.o $
+  libraries/tivaware/build/libdriver.a
 
 # Generate binary
 build $builddir/firmware.bin: objcopy $builddir/firmware.axf

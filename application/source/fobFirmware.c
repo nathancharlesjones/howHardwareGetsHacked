@@ -202,10 +202,6 @@ void enableFeature(FLASH_DATA *fob_state_ram)
     if (strcmp((char *)fob_state_ram->pair_info.car_id,
                (char *)enable_message->car_id))
     {
-      strcpy(msg, "ERROR: Car IDs don't match\n");
-      uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
-      sprintf(msg, "Expected %s, received %s\n", (char *)fob_state_ram->pair_info.car_id, (char *)enable_message->car_id);
-      uart_write(BOARD_UART, (uint8_t*)msg, strlen(msg));
       return;
     }
 

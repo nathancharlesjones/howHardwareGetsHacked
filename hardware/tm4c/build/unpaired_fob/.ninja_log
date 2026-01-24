@@ -1,0 +1,15 @@
+# ninja log v6
+1	51	1769293092202041762	build/unpaired_fob/messages.o	7584937bda480860
+3	59	1769293092204041768	build/unpaired_fob/startup_gcc.o	509eeffa0c8412f9
+1	86	1769293092202041762	build/unpaired_fob/tm4c.o	e604bbc364cee10a
+0	110	1769293092201041759	build/unpaired_fob/uart_tm4c.o	1db1b4285fe7b8ae
+2	110	1769293092203041765	build/unpaired_fob/fobFirmware.o	85cb37c7fd713e5a
+110	117	1769293092311042077	build/unpaired_fob/firmware.axf	9d5b15f16c72adef
+117	119	1769293092318042097	build/unpaired_fob/firmware.bin	ade27b9a5700b841
+2	47	1769293172551273981	build/unpaired_fob/messages.o	7584937bda480860
+3	60	1769293172552273984	build/unpaired_fob/startup_gcc.o	509eeffa0c8412f9
+0	84	1769293172550273978	build/unpaired_fob/uart_tm4c.o	1db1b4285fe7b8ae
+1	101	1769293172550273978	build/unpaired_fob/tm4c.o	e604bbc364cee10a
+2	111	1769293172551273981	build/unpaired_fob/fobFirmware.o	85cb37c7fd713e5a
+111	118	1769293172660274295	build/unpaired_fob/firmware.axf	9d5b15f16c72adef
+118	121	1769293172667274315	build/unpaired_fob/firmware.bin	ade27b9a5700b841

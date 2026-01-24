@@ -1,0 +1,21 @@
+# ninja log v6
+3	40	1769292820151242385	build/paired_fob/startup_gcc.o	afd74c800e8f5b7f
+2	75	1769292820150242382	build/paired_fob/messages.o	1d079e897c1f5fcb
+1	80	1769292820149242379	build/paired_fob/tm4c.o	1fc9cbf5cdeac478
+1	91	1769292820149242379	build/paired_fob/uart_tm4c.o	97097c84402aca10
+2	126	1769292820150242382	build/paired_fob/fobFirmware.o	eae2e90bae8d54ef
+0	79	1769292880904423029	build/paired_fob/fobFirmware.o	eae2e90bae8d54ef
+3	84	1769292895819467167	build/paired_fob/startup_gcc.o	afd74c800e8f5b7f
+1	91	1769292895818467164	build/paired_fob/messages.o	1d079e897c1f5fcb
+1	92	1769292895817467162	build/paired_fob/tm4c.o	1fc9cbf5cdeac478
+0	98	1769292895816467159	build/paired_fob/uart_tm4c.o	97097c84402aca10
+2	125	1769292895818467164	build/paired_fob/fobFirmware.o	eae2e90bae8d54ef
+0	10	1769293018551827564	build/paired_fob/firmware.axf	1d508563003e2a5e
+11	13	1769293018562827596	build/paired_fob/firmware.bin	67c9487698ddec98
+2	74	1769293165234252892	build/paired_fob/startup_gcc.o	afd74c800e8f5b7f
+1	77	1769293165233252889	build/paired_fob/messages.o	1d079e897c1f5fcb
+1	92	1769293165233252889	build/paired_fob/uart_tm4c.o	97097c84402aca10
+1	115	1769293165233252889	build/paired_fob/tm4c.o	1fc9cbf5cdeac478
+2	144	1769293165234252892	build/paired_fob/fobFirmware.o	eae2e90bae8d54ef
+144	150	1769293165376253302	build/paired_fob/firmware.axf	1d508563003e2a5e
+150	152	1769293165382253319	build/paired_fob/firmware.bin	67c9487698ddec98

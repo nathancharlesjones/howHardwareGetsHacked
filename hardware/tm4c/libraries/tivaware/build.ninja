@@ -10,18 +10,19 @@ cc = arm-none-eabi-gcc
 ar = arm-none-eabi-ar
 
 # MCU Configuration
-mcu = -mcpu=cortex-m4 -mthumb
-part = TM4C123GH6PM
+mcu = -mthumb -mcpu=cortex-m4
+part = 
 
 # Compiler flags
-cflags = $mcu -ffunction-sections -fdata-sections -std=c99 -Wall -pedantic -DPART_$part -c -O2
+cflags = $mcu -ffunction-sections -fdata-sections -MD -std=c99 -Wall -pedantic -DPART_$part -c
 
 # Include paths
 includes = -I.
 
 # Build rules
 rule cc
-  command = $cc $cflags $includes -MMD -MF $out.d -o $out $in
+  # command = $cc $cflags $includes -MMD -MF $out.d -o $out $in
+  command = $cc $cflags $includes -Dgcc -o $out $in
   description = CC $in
   depfile = $out.d
   deps = gcc
