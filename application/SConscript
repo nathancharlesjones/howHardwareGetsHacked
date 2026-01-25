@@ -1,0 +1,14 @@
+Import('env')
+
+local_env = env.Clone()
+
+# Application sources (relative to application/)
+sources = [
+    'source/carFirmware.c' if env["role"] == "car" else 'source/fobFirmware.c',
+    'source/messages.c',
+]
+
+# Build objects only (not a program)
+objects = local_env.Object(sources)
+
+Return('objects')

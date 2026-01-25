@@ -1,0 +1,71 @@
+Import('env')
+
+local_env = env.Clone()
+
+local_env["arch_flags"].append('-mfpu=fpv4-sp-d16')
+local_env["arch_flags"].append('-mfloat-abi=hard')
+
+# STM32-specific flags
+local_env.Append(CPPFLAGS=
+    local_env["arch_flags"] + [
+    '-gdwarf-2',
+])
+
+# STM32-specific defines
+local_env.Append(CPPDEFINES=[
+    'USE_HAL_DRIVER',
+    'STM32F411xE'
+])
+
+# STM32-specific include paths
+local_env.Append(CPPPATH=[
+    '#/hardware/stm32/Core/Inc',
+    '#/hardware/stm32/Drivers/STM32F4xx_HAL_Driver/Inc',
+    '#/hardware/stm32/Drivers/STM32F4xx_HAL_Driver/Inc/Legacy',
+    '#/hardware/stm32/Drivers/CMSIS/Device/ST/STM32F4xx/Include',
+    '#/hardware/stm32/Drivers/CMSIS/Include'
+])
+
+# STM32 sources
+sources = [
+    'Core/Src/main.c',
+    'Core/Src/syscalls.c',
+    'Core/Src/sysmem.c',
+    'Core/Src/system_stm32f4xx.c',
+    'Core/Src/stm32f4xx_it.c',
+    'Core/Src/stm32f4xx_hal_msp.c',
+    'startup_stm32f411xe.s'
+]
+
+local_env.Append(LINKFLAGS=
+    local_env["arch_flags"] + [
+    '-T', 'hardware/stm32/STM32F411XX_FLASH.ld',
+    '-Wl,--gc-sections',
+    f'-Wl,-Map={env["build_dir"]}/STM32.map,--cref',
+    '-specs=nano.specs'
+])
+
+local_env.Append(LIBS=[
+    'c',
+    'm',
+    'nosys'
+])
+
+# Build application with our architecture-specific environment
+app_objects = SConscript(
+    '#/application/SConscript',
+    variant_dir='application',  # Relative to current variant_dir
+    duplicate=0,
+    exports={'env': local_env}  # Pass our configured environment
+)
+
+driver_lib = SConscript(
+    f'#/hardware/{env["platform"]}/SConscript_stm32_drivers',
+    variant_dir=f'#/hardware/{env["platform"]}/build/drivers',
+    duplicate=0,
+    exports={'env': local_env}
+)
+
+car = local_env.Program(f'{env["name"]}', app_objects + sources + driver_lib)
+
+Return('car')

@@ -12,7 +12,6 @@
 #
 # @copyright Copyright (c) 2023 The MITRE Corporation
 
-import socket
 import argparse
 import sys
 import serial

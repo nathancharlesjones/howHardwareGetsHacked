@@ -1,0 +1,50 @@
+Import('env')
+
+# Clone the environment so we don't affect other builds
+local_env = env.Clone()
+
+# List all your driver source files
+driver_sources = [
+    'adc.c',
+    'aes.c',
+    'can.c',
+    'comp.c',
+    'cpu.c',
+    'crc.c',
+    'des.c',
+    'eeprom.c',
+    'emac.c',
+    'epi.c',
+    'flash.c',
+    'fpu.c',
+    'gpio.c',
+    'hibernate.c',
+    'i2c.c',
+    'interrupt.c',
+    'lcd.c',
+    'mpu.c',
+    'onewire.c',
+    'pwm.c',
+    'qei.c',
+    'shamd5.c',
+    'ssi.c',
+    'sw_crc.c',
+    'sysctl.c',
+    'sysexc.c',
+    'systick.c',
+    'timer.c',
+    'uart.c',
+    'udma.c',
+    'usb.c',
+    'watchdog.c'
+]
+
+# Convert to full paths (# means project root in SCons)
+sources = [f'driverlib/{src}' for src in driver_sources]
+
+# Build the static library
+# This creates libplatform1_drivers.a
+tm4c_drivers = local_env.StaticLibrary('tm4c_drivers', sources)
+
+# Return it (even though we're not using it yet, good practice)
+Return('tm4c_drivers')

@@ -1,0 +1,85 @@
+Import('env')
+
+local_env = env.Clone()
+local_env.Replace(LINK='arm-none-eabi-ld')
+
+# TM4C-specific flags
+local_env.Append(CPPFLAGS=
+    local_env["arch_flags"] + [
+    '-std=c99',
+    '-pedantic'
+])
+
+# TM4C-specific defines
+local_env.Append(CPPDEFINES=[
+    'PART_TM4C123GH6PM',
+    'TARGET_IS_TM4C123_RB1',
+    'gcc'
+])
+
+# TM4C-specific include paths
+local_env.Append(CPPPATH=[
+    '#/hardware/tm4c/libraries/tivaware'
+])
+
+# TM4C sources
+sources = [
+    'source/tm4c.c',
+    'source/uart_tm4c.c',
+    'libraries/tivaware/startup_gcc.c'
+]
+
+local_env.Append(LINKFLAGS= [
+    '-T', 'hardware/tm4c/libraries/tivaware/firmware.ld',
+    '--entry', 'Firmware_Startup',
+    '--gc-sections',
+    '-Map=TM4C.map'
+
+])
+
+# Build application with our architecture-specific environment
+app_objects = SConscript(
+    '#/application/SConscript',
+    variant_dir='application',  # Relative to current variant_dir
+    duplicate=0,
+    exports={'env': local_env}  # Pass our configured environment
+)
+
+# Find exact library paths
+import subprocess
+import os
+
+libgcc_path = subprocess.check_output(
+    ['arm-none-eabi-gcc'] + env['arch_flags'] + ['-print-file-name=libgcc.a']
+).decode().strip()
+
+libc_path = subprocess.check_output(
+    ['arm-none-eabi-gcc'] + env['arch_flags'] + ['-print-file-name=libc.a']
+).decode().strip()
+
+libm_path = subprocess.check_output(
+    ['arm-none-eabi-gcc'] + env['arch_flags'] + ['-print-file-name=libm.a']
+).decode().strip()
+
+print(f"Using libraries:")
+print(f"  libgcc: {libgcc_path}")
+print(f"  libc:   {libc_path}")
+print(f"  libm:   {libm_path}")
+
+# Explicit library files
+libs = [
+    libm_path,   # Math library
+    libc_path,   # C library  
+    libgcc_path, # GCC runtime
+]
+
+driver_lib = SConscript(
+    f'#/hardware/{env["platform"]}/libraries/tivaware/SConscript_tm4c_drivers',
+    variant_dir=f'#/hardware/{env["platform"]}/build/drivers',
+    duplicate=0,
+    exports={'env': local_env}
+)
+
+car = local_env.Program(f'{env["name"]}', app_objects + sources + driver_lib + libs)
+
+Return('car')
