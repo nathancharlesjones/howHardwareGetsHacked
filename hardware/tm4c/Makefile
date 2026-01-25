@@ -23,15 +23,16 @@ TIVA_ROOT=libraries/tivaware
 #ROLE ?=
 ifeq ($(ROLE),car)
 FIRMWARE_OBJ := carFirmware.o
+BUILD_DIR = build/$(ROLE)_$(CAR_ID)
 else ifeq ($(ROLE),paired_fob)
 FIRMWARE_OBJ := fobFirmware.o
+BUILD_DIR = build/$(ROLE)_$(CAR_ID)
 else ifeq ($(ROLE),unpaired_fob)
 FIRMWARE_OBJ := fobFirmware.o
+BUILD_DIR = build/$(ROLE)
 else
 $(error ROLE not set correctly)
 endif
-
-BUILD_DIR = build/$(ROLE)
 
 # add additional directories to search for source files to VPATH
 #VPATH=${ROOT}/source

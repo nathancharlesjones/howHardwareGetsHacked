@@ -37,16 +37,18 @@ OPT = -Og
 
 #ROLE ?=
 ifeq ($(ROLE),car)
-FIRMWARE_SRC := carFirmware.c
+FIRMWARE_OBJ := carFirmware.o
+BUILD_DIR = build/$(ROLE)_$(CAR_ID)
 else ifeq ($(ROLE),paired_fob)
-FIRMWARE_SRC := fobFirmware.c
+FIRMWARE_OBJ := fobFirmware.o
+BUILD_DIR = build/$(ROLE)_$(CAR_ID)
 else ifeq ($(ROLE),unpaired_fob)
-FIRMWARE_SRC := fobFirmware.c
+FIRMWARE_OBJ := fobFirmware.o
+BUILD_DIR = build/$(ROLE)
 else
 $(error ROLE not set correctly)
 endif
 
-BUILD_DIR = build/$(ROLE)
 include ../../secrets/secrets.mk
 
 # C sources
