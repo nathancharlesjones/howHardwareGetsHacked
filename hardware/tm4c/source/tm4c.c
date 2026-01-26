@@ -14,22 +14,31 @@
 #include "dataFormats.h"
 #include "platform.h"
 
-#define UNLOCK_EEPROM_LOC 0x7C0
+#if defined(ROLE_CAR)
 
-#define FEATURE_END 0x7C0
-#define FEATURE1_LOC (FEATURE_END - FEATURE_SIZE)
-#define FEATURE2_LOC (FEATURE_END - 2*FEATURE_SIZE)
-#define FEATURE3_LOC (FEATURE_END - 3*FEATURE_SIZE)
+#		define UNLOCK_EEPROM_LOC 0x7C0
+#		define FEATURE_END 0x7C0
+#		define FEATURE1_LOC (FEATURE_END - FEATURE_SIZE)
+#		define FEATURE2_LOC (FEATURE_END - 2*FEATURE_SIZE)
+#		define FEATURE3_LOC (FEATURE_END - 3*FEATURE_SIZE)
 
-#define FOB_STATE_PTR 0x3FC00
-#define FLASH_DATA_SIZE         \
-  (sizeof(FLASH_DATA) % 4 == 0) \
-      ? sizeof(FLASH_DATA)      \
-      : sizeof(FLASH_DATA) + (4 - (sizeof(FLASH_DATA) % 4))
+#elif defined(ROLE_FOB)
+
+#		define FOB_STATE_PTR 0x3FC00
+#		define FLASH_DATA_SIZE         \
+  		(sizeof(FLASH_DATA) % 4 == 0) \
+      		? sizeof(FLASH_DATA)      \
+      		: sizeof(FLASH_DATA) + (4 - (sizeof(FLASH_DATA) % 4))
 
 static uint8_t previous_sw_state = GPIO_PIN_4;
 static uint8_t debounce_sw_state = GPIO_PIN_4;
 static uint8_t current_sw_state = GPIO_PIN_4;
+
+#else
+
+#   error "Either ROLE_CAR or ROLE_FOB must be defined at build-time"
+
+#endif
 
 static void initHardware(int argc, char ** argv)
 {

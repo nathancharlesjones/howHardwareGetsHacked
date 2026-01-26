@@ -37,23 +37,27 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #ifndef UNLOCK_FLAG
-#define UNLOCK_FLAG   "default_unlock"
+#   define UNLOCK_FLAG   "default_unlock"
 #endif
+
 #ifndef FEATURE1_FLAG
-#define FEATURE1_FLAG "default_feature1"
+#   define FEATURE1_FLAG "default_feature1"
 #endif
+
 #ifndef FEATURE2_FLAG
-#define FEATURE2_FLAG "default_feature2"
+#   define FEATURE2_FLAG "default_feature2"
 #endif
+
 #ifndef FEATURE3_FLAG
-#define FEATURE3_FLAG "default_feature3"
+#   define FEATURE3_FLAG "default_feature3"
 #endif
 
 #define FLASH_DATA_BYTES         \
-  (sizeof(FLASH_DATA) % 4 == 0) \
-      ? sizeof(FLASH_DATA)      \
-      : sizeof(FLASH_DATA) + (4 - (sizeof(FLASH_DATA) % 4))
+    (sizeof(FLASH_DATA) % 4 == 0) \
+        ? sizeof(FLASH_DATA)      \
+        : sizeof(FLASH_DATA) + (4 - (sizeof(FLASH_DATA) % 4))
 #define FLASH_DATA_WORDS (FLASH_DATA_BYTES / 4)
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -66,12 +70,7 @@ UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-const char unlock_flag[UNLOCK_SIZE]    = UNLOCK_FLAG;
-const char feature1_flag[FEATURE_SIZE] = FEATURE1_FLAG;
-const char feature2_flag[FEATURE_SIZE] = FEATURE2_FLAG;
-const char feature3_flag[FEATURE_SIZE] = FEATURE3_FLAG;
-
-FLASH_DATA flash_data __attribute__((section(".flash_data"))) = {
+static FLASH_DATA flash_data __attribute__((section(".flash_data"))) = {
     .paired = FLASH_UNPAIRED,
     .pair_info = {{0}},
     .feature_info = {
@@ -81,13 +80,11 @@ FLASH_DATA flash_data __attribute__((section(".flash_data"))) = {
     }
 };
 
-extern uint8_t __flash_data_start__;
-
 static UART_HandleTypeDef* const uart_base[2] = { [HOST_UART] = &huart2, [BOARD_UART] = &huart1 };
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
-void SystemClock_Config(void);
+static void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
@@ -126,28 +123,37 @@ void initHardware_fob(int argc, char ** argv)
   initHardware(argc, argv);
 }
 
-void readVar(uint8_t* dest, char * var)
+void loadFlag(uint8_t* dest, flag_t flag)
 {
-  if(!strcmp(var, "unlock")) memcpy(dest, unlock_flag, UNLOCK_SIZE);
-  else if(!strcmp(var, "feature1")) memcpy(dest, feature1_flag, FEATURE_SIZE);
-  else if(!strcmp(var, "feature2")) memcpy(dest, feature2_flag, FEATURE_SIZE);
-  else if(!strcmp(var, "feature3")) memcpy(dest, feature3_flag, FEATURE_SIZE);
-  else if(!strcmp(var, "fob_state")) memcpy(dest, (uint8_t*)(&flash_data), sizeof(FLASH_DATA));
+  static const char* flags[] = {
+    [UNLOCK] = UNLOCK_FLAG,
+    [FEATURE1] = FEATURE1_FLAG,
+    [FEATURE2] = FEATURE2_FLAG,
+    [FEATURE3] = FEATURE3_FLAG
+  };
+  size_t size = (flag == UNLOCK) ? UNLOCK_SIZE : FEATURE_SIZE;
+  memcpy(dest, flags[flag], size);
+}
+
+void loadFobState(FLASH_DATA *dest)
+{
+  memcpy(dest, (uint8_t*)(&flash_data), sizeof(FLASH_DATA));
 }
 
 /* -----------------------------------------------------------
    Flash Sector Helper (F411 Example)
    ----------------------------------------------------------- */
-static uint32_t get_flash_sector(uint32_t addr)
+static uint32_t flash_sector_start(uint32_t sector)
 {
-  if (addr < 0x08004000) return FLASH_SECTOR_0;
-  if (addr < 0x08008000) return FLASH_SECTOR_1;
-  if (addr < 0x0800C000) return FLASH_SECTOR_2;
-  if (addr < 0x08010000) return FLASH_SECTOR_3;
-  if (addr < 0x08020000) return FLASH_SECTOR_4;
-  if (addr < 0x08040000) return FLASH_SECTOR_5;
-  if (addr < 0x08060000) return FLASH_SECTOR_6;
-  return FLASH_SECTOR_7;
+  uint32_t start_addr[] = { [FLASH_SECTOR_0] = 0x08000000,
+                            [FLASH_SECTOR_1] = 0x08004000,
+                            [FLASH_SECTOR_2] = 0x08008000,
+                            [FLASH_SECTOR_3] = 0x0800C000,
+                            [FLASH_SECTOR_4] = 0x08010000,
+                            [FLASH_SECTOR_5] = 0x08020000,
+                            [FLASH_SECTOR_6] = 0x08040000,
+                            [FLASH_SECTOR_7] = 0x08060000, };
+  return start_addr[sector];
 }
 
 /* -----------------------------------------------------------
@@ -155,15 +161,10 @@ static uint32_t get_flash_sector(uint32_t addr)
    ----------------------------------------------------------- */
 bool saveFobState(const FLASH_DATA *src)
 {
-  uint32_t base = (uint32_t)&__flash_data_start__;
-  
-  // Erase the sector that holds .config_flash
-  uint32_t sector = get_flash_sector(base);
-
   FLASH_EraseInitTypeDef erase =
   {
       .TypeErase    = FLASH_TYPEERASE_SECTORS,
-      .Sector       = sector,
+      .Sector       = FLASH_SECTOR_5,
       .NbSectors    = 1,
       .VoltageRange = FLASH_VOLTAGE_RANGE_3,
   };
@@ -183,7 +184,7 @@ bool saveFobState(const FLASH_DATA *src)
 
   // Program new config data
   const uint32_t *words = (const uint32_t *)padded_data;
-  uint32_t addr = base;
+  uint32_t addr = flash_sector_start(FLASH_SECTOR_5);
 
   for (size_t i = 0; i < FLASH_DATA_WORDS; i++)
   {
@@ -197,11 +198,6 @@ bool saveFobState(const FLASH_DATA *src)
   HAL_FLASH_Lock();
 
   return true;
-}
-
-void setLED(led_color_t color)
-{
-  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, color == GREEN);
 }
 
 bool buttonPressed(void)
@@ -224,6 +220,11 @@ bool buttonPressed(void)
   }
 
   return false;
+}
+
+void setLED(led_color_t color)
+{
+  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, color == GREEN);
 }
 
 /**

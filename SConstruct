@@ -60,6 +60,11 @@ if env['feature2_flag']:
 if env['feature3_flag']:
     env.Append(CPPDEFINES=[('FEATURE3_FLAG', f'\\"{env["feature3_flag"]}\\"')])
 
+if env['role'] == 'car':
+    env.Append(CPPDEFINES=[('ROLE_CAR')])
+elif env['role'] in ['paired_fob', 'unpaired_fob']:
+    env.Append(CPPDEFINES=[('ROLE_FOB')])
+
 if env['role'] in ['car', 'paired_fob']:
     env['name'] = f'{env["role"]}_{env["id"]}'
 else:

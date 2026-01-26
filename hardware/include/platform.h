@@ -6,11 +6,13 @@
 #define FLASH_PAIRED 0x00
 #define FLASH_UNPAIRED 0xFF
 
+typedef enum { UNLOCK, FEATURE1, FEATURE2, FEATURE3 } flag_t;
 typedef enum { OFF, RED, GREEN, WHITE } led_color_t;
 
 void initHardware_car(int argc, char ** argv);
 void initHardware_fob(int argc, char ** argv);
-void readVar(uint8_t* dest, char * var);
+void loadFlag(uint8_t* dest, flag_t flag);
+void loadFobState(FLASH_DATA *flash_data);
 bool saveFobState(const FLASH_DATA *flash_data);
 void setLED(led_color_t color);
 bool buttonPressed(void);

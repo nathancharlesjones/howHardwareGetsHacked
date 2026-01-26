@@ -1,0 +1,3 @@
+[submodule "libraries/microui"]
+	path = libraries/microui
+	url = https://github.com/rxi/microui.git

@@ -211,8 +211,6 @@ SECTIONS
      -----------------------------------------------------------
      We'll reserve Sector 5 (128KB) for FLASH_DATA
      =========================================================== */
-  __flash_data_start__ = 0x08020000;  /* Sector 5 base */
-  __flash_data_end__   = 0x08040000;  /* Sector 5 end  */
 
   .flash_data (NOLOAD) :
   {

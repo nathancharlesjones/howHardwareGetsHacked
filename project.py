@@ -15,7 +15,7 @@ from typing import List, Optional
 
 
 # Project configuration
-AVAILABLE_PLATFORMS = ["stm32", "tm4c"]  # Update with your actual platforms
+AVAILABLE_PLATFORMS = ["stm32", "tm4c", "x86"]  # Update with your actual platforms
 AVAILABLE_ROLES = ["car", "paired_fob", "unpaired_fob"]  # Update with your actual roles
 HOST_TOOLS_DIR = Path("host_tools")  # Adjust to your project structure
 #BUILD_DIR = Path(f"hardware/{args.platform}/build")  # Adjust to your build output directory

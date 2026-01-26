@@ -71,7 +71,7 @@ void unlockCar(void) {
   if (!strcmp((char *)(message.buffer), (char *)pass)) {
     uint8_t eeprom_message[UNLOCK_SIZE];
     // Read last 64B of EEPROM
-    readVar(eeprom_message, "unlock");
+    loadFlag(eeprom_message, UNLOCK);
 
     // Write out full flag if applicable
     uart_write(HOST_UART, eeprom_message, UNLOCK_SIZE);
@@ -107,11 +107,7 @@ void startCar(void) {
   // Print out features for all active features
   for (int i = 0; i < feature_info->num_active; i++) {
     uint8_t eeprom_message[64];
-    char* featureNumToStr[] = { "\0", "feature1", "feature2", "feature3" };
-
-    uint8_t featureNum = feature_info->features[i];
-    readVar(eeprom_message, featureNumToStr[featureNum]);
-
+    loadFlag(eeprom_message, feature_info->features[i]);
     uart_write(HOST_UART, eeprom_message, FEATURE_SIZE);
   }
 

@@ -6,7 +6,11 @@
 [X] Make top-level make "ALL" call
 	[X] Eliminate complication? Require all/most args?
 [X] Manually test: unlock (Y), package feature (Y), enable feature (Y), unlock (Y), pair fob (Y), unlock (Y)
-[ ] Separate out car and fob objects
+[ ] Separate out car and fob objects --> Or not? Tests interact with "black-boxed" applications through serial ports?
+[ ] Add x86 port
+	[ ] Fix atlas.inl problem
+	[ ] Add text UI
+	[ ] Wire in to Scons build, run sim
 [ ] Add unit tests
 [ ] Fix strcmp in car firmware
 [X] Should secrets, messages be put in a different folder? --> gen_secrets can go in tools

@@ -56,7 +56,7 @@ int main(int argc, char ** argv)
   FLASH_DATA fob_state_ram;
   //FLASH_DATA fob_state_flash;
   //readVar((uint8_t*)(&fob_state_flash), "fob_state");
-  readVar((uint8_t*)(&fob_state_ram), "fob_state");
+  loadFobState(&fob_state_ram);
 
 // If paired fob, initialize the system information
 #if PAIRED == 1
