@@ -109,9 +109,9 @@ static void initHardware(int argc, char ** argv)
   MX_GPIO_Init();
   
   //setup_board_link();
-  uart_init(BOARD_UART);
+  uart_init(BOARD_UART, argc, argv);
   //uart_init();
-  uart_init(HOST_UART);
+  uart_init(HOST_UART, argc, argv);
 
   setLED(OFF);
 }
@@ -231,7 +231,7 @@ bool buttonPressed(void)
  *
  * UART 0 is used to communicate with the host computer.
  */
-void uart_init(hw_uart_t uart)
+void uart_init(hw_uart_t uart, int argc, char ** argv)
 {
   switch(uart)
   {

@@ -38,10 +38,10 @@ static void initHardware(int argc, char ** argv)
 	EEPROMInit();
 
 	// Initialize UART peripheral
-	uart_init(HOST_UART);
+	uart_init(HOST_UART, argc, argv);
 
 	// Initialize board link UART
-	uart_init(BOARD_UART);
+	uart_init(BOARD_UART, argc, argv);
 }
 
 void initHardware_car(int argc, char ** argv)

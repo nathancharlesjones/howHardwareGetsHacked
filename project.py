@@ -70,7 +70,7 @@ def run_scons(build_configs: List[List[str]], clean: bool = False, dry_run: bool
     """
     for config in build_configs:
         cmd = ["scons"]
-        cmd.extend(["-j", "5"])
+        cmd.append("-j5")
         if clean:
             cmd.append("-c")
         if dry_run:

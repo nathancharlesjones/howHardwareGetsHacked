@@ -34,7 +34,7 @@ static uint32_t const uart_base[2] = { [HOST_UART] = UART0_BASE, [BOARD_UART] = 
  *
  * UART 0 is used to communicate with the host computer.
  */
-void uart_init(hw_uart_t uart) {
+void uart_init(hw_uart_t uart, int argc, char ** argv) {
   switch(uart)
   {
   case HOST_UART:
