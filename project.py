@@ -70,6 +70,7 @@ def run_scons(build_configs: List[List[str]], clean: bool = False, dry_run: bool
     """
     for config in build_configs:
         cmd = ["scons"]
+        cmd.extend(["-j", "5"])
         if clean:
             cmd.append("-c")
         if dry_run:
@@ -246,7 +247,7 @@ def prepare_build_environment(platform: str, role: str, id_val: Optional[str], p
             "--paired"
         ]
     elif role == "unpaired_fob":
-        script = Path("application") / "fob_gen_secret.py"
+        script = Path("tools") / "fob_gen_secret.py"
         cmd = [
             sys.executable,
             str(script),
