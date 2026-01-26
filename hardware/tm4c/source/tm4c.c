@@ -50,6 +50,10 @@ void initHardware_car(int argc, char ** argv)
 
 	// Change LED color for car: red
 	setLED(RED);
+
+	char msg[64];
+	strcpy(msg, "Init complete\n\r");
+	uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
 }
 
 void initHardware_fob(int argc, char ** argv)

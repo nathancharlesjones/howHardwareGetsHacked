@@ -61,7 +61,7 @@ void uart_init(hw_uart_t uart) {
 
     // Configure the UART for 115,200, 8-N-1 operation.
     UARTConfigSetExpClk(
-        HOST_UART, SysCtlClockGet(), 115200,
+        uart_base[HOST_UART], SysCtlClockGet(), 115200,
         (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE));
     break;
   case BOARD_UART:
@@ -75,7 +75,7 @@ void uart_init(hw_uart_t uart) {
 
     // Configure the UART for 115,200, 8-N-1 operation.
     UARTConfigSetExpClk(
-        BOARD_UART, SysCtlClockGet(), 115200,
+        uart_base[BOARD_UART], SysCtlClockGet(), 115200,
         (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE));
 
     while (UARTCharsAvail(BOARD_UART)) {
@@ -112,10 +112,9 @@ int32_t uart_readb(hw_uart_t uart) { return UARTCharGet(uart_base[uart]); }
  */
 uint32_t uart_read(hw_uart_t uart, uint8_t *buf, uint32_t n) {
   uint32_t read;
-  uint32_t base = uart_base[uart];
 
   for (read = 0; read < n; read++) {
-    buf[read] = (uint8_t)uart_readb(base);
+    buf[read] = (uint8_t)uart_readb(uart);
   }
   return read;
 }
@@ -130,10 +129,9 @@ uint32_t uart_read(hw_uart_t uart, uint8_t *buf, uint32_t n) {
 uint32_t uart_readline(hw_uart_t uart, uint8_t *buf) {
   uint32_t read = 0;
   uint8_t c;
-  uint32_t base = uart_base[uart];
 
   do {
-    c = (uint8_t)uart_readb(base);
+    c = (uint8_t)uart_readb(uart);
 
     if ((c != '\r') && (c != '\n') && (c != 0xD)) {
       buf[read] = c;
@@ -165,10 +163,9 @@ void uart_writeb(hw_uart_t uart, uint8_t data) { UARTCharPut(uart_base[uart], da
  */
 uint32_t uart_write(hw_uart_t uart, uint8_t *buf, uint32_t len) {
   uint32_t i;
-  uint32_t base = uart_base[uart];
 
   for (i = 0; i < len; i++) {
-    uart_writeb(base, buf[i]);
+    uart_writeb(uart, buf[i]);
   }
 
   return i;
