@@ -8,6 +8,12 @@ opts.Add('id', 'Device ID (required for car and paired_fob)', '')
 opts.Add('opt', 'Optimization level', '2')
 opts.Add(BoolVariable('debug', 'Debug build', False))
 
+# Optional feature flags
+opts.Add('unlock_flag', 'Custom unlock flag value', '')
+opts.Add('feature1_flag', 'Custom feature 1 flag value', '')
+opts.Add('feature2_flag', 'Custom feature 2 flag value', '')
+opts.Add('feature3_flag', 'Custom feature 3 flag value', '')
+
 env = Environment(variables=opts)
 Help(opts.GenerateHelpText(env))
 
@@ -43,6 +49,16 @@ elif env['platform'] == 'x86':
 env.Append(CPPFLAGS=[f'-O{env["opt"]}', '-Wall'])
 if env['debug']:
     env.Append(CPPFLAGS=['-g', '-DDEBUG'])
+
+# Add feature flag defines if provided
+if env['unlock_flag']:
+    env.Append(CPPDEFINES=[('UNLOCK_FLAG', f'\\"{env["unlock_flag"]}\\"')])
+if env['feature1_flag']:
+    env.Append(CPPDEFINES=[('FEATURE1_FLAG', f'\\"{env["feature1_flag"]}\\"')])
+if env['feature2_flag']:
+    env.Append(CPPDEFINES=[('FEATURE2_FLAG', f'\\"{env["feature2_flag"]}\\"')])
+if env['feature3_flag']:
+    env.Append(CPPDEFINES=[('FEATURE3_FLAG', f'\\"{env["feature3_flag"]}\\"')])
 
 if env['role'] in ['car', 'paired_fob']:
     env['name'] = f'{env["role"]}_{env["id"]}'

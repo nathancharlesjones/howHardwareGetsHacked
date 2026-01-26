@@ -86,7 +86,9 @@ def run_scons(build_configs: List[List[str]], clean: bool = False, dry_run: bool
 
 
 def build_scons_args(platform: str, role: str, id_val: Optional[str] = None, 
-                     pin: Optional[str] = None) -> List[str]:
+                     pin: Optional[str] = None, unlock_flag: Optional[str] = None,
+                     feature1_flag: Optional[str] = None, feature2_flag: Optional[str] = None,
+                     feature3_flag: Optional[str] = None) -> List[str]:
     """
     Build a list of SCons arguments for a single configuration.
     
@@ -95,6 +97,10 @@ def build_scons_args(platform: str, role: str, id_val: Optional[str] = None,
         role: Target role
         id_val: Optional device ID
         pin: Optional device PIN
+        unlock_flag: Optional custom unlock flag value
+        feature1_flag: Optional custom feature 1 flag value
+        feature2_flag: Optional custom feature 2 flag value
+        feature3_flag: Optional custom feature 3 flag value
     
     Returns:
         List of argument strings for SCons
@@ -105,6 +111,16 @@ def build_scons_args(platform: str, role: str, id_val: Optional[str] = None,
         args.append(f"id={id_val}")
     if pin:
         args.append(f"pin={pin}")
+    
+    # Add feature flags if provided
+    if unlock_flag:
+        args.append(f"unlock_flag={unlock_flag}")
+    if feature1_flag:
+        args.append(f"feature1_flag={feature1_flag}")
+    if feature2_flag:
+        args.append(f"feature2_flag={feature2_flag}")
+    if feature3_flag:
+        args.append(f"feature3_flag={feature3_flag}")
     
     return args
 
@@ -127,31 +143,43 @@ def get_build_configs_for_target(args) -> List[List[str]]:
     """
     configs = []
     
+    # Extract feature flags if provided
+    unlock_flag = getattr(args, 'unlock_flag', None)
+    feature1_flag = getattr(args, 'feature1_flag', None)
+    feature2_flag = getattr(args, 'feature2_flag', None)
+    feature3_flag = getattr(args, 'feature3_flag', None)
+    
     # Pattern 1: id + pin (no role/platform) -> all roles for all platforms
     if hasattr(args, 'id') and args.id and hasattr(args, 'pin') and args.pin and not args.role and not args.platform:
         for platform in AVAILABLE_PLATFORMS:
             for role in AVAILABLE_ROLES:
                 if role == "paired_fob":
-                    configs.append(build_scons_args(platform, role, args.id, args.pin))
+                    configs.append(build_scons_args(platform, role, args.id, args.pin,
+                                                   unlock_flag, feature1_flag, feature2_flag, feature3_flag))
                 elif role == "car":
-                    configs.append(build_scons_args(platform, role, args.id))
+                    configs.append(build_scons_args(platform, role, args.id, None,
+                                                   unlock_flag, feature1_flag, feature2_flag, feature3_flag))
                 else:  # unpaired_fob
-                    configs.append(build_scons_args(platform, role))
+                    configs.append(build_scons_args(platform, role, None, None,
+                                                   unlock_flag, feature1_flag, feature2_flag, feature3_flag))
         return configs
     
     # Pattern 2: car + id + platform
     if args.role == "car" and hasattr(args, 'id') and args.id and args.platform:
-        configs.append(build_scons_args(args.platform, "car", args.id))
+        configs.append(build_scons_args(args.platform, "car", args.id, None,
+                                       unlock_flag, feature1_flag, feature2_flag, feature3_flag))
         return configs
     
     # Pattern 3: paired_fob + id + pin + platform
     if args.role == "paired_fob" and hasattr(args, 'id') and args.id and hasattr(args, 'pin') and args.pin and args.platform:
-        configs.append(build_scons_args(args.platform, "paired_fob", args.id, args.pin))
+        configs.append(build_scons_args(args.platform, "paired_fob", args.id, args.pin,
+                                       unlock_flag, feature1_flag, feature2_flag, feature3_flag))
         return configs
     
     # Pattern 4: unpaired_fob + platform
     if args.role == "unpaired_fob" and args.platform:
-        configs.append(build_scons_args(args.platform, "unpaired_fob"))
+        configs.append(build_scons_args(args.platform, "unpaired_fob", None, None,
+                                       unlock_flag, feature1_flag, feature2_flag, feature3_flag))
         return configs
     
     # Pattern 5: No arguments (clean only) -> clean all
@@ -192,13 +220,13 @@ def prepare_build_environment(platform: str, role: str, id_val: Optional[str], p
     build_folder.mkdir(parents=True, exist_ok=True)
     
     # Prepare secret generation arguments
-    secret_file = Path("secret") / "car_secrets.json"
+    secret_file = Path("secrets") / "car_secrets.json"
     secret_file.parent.mkdir(parents=True, exist_ok=True)
     header_file = build_folder / "secrets.h"
     
     # Call appropriate secret generation script
     if role == "car":
-        script = Path("application") / "car_gen_secret.py"
+        script = Path("tools") / "car_gen_secret.py"
         cmd = [
             sys.executable,
             str(script),
@@ -207,7 +235,7 @@ def prepare_build_environment(platform: str, role: str, id_val: Optional[str], p
             "--header-file", str(header_file)
         ]
     elif role == "paired_fob":
-        script = Path("application") / "fob_gen_secret.py"
+        script = Path("tools") / "fob_gen_secret.py"
         cmd = [
             sys.executable,
             str(script),
@@ -765,6 +793,15 @@ def main():
                              help="Device PIN (required for paired_fob)")
     build_parser.add_argument("--tests", action="store_true",
                              help="Build test executables")
+    # Optional feature flags
+    build_parser.add_argument("--unlock-flag", type=str, dest="unlock_flag",
+                             help="Custom unlock flag value")
+    build_parser.add_argument("--feature1-flag", type=str, dest="feature1_flag",
+                             help="Custom feature 1 flag value")
+    build_parser.add_argument("--feature2-flag", type=str, dest="feature2_flag",
+                             help="Custom feature 2 flag value")
+    build_parser.add_argument("--feature3-flag", type=str, dest="feature3_flag",
+                             help="Custom feature 3 flag value")
     build_parser.set_defaults(func=build_command)
     
     # CLEAN (with 'nuke' alias)

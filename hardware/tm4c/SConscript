@@ -33,7 +33,7 @@ local_env.Append(LINKFLAGS= [
     '-T', 'hardware/tm4c/libraries/tivaware/firmware.ld',
     '--entry', 'Firmware_Startup',
     '--gc-sections',
-    '-Map=TM4C.map'
+    f"-Map={env['build_dir']}/TM4C.map"
 
 ])
 
