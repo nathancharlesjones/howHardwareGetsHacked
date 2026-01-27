@@ -1,107 +1,53 @@
-/**
- * @file x86.c
- * @brief x86 simulation platform implementation
- * 
- * Implements platform.h functions for x86 Linux simulation using:
- * - Binary file for persistent storage (mimics Flash/EEPROM)
- * - microui + SDL2 for GUI (LED display, button input)
- * - pthreads for non-blocking GUI updates
- * - Signal handlers for clean shutdown
- * 
- * Compile-time defines expected:
- *   For car: -DCAR_ID=... -DPASSWORD=... -DUNLOCK_FLAG=... 
- *            -DFEATURE1_FLAG=... -DFEATURE2_FLAG=... -DFEATURE3_FLAG=...
- *   For fob: -DCAR_ID=... -DPASSWORD=... -DPAIR_PIN=... -DPAIRED=0 or -DPAIRED=1
- */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <string.h>
-#include <signal.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <libgen.h>
-#include <linux/limits.h>
+#include <stdbool.h>            // For true/false
+#include <pthread.h>            // For pthread_t, pthread_create
+#include <stdio.h>              // For getchar
+#include <linux/limits.h>       // For PATH_MAX
+#include <stdlib.h>             // For exit
+#include <libgen.h>             // For dirname
+#include <unistd.h>             // For getcwd, access
+#include <string.h>             // For strncpy, memcpy
+#include <signal.h>             // For signal, SIGTERM, SIGINT
 
 #include "platform.h"
 #include "uart.h"
-#include "dataFormats.h"
-#include "gui.h"
+#include "uart_x86.h"
 
-/*******************************************************************************
- * Compile-time secrets
- ******************************************************************************/
+// Defines
 #ifndef UNLOCK_FLAG
-#define UNLOCK_FLAG   "default_unlock"
+#   define UNLOCK_FLAG   "default_unlock"
 #endif
+
 #ifndef FEATURE1_FLAG
-#define FEATURE1_FLAG "default_feature1"
+#   define FEATURE1_FLAG "default_feature1"
 #endif
+
 #ifndef FEATURE2_FLAG
-#define FEATURE2_FLAG "default_feature2"
+#   define FEATURE2_FLAG "default_feature2"
 #endif
+
 #ifndef FEATURE3_FLAG
-#define FEATURE3_FLAG "default_feature3"
+#   define FEATURE3_FLAG "default_feature3"
 #endif
 
-/*******************************************************************************
- * Constants for car (read-only secrets)
- ******************************************************************************/
-static const uint8_t car_id[] = CAR_ID;
-static const uint8_t password[] = PASSWORD;
-static const uint8_t unlock_flag[UNLOCK_SIZE] = UNLOCK_FLAG;
-static const uint8_t feature1_flag[FEATURE_SIZE] = FEATURE1_FLAG;
-static const uint8_t feature2_flag[FEATURE_SIZE] = FEATURE2_FLAG;
-static const uint8_t feature3_flag[FEATURE_SIZE] = FEATURE3_FLAG;
-static const uint8_t pair_pin[] = PAIR_PIN;
+#define FLASH_DATA_FILENAME "flash_data.bin"
 
-/*******************************************************************************
- * File-local variables
- ******************************************************************************/
-#define STATE_FILENAME "state.bin"
+// Private variables
+static char flash_data_file_path[PATH_MAX] = "";
+static bool buttonWasPressed = false;
+static pthread_t h_tuiThread;
 
-static char state_file_path[PATH_MAX] = "";
-static led_color_t current_led_color = OFF;
-static volatile bool button_pressed_flag = false;
-static volatile bool button_consumed = true;
-static pthread_t gui_thread;
-static volatile bool gui_running = false;
-static pthread_mutex_t button_mutex = PTHREAD_MUTEX_INITIALIZER;
+// Function prototypes
+static void* tuiThread(void* data);
 
-/*******************************************************************************
- * Forward declarations
- ******************************************************************************/
-static void cleanup_handler(void);
-static void signal_handler(int sig);
-static void* gui_thread_func(void* arg);
-static void setup_state_file_path(const char* argv0);
-
-/*******************************************************************************
- * Signal and cleanup handling
- ******************************************************************************/
-static void cleanup_handler(void)
-{
-    if (gui_running) {
-        gui_running = false;
-        pthread_join(gui_thread, NULL);
-    }
-    uart_cleanup();
-    gui_shutdown();
-}
-
+// Function implementations
 static void signal_handler(int sig)
 {
-    (void)sig;
-    cleanup_handler();
+    //(void)sig;
+    uart_cleanup();
     exit(0);
 }
 
-/*******************************************************************************
- * State file path setup
- ******************************************************************************/
-static void setup_state_file_path(const char* argv0)
+static void setup_flash_data_file_path(const char* argv0)
 {
     char exe_path[PATH_MAX];
     char* dir;
@@ -109,87 +55,60 @@ static void setup_state_file_path(const char* argv0)
     /* Get the directory containing the executable */
     if (realpath(argv0, exe_path) != NULL) {
         dir = dirname(exe_path);
-        snprintf(state_file_path, PATH_MAX, "%s/%s", dir, STATE_FILENAME);
+        snprintf(flash_data_file_path, PATH_MAX, "%s/%s", dir, FLASH_DATA_FILENAME);
     } else {
         /* Fallback to current directory */
         if (getcwd(exe_path, PATH_MAX) != NULL) {
-            snprintf(state_file_path, PATH_MAX, "%s/%s", exe_path, STATE_FILENAME);
+            snprintf(flash_data_file_path, PATH_MAX, "%s/%s", exe_path, FLASH_DATA_FILENAME);
+            int len = snprintf(flash_data_file_path, PATH_MAX, "%s/%s", exe_path, FLASH_DATA_FILENAME);
+            if (len < 0 || (unsigned)len >= PATH_MAX)
+            {
+                // TODO: Is this the best response?
+                fprintf(stderr, "Error: flash_data_file_path truncated or error occurred\n");
+            }
         } else {
             /* Last resort */
-            strncpy(state_file_path, STATE_FILENAME, PATH_MAX);
+            strncpy(flash_data_file_path, FLASH_DATA_FILENAME, PATH_MAX);
         }
     }
 }
 
-/*******************************************************************************
- * GUI thread
- ******************************************************************************/
-
-/* Callback from GUI when button is clicked */
-void gui_button_callback(void)
+static void initHardware(int argc, char ** argv)
 {
-    pthread_mutex_lock(&button_mutex);
-    button_pressed_flag = true;
-    button_consumed = false;
-    pthread_mutex_unlock(&button_mutex);
-}
-
-/* Callback from GUI to get current LED color */
-led_color_t gui_get_led_color(void)
-{
-    return current_led_color;
-}
-
-static void* gui_thread_func(void* arg)
-{
-    const char* title = (const char*)arg;
-    
-    if (!gui_init(title)) {
-        fprintf(stderr, "Failed to initialize GUI\n");
-        return NULL;
+    /* Set up state file path based on executable location */
+    if (argc > 0 && argv[0] != NULL) {
+        setup_flash_data_file_path(argv[0]);
+    } else {
+        setup_flash_data_file_path("./");
     }
     
-    while (gui_running) {
-        if (!gui_update()) {
-            /* Window was closed */
-            gui_running = false;
-            /* Trigger cleanup in main thread */
-            raise(SIGTERM);
-            break;
-        }
-    }
+    /* Set up signal handlers for clean shutdown */
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);
     
+    /* Initialize UARTs */
+    uart_init(HOST_UART, argc, argv);
+    uart_init(BOARD_UART, argc, argv);
+    
+    // Add pthread
+    pthread_create(&h_tuiThread, NULL, tuiThread, NULL);
+}
+
+static void* tuiThread(void* data)
+{
+    while(1)
+    {
+        char c = getchar();
+        if(c == 'b') buttonWasPressed = true;
+    }
+
     return NULL;
 }
 
-/*******************************************************************************
- * Binary State File Handling (for fob)
- ******************************************************************************/
-
-static bool load_fob_state(FLASH_DATA* data)
+void initHardware_car(int argc, char ** argv)
 {
-    FILE* fp = fopen(state_file_path, "rb");
-    if (!fp) {
-        return false;
-    }
-    
-    size_t read = fread(data, 1, sizeof(FLASH_DATA), fp);
-    fclose(fp);
-    
-    return (read == sizeof(FLASH_DATA));
-}
-
-static bool save_fob_state(const FLASH_DATA* data)
-{
-    FILE* fp = fopen(state_file_path, "wb");
-    if (!fp) {
-        return false;
-    }
-    
-    size_t written = fwrite(data, 1, sizeof(FLASH_DATA), fp);
-    fclose(fp);
-    
-    return (written == sizeof(FLASH_DATA));
+    initHardware(argc, argv);
+    setLED(RED);
 }
 
 static void create_default_fob_state(void)
@@ -208,108 +127,129 @@ static void create_default_fob_state(void)
         }
     };
     
-    save_fob_state(&default_state);
+    saveFobState(&default_state);
 }
 
-/*******************************************************************************
- * Platform API Implementation
- ******************************************************************************/
+#define ESC "\x1b"
 
-/* Declared in uart_x86.c */
-extern void uart_set_args(int argc, char** argv);
+#define STR(x) #x
+#define MV_TO_BEGINING_N_LINES_UP(n)    ESC"["STR(n)"F"
+#define SEND_CURSOR_HOME                ESC"[H"
+#define CLR_SCREEN_AFTER_CURSOR         ESC"[J"
 
-static void initHardware_common(int argc, char** argv, const char* window_title)
+#define SET_COLOR(color)                ESC"["color"m"
+#define FOREGROUND_BLACK                "30"
+#define FOREGROUND_RED                  "31"
+#define FOREGROUND_GREEN                "32"
+#define FOREGROUND_YELLOW               "33"
+#define FOREGROUND_BLUE                 "34"
+#define FOREGROUND_MAGENTA              "35"
+#define FOREGROUND_CYAN                 "36"
+#define FOREGROUND_WHITE                "37"
+#define FOREGROUND_DEFAULT              "39"
+#define BACKGROUND_BLACK                "40"
+#define BACKGROUND_RED                  "41"
+#define BACKGROUND_GREEN                "42"
+#define BACKGROUND_YELLOW               "43"
+#define BACKGROUND_BLUE                 "44"
+#define BACKGROUND_MAGENTA              "45"
+#define BACKGROUND_CYAN                 "46"
+#define BACKGROUND_WHITE                "47"
+#define BACKGROUND_DEFAULT              "49"
+#define RESET_STYLES_AND_COLORS         ESC"[0m"
+
+static void printFlashData(const FLASH_DATA* data)
 {
-    /* Set up state file path based on executable location */
-    if (argc > 0 && argv[0] != NULL) {
-        setup_state_file_path(argv[0]);
-    } else {
-        setup_state_file_path("./");
-    }
+    printf(ESC SEND_CURSOR_HOME CLR_SCREEN_AFTER_CURSOR);
+    printf("=====FOB DATA=====\n\r");
+    printf("- Paired?: %s\n\r", data->paired == FLASH_PAIRED? "Yes" : "No");
+    printf("- Pair info\n\r");
+    printf("\t- Car ID:   %s\n\r", data->pair_info.car_id);
+    printf("\t- Password: %s\n\r", data->pair_info.password);
+    printf("\t- Pin:      %s\n\r", data->pair_info.pin);
+    printf("- Feature info\n\r");
+    printf("\t- Car ID:            %s\n\r", data->feature_info.car_id);
+    printf("\t- # active features: %1d\n\r", data->feature_info.num_active);
+    printf("\t- Active features:   [%1d, %1d, %1d]\n\r",    data->feature_info.features[0],
+                                                            data->feature_info.features[1],
+                                                            data->feature_info.features[2]);
+    printf("==================\n\r>> ");
     
-    /* Set up signal handlers for clean shutdown */
-    signal(SIGINT, signal_handler);
-    signal(SIGTERM, signal_handler);
-    atexit(cleanup_handler);
-    
-    /* Initialize UARTs - pass args first, then init each */
-    uart_set_args(argc, argv);
-    uart_init(HOST_UART);
-    uart_init(BOARD_UART);
-    
-    /* Start GUI thread */
-    gui_running = true;
-    if (pthread_create(&gui_thread, NULL, gui_thread_func, (void*)window_title) != 0) {
-        fprintf(stderr, "Failed to create GUI thread\n");
-        gui_running = false;
-    }
 }
 
-void initHardware_car(int argc, char** argv)
+void initHardware_fob(int argc, char ** argv)
 {
-    initHardware_common(argc, argv, "Car Simulation");
-    setLED(RED);
-}
-
-void initHardware_fob(int argc, char** argv)
-{
-    initHardware_common(argc, argv, "Fob Simulation");
+    initHardware(argc, argv);
     
     /* Create default fob state file if it doesn't exist */
-    if (access(state_file_path, F_OK) != 0) {
+    if (access(flash_data_file_path, F_OK) != 0) {
         create_default_fob_state();
     }
+
+    FLASH_DATA data;
+    loadFobState(&data);
+    printFlashData(&data);
     
     setLED(WHITE);
 }
 
-void readVar(uint8_t* dest, char* var)
+void loadFlag(uint8_t* dest, flag_t flag)
 {
-    /*
-     * Car uses this to read compile-time secrets.
-     * Fob uses this only for "fob_state".
-     */
-    if (!strcmp(var, "unlock")) {
-        memcpy(dest, unlock_flag, UNLOCK_SIZE);
-    }
-    else if (!strcmp(var, "feature1")) {
-        memcpy(dest, feature1_flag, FEATURE_SIZE);
-    }
-    else if (!strcmp(var, "feature2")) {
-        memcpy(dest, feature2_flag, FEATURE_SIZE);
-    }
-    else if (!strcmp(var, "feature3")) {
-        memcpy(dest, feature3_flag, FEATURE_SIZE);
-    }
-    else if (!strcmp(var, "fob_state")) {
-        FLASH_DATA state = {0};
-        if (load_fob_state(&state)) {
-            memcpy(dest, &state, sizeof(FLASH_DATA));
-        }
-    }
+    static const char* flags[] = {
+        [UNLOCK] = UNLOCK_FLAG,
+        [FEATURE1] = FEATURE1_FLAG,
+        [FEATURE2] = FEATURE2_FLAG,
+        [FEATURE3] = FEATURE3_FLAG
+    };
+    size_t size = (flag == UNLOCK) ? UNLOCK_SIZE : FEATURE_SIZE;
+    memcpy(dest, flags[flag], size);
 }
 
-bool saveFobState(const FLASH_DATA* flash_data)
+void loadFobState(FLASH_DATA* data)
 {
-    return save_fob_state(flash_data);
+    FILE* fp = fopen(flash_data_file_path, "rb");
+    if (!fp) {
+        //return false;
+        return;
+    }
+    
+    size_t read = fread(data, 1, sizeof(FLASH_DATA), fp);
+    fclose(fp);
+    
+    //return (read == sizeof(FLASH_DATA));
+}
+
+bool saveFobState(const FLASH_DATA* data)
+{
+    FILE* fp = fopen(flash_data_file_path, "wb");
+    if (!fp) {
+        return false;
+    }
+    
+    size_t written = fwrite(data, 1, sizeof(FLASH_DATA), fp);
+    fclose(fp);
+    
+    return (written == sizeof(FLASH_DATA));
 }
 
 void setLED(led_color_t color)
 {
-    current_led_color = color;
+    char* colorStr[] = {
+        [OFF] = "off",
+        [RED] = "red",
+        [GREEN] = "green",
+        [WHITE] = "white"
+    };
+    printf("LED set to %s\n\r", colorStr[color]);
 }
 
 bool buttonPressed(void)
 {
-    bool pressed = false;
-    
-    pthread_mutex_lock(&button_mutex);
-    if (button_pressed_flag && !button_consumed) {
-        pressed = true;
-        button_consumed = true;
-        button_pressed_flag = false;
+    if(buttonWasPressed)
+    {
+        buttonWasPressed = false;
+        return true;
     }
-    pthread_mutex_unlock(&button_mutex);
-    
-    return pressed;
+
+    return false;
 }

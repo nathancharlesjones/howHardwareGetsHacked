@@ -1,0 +1,36 @@
+Import('env')
+
+local_env = env.Clone()
+
+# x86-specific include paths
+local_env.Append(CPPPATH=[
+    '#/hardware/x86/include'
+])
+
+# x86 sources
+sources = [
+    'source/x86.c',
+    'source/uart_x86.c'
+]
+
+local_env.Append(LINKFLAGS = [
+    '-Wl,--gc-sections',
+    f'-Wl,-Map={env["build_dir"]}/x86.map,--cref'
+])
+
+local_env.Append(LIBS=[
+    'm',
+    'pthread'
+])
+
+# Build application with our architecture-specific environment
+app_objects = SConscript(
+    '#/application/SConscript',
+    variant_dir='application',  # Relative to current variant_dir
+    duplicate=0,
+    exports={'env': local_env}  # Pass our configured environment
+)
+
+app = local_env.Program(f'{env["name"]}', app_objects + sources)
+
+Return('app')

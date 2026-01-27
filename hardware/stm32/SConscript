@@ -66,6 +66,6 @@ driver_lib = SConscript(
     exports={'env': local_env}
 )
 
-car = local_env.Program(f'{env["name"]}', app_objects + sources + driver_lib)
+app = local_env.Program(f'{env["name"]}', app_objects + sources + driver_lib)
 
-Return('car')
+Return('app')

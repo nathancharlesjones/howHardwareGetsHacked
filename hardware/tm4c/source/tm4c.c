@@ -14,31 +14,21 @@
 #include "dataFormats.h"
 #include "platform.h"
 
-#if defined(ROLE_CAR)
+#define UNLOCK_EEPROM_LOC 0x7C0
+#define FEATURE_END 0x7C0
+#define FEATURE1_LOC (FEATURE_END - FEATURE_SIZE)
+#define FEATURE2_LOC (FEATURE_END - 2*FEATURE_SIZE)
+#define FEATURE3_LOC (FEATURE_END - 3*FEATURE_SIZE)
 
-#		define UNLOCK_EEPROM_LOC 0x7C0
-#		define FEATURE_END 0x7C0
-#		define FEATURE1_LOC (FEATURE_END - FEATURE_SIZE)
-#		define FEATURE2_LOC (FEATURE_END - 2*FEATURE_SIZE)
-#		define FEATURE3_LOC (FEATURE_END - 3*FEATURE_SIZE)
-
-#elif defined(ROLE_FOB)
-
-#		define FOB_STATE_PTR 0x3FC00
-#		define FLASH_DATA_SIZE         \
-  		(sizeof(FLASH_DATA) % 4 == 0) \
-      		? sizeof(FLASH_DATA)      \
-      		: sizeof(FLASH_DATA) + (4 - (sizeof(FLASH_DATA) % 4))
+#define FOB_STATE_PTR 0x3FC00
+#define FLASH_DATA_SIZE         \
+ 		(sizeof(FLASH_DATA) % 4 == 0) \
+  	 		? sizeof(FLASH_DATA)      \
+     		: sizeof(FLASH_DATA) + (4 - (sizeof(FLASH_DATA) % 4))
 
 static uint8_t previous_sw_state = GPIO_PIN_4;
 static uint8_t debounce_sw_state = GPIO_PIN_4;
 static uint8_t current_sw_state = GPIO_PIN_4;
-
-#else
-
-#   error "Either ROLE_CAR or ROLE_FOB must be defined at build-time"
-
-#endif
 
 static void initHardware(int argc, char ** argv)
 {
@@ -78,13 +68,32 @@ void initHardware_fob(int argc, char ** argv)
                    GPIO_PIN_TYPE_STD_WPU);
 }
 
-void readVar(uint8_t* dest, char* var)
+void loadFlag(uint8_t* dest, flag_t flag)
 {
-	if(!strcmp(var, "unlock")) EEPROMRead((uint32_t *)dest, UNLOCK_EEPROM_LOC, UNLOCK_SIZE);
-	else if(!strcmp(var, "feature1")) EEPROMRead((uint32_t *)dest, FEATURE1_LOC, FEATURE_SIZE);
-	else if(!strcmp(var, "feature2")) EEPROMRead((uint32_t *)dest, FEATURE2_LOC, FEATURE_SIZE);
-	else if(!strcmp(var, "feature3")) EEPROMRead((uint32_t *)dest, FEATURE3_LOC, FEATURE_SIZE);
-	else if(!strcmp(var, "fob_state")) memcpy(dest, (FLASH_DATA *)FOB_STATE_PTR, sizeof(FLASH_DATA));
+	uint32_t* src = NULL;
+	size_t size = 0;
+
+	switch(flag)
+	{
+	case UNLOCK:
+		src = UNLOCK_EEPROM_LOC;
+		size = UNLOCK_SIZE;
+		break;
+	case FEATURE1:
+		src = FEATURE1_LOC;
+		size = FEATURE_SIZE;
+		break;
+	case FEATURE2:
+		src = FEATURE2_LOC;
+		size = FEATURE_SIZE;
+		break;
+	case FEATURE3:
+		src = FEATURE3_LOC;
+		size = FEATURE_SIZE;
+		break;
+	}
+
+	EEPROMRead((uint32_t *)dest, src, size);
 }
 
 /**
@@ -92,6 +101,11 @@ void readVar(uint8_t* dest, char* var)
  *
  * @param info Pointer to the flash data ram
  */
+void loadFobState(FLASH_DATA *dest)
+{
+  memcpy(dest, FOB_STATE_PTR, sizeof(FLASH_DATA));
+}
+
 bool saveFobState(const FLASH_DATA *flash_data)
 {
   FlashErase(FOB_STATE_PTR);

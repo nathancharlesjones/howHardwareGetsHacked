@@ -34,9 +34,6 @@
 static int uart_fd[2] = { -1, -1 };
 static char host_path[MAX_PATH_LEN] = "";
 static char board_path[MAX_PATH_LEN] = "";
-static int stored_argc = 0;
-static char** stored_argv = NULL;
-static bool args_parsed = false;
 
 /*******************************************************************************
  * Internal helpers
@@ -111,23 +108,6 @@ static int open_serial_port(const char* path)
     return fd;
 }
 
-static void parse_args_once(void)
-{
-    if (args_parsed) return;
-    args_parsed = true;
-    
-    for (int i = 1; i < stored_argc; i++) {
-        if (strncmp(stored_argv[i], "host=", 5) == 0) {
-            strncpy(host_path, stored_argv[i] + 5, MAX_PATH_LEN - 1);
-            host_path[MAX_PATH_LEN - 1] = '\0';
-        }
-        else if (strncmp(stored_argv[i], "board=", 6) == 0) {
-            strncpy(board_path, stored_argv[i] + 6, MAX_PATH_LEN - 1);
-            board_path[MAX_PATH_LEN - 1] = '\0';
-        }
-    }
-}
-
 /*******************************************************************************
  * Cleanup
  ******************************************************************************/
@@ -145,13 +125,20 @@ void uart_cleanup(void)
  * UART API Implementation
  ******************************************************************************/
 
-void uart_init(hw_uart_t uart)
+void uart_init(hw_uart_t uart, int argc, char ** argv)
 {
-    /* Parse args on first call */
-    parse_args_once();
+    char* matchStr = (uart == HOST_UART) ? "host=" : "board=";
+    char* path = (uart == HOST_UART) ? host_path : board_path;
     
-    const char* path = (uart == HOST_UART) ? host_path : board_path;
-    
+    for (int i = 1; i < argc; i++)
+    {
+        if (strncmp(argv[i], matchStr, strlen(matchStr)) == 0)
+        {
+            strncpy(path, argv[i] + strlen(matchStr), MAX_PATH_LEN - 1);
+            path[MAX_PATH_LEN - 1] = '\0';
+        }
+    }
+
     /* Close existing connection if any */
     if (uart_fd[uart] >= 0) {
         close(uart_fd[uart]);
@@ -166,13 +153,6 @@ void uart_init(hw_uart_t uart)
         fprintf(stderr, "Warning: No %s= argument provided. %s_UART disabled.\n", 
                 name, (uart == HOST_UART) ? "HOST" : "BOARD");
     }
-}
-
-/* Store argc/argv for later parsing - call this before uart_init */
-void uart_set_args(int argc, char** argv)
-{
-    stored_argc = argc;
-    stored_argv = argv;
 }
 
 bool uart_avail(hw_uart_t uart)
