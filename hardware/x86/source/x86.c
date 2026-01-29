@@ -29,7 +29,7 @@
 #   define FEATURE3_FLAG "default_feature3"
 #endif
 
-#define FLASH_DATA_FILENAME "flash_data.bin"
+const char* FLASH_DATA_FILENAME = "flash_data.bin";
 
 // Private variables
 static char flash_data_file_path[PATH_MAX] = "";
@@ -50,20 +50,17 @@ static void setup_flash_data_file_path(const char* argv0)
     /* Get the directory containing the executable */
     if (realpath(argv0, exe_path) != NULL) {
         dir = dirname(exe_path);
-        snprintf(flash_data_file_path, PATH_MAX, "%s/%s", dir, FLASH_DATA_FILENAME);
+        //snprintf(flash_data_file_path, PATH_MAX, "%s/%s", dir, FLASH_DATA_FILENAME);
+        snprintf(flash_data_file_path, PATH_MAX-1, "%.*s/%s", (int)(sizeof(flash_data_file_path)
+             - 1 - strlen(FLASH_DATA_FILENAME) - 1), dir, FLASH_DATA_FILENAME);
     } else {
         /* Fallback to current directory */
         if (getcwd(exe_path, PATH_MAX) != NULL) {
-            snprintf(flash_data_file_path, PATH_MAX, "%s/%s", exe_path, FLASH_DATA_FILENAME);
-            int len = snprintf(flash_data_file_path, PATH_MAX, "%s/%s", exe_path, FLASH_DATA_FILENAME);
-            if (len < 0 || (unsigned)len >= PATH_MAX)
-            {
-                // TODO: Is this the best response?
-                fprintf(stderr, "Error: flash_data_file_path truncated or error occurred\n");
-            }
+            snprintf(flash_data_file_path, PATH_MAX-1, "%.*s/%s", (int)(sizeof(flash_data_file_path)
+                - 1 - strlen(FLASH_DATA_FILENAME) - 1), exe_path, FLASH_DATA_FILENAME);
         } else {
             /* Last resort */
-            strncpy(flash_data_file_path, FLASH_DATA_FILENAME, PATH_MAX);
+            strncpy(flash_data_file_path, FLASH_DATA_FILENAME, PATH_MAX-1);
         }
     }
 }
@@ -148,7 +145,7 @@ void loadFobState(FLASH_DATA* data)
     size_t read = fread(data, 1, sizeof(FLASH_DATA), fp);
     fclose(fp);
     
-    //return (read == sizeof(FLASH_DATA));
+    if(read != sizeof(FLASH_DATA)) exit(EXIT_FAILURE);
 }
 
 bool saveFobState(const FLASH_DATA* data)

@@ -172,69 +172,75 @@ void sendError(const char *reason)
 
 /**
  * @brief Function that handles unlocking of car
+ *
+ * Receives unlock message, validates password, waits for start message,
+ * then sends unlock flag and feature flags to host.
+ *
+ * Message format sent to host on success:
+ *   OK: <unlock_flag_64_bytes>
+ *   OK: 1,<feature1_flag_64_bytes>   (if feature 1 enabled)
+ *   OK: 2,<feature2_flag_64_bytes>   (if feature 2 enabled)
+ *   OK: 3,<feature3_flag_64_bytes>   (if feature 3 enabled)
+ *   OK: done
  */
-void unlockCar(void) {
-  // Create a message struct variable for receiving data
+void unlockCar(void)
+{
   MESSAGE_PACKET message;
   uint8_t buffer[256];
   message.buffer = buffer;
 
-  // Receive packet with some error checking
+  // Receive unlock message
   receive_board_message_by_type(&message, UNLOCK_MAGIC);
 
-  // Null-terminate the password for comparison
-  message.buffer[message.message_len] = 0;
-
-  // If the data transfer is the password, unlock
-  if (memcmp(message.buffer, pass, sizeof(pass)) == 0)
+  // Validate password
+  if (memcmp(message.buffer, pass, sizeof(pass)) != 0)
   {
-    uint8_t eeprom_message[UNLOCK_SIZE];
-    // Read last 64B of EEPROM
-    loadFlag(eeprom_message, UNLOCK);
-
-    // Write out full flag if applicable
-    uart_write(HOST_UART, eeprom_message, UNLOCK_SIZE);
-
-    sendAckSuccess();
-
-    // Update state
-    carLocked = false;
-    unlockCount++;
-
-    startCar();
+    sendError("bad password");
+    sendAckFailure();
+    return;
   }
-  else sendAckFailure();
-}
 
-/**
- * @brief Function that handles starting of car - feature list
- */
-void startCar(void)
-{
-  // Create a message struct variable for receiving data
-  MESSAGE_PACKET message;
-  uint8_t buffer[256];
-  message.buffer = buffer;
+  // Password matches - send success ACK
+  sendAckSuccess();
 
-  // Receive start message
+  // Wait for start message with feature data
   receive_board_message_by_type(&message, START_MAGIC);
 
   FEATURE_DATA *feature_info = (FEATURE_DATA *)buffer;
 
-  // Verify correct car id
-  if (memcmp(car_id, feature_info->car_id, sizeof(car_id)) != 0) return;
+  // Verify car ID matches
+  if (memcmp(car_id, feature_info->car_id, sizeof(car_id)) != 0)
+  {
+    sendError("car id mismatch");
+    return;
+  }
 
-  // Print out features for all active features
+  // Send unlock flag
+  uint8_t flag_buffer[((UNLOCK_SIZE > FEATURE_SIZE) ? UNLOCK_SIZE : FEATURE_SIZE) +1] = {0};
+  char msg_buffer[128];
+
+  loadFlag(flag_buffer, UNLOCK);
+  sendOK((char*)flag_buffer);
+  memset(flag_buffer, 0, sizeof(flag_buffer));
+
+  // Send feature flags
   for (int i = 0; i < feature_info->num_active; i++)
   {
-    uint8_t eeprom_message[64];
     uint8_t featureNum = feature_info->features[i];
-    if (featureNum >= 1 && featureNum <= 3)
+    if (featureNum >= 1 && featureNum <= NUM_FEATURES)
     {
-      loadFlag(eeprom_message, (flag_t)featureNum);
-      uart_write(HOST_UART, eeprom_message, FEATURE_SIZE);
+      loadFlag(flag_buffer, (flag_t)featureNum);
+      snprintf(msg_buffer, sizeof(msg_buffer), "%d,%.64s", featureNum, flag_buffer);
+      sendOK(msg_buffer);
     }
   }
+
+  // Send terminator
+  sendOK("done");
+
+  // Update state
+  carLocked = false;
+  unlockCount++;
 
   // Change LED color: green
   setLED(GREEN);

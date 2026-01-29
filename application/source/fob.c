@@ -446,7 +446,8 @@ void enableFeature(FLASH_DATA *fob_state_ram, const uint8_t *data, size_t len)
 /**
  * @brief Attempt to unlock the car
  *
- * Sends unlock message, waits for ACK, then sends start message if successful.
+ * Sends unlock message, waits for ACK (with timeout), then sends start 
+ * message if successful. Reports result to host.
  *
  * @param fob_state_ram pointer to the current fob state in ram
  */
@@ -458,46 +459,31 @@ void attemptUnlock(FLASH_DATA *fob_state_ram)
     return;
   }
 
-  unlockCar(fob_state_ram);
-  if (receiveAck())
-  {
-    startCar(fob_state_ram);
-    sendOK(NULL);
-  }
-  else
-  {
-    sendError("unlock failed");
-  }
-}
-
-/**
- * @brief Function that handles the fob unlocking a car
- *
- * @param fob_state_ram pointer to the current fob state in ram
- */
-void unlockCar(FLASH_DATA *fob_state_ram)
-{
+  // Send unlock message with password
   MESSAGE_PACKET message;
-  message.message_len = 8; // Password is 8 bytes
+  message.message_len = sizeof(fob_state_ram->pair_info.password);
   message.magic = UNLOCK_MAGIC;
   message.buffer = fob_state_ram->pair_info.password;
-
   send_board_message(&message);
-}
 
-/**
- * @brief Function that handles the fob starting a car
- *
- * @param fob_state_ram pointer to the current fob state in ram
- */
-void startCar(FLASH_DATA *fob_state_ram)
-{
-  MESSAGE_PACKET message;
+  // Wait for ACK from car (with timeout)
+  // TODO: Add timeout to prevent hanging if car doesn't respond
+  uint8_t ack_result = receiveAck();
+
+  if (ack_result != ACK_SUCCESS)
+  {
+    sendError("unlock failed");
+    return;
+  }
+
+  // ACK received - send start message with feature data
   message.magic = START_MAGIC;
   message.message_len = sizeof(FEATURE_DATA);
   message.buffer = (uint8_t *)&fob_state_ram->feature_info;
-
   send_board_message(&message);
+
+  // Unlock successful
+  sendOK(NULL);
 }
 
 /**

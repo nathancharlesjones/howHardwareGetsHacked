@@ -10,11 +10,11 @@
 	[X] Fix atlas.inl problem
 	[X] Add text UI
 	[X] Wire in to Scons build, run sim
-[ ] Add unit tests
-	[ ] Update car, fob, platforms, conftest, test, protocol
-	[ ] Add TEST_BUILD to build args and -DTEST_BUILD to conftest
-	[ ] Duplication of unlock/start sequence in fob?
-	[ ] Reset unpairs?
+[X] Add unit tests
+	[X] Update car, fob, platforms, conftest, test, protocol
+	[X] Add TEST_BUILD to build args and -DTEST_BUILD to conftest
+	[X] Duplication of unlock/start sequence in fob?
+	[X] Reset unpairs?
 [X] Fix strcmp in car firmware (Thanks, Claude!)
 [X] Should secrets, messages be put in a different folder? --> gen_secrets can go in tools
 [ ] Update on new car id? ("Building car didn't trigger new car secret, secrets.h if only car id changed")

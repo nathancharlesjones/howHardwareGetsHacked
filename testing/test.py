@@ -45,6 +45,10 @@ class TestCarAndPairedFob:
         resp = proto.cmd_btn_press(fob)
         assert resp.success, f"btnPress failed: {resp.error}"
 
+        # Drain unlock/feature messages from car
+        flags = proto.drain_unlock_flags(car)
+        assert flags['unlock'] is not None, "Should have received unlock flag"
+
         # Check car is now unlocked
         assert not proto.is_locked(car), "Car should be unlocked"
         assert proto.get_unlock_count(car) == 1, "Unlock count should be 1"
@@ -56,8 +60,26 @@ class TestCarAndPairedFob:
         for i in range(3):
             resp = proto.cmd_btn_press(fob)
             assert resp.success, f"btnPress {i+1} failed: {resp.error}"
+            # Drain messages after each unlock
+            proto.drain_unlock_flags(car)
 
         assert proto.get_unlock_count(car) == 3, "Should have 3 unlocks"
+
+    def test_unlock_returns_flags(self, car_and_paired_fob):
+        """Unlock should return unlock flag and any enabled feature flags."""
+        car, fob = car_and_paired_fob
+
+        resp = proto.cmd_btn_press(fob)
+        assert resp.success, f"btnPress failed: {resp.error}"
+
+        flags = proto.drain_unlock_flags(car)
+        
+        # Should have unlock flag
+        assert flags['unlock'] is not None, "Should have unlock flag"
+        assert len(flags['unlock']) > 0, "Unlock flag should not be empty"
+        
+        # Features dict should exist (may be empty if no features enabled)
+        assert 'features' in flags, "Should have features dict"
 
 
 class TestPairedAndUnpairedFob:
@@ -131,6 +153,9 @@ class TestCarPairedAndUnpaired:
         resp = proto.cmd_btn_press(unpaired)
         assert resp.success, f"Unlock failed: {resp.error}"
 
+        # Drain unlock messages
+        proto.drain_unlock_flags(car)
+
         assert not proto.is_locked(car), "Car should be unlocked"
 '''
 
@@ -186,9 +211,9 @@ class TestCustomConfigurations:
     def test_mismatched_fob_cannot_unlock_car(self, deploy):
         """A fob paired to a different car ID should not unlock this car."""
         # Car with ID 1
-        car = deploy(RoleConfig("car", id="1"))
+        car = deploy(RoleConfig("car", id="2"))
         # Fob paired to car ID 2 (mismatched!)
-        wrong_fob = deploy(RoleConfig("paired_fob", id="2", pin="654321"))
+        wrong_fob = deploy(RoleConfig("paired_fob", id="1", pin="654321"))
 
         # Wrong fob tries to unlock
         resp = proto.cmd_btn_press(wrong_fob)
@@ -210,6 +235,9 @@ class TestTiming:
         start = time.monotonic()
         resp = proto.cmd_btn_press(fob, timeout=1.5)
         elapsed = time.monotonic() - start
+
+        # Drain messages
+        proto.drain_unlock_flags(car)
 
         assert resp.success, f"Unlock failed: {resp.error}"
         assert elapsed < 1.0, f"Unlock took {elapsed:.2f}s, should be <1s"

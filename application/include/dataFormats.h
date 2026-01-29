@@ -33,4 +33,12 @@ __attribute__((aligned(4)))
   FEATURE_DATA feature_info;
 } FLASH_DATA;
 
+typedef struct
+{
+  uint8_t unlock_flag[UNLOCK_SIZE+1];
+  uint8_t feature1_flag[FEATURE_SIZE+1];
+  uint8_t feature2_flag[FEATURE_SIZE+1];
+  uint8_t feature3_flag[FEATURE_SIZE+1];
+} FLAG_DATA;
+
 #endif // DATA_FORMATS_H

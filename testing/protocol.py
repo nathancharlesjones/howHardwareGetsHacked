@@ -126,7 +126,7 @@ class FlashData:
     
     def pack(self) -> bytes:
         """Pack to bytes for setFlashData command."""
-        data = bytes([1 if self.paired else 0]) + \
+        data = bytes([0 if self.paired else 0xFF]) + \
                self.pair_info.pack() + \
                self.feature_info.pack()
         # Pad to aligned size
@@ -368,3 +368,53 @@ def get_unlock_count(device) -> int:
     if not resp.success:
         raise RuntimeError(f"getUnlockCount failed: {resp.error}")
     return int(resp.value)
+
+# =============================================================================
+# Unlock Flag Reading
+# =============================================================================
+
+def drain_unlock_flags(car, timeout: float = 0.5) -> dict:
+    """
+    Read unlock and feature flags from car after successful unlock.
+    
+    After a successful unlock, the car sends:
+        OK: <unlock_flag>
+        OK: 1,<feature1_flag>   (if enabled)
+        OK: 2,<feature2_flag>   (if enabled)
+        OK: 3,<feature3_flag>   (if enabled)
+        OK: done
+    
+    Args:
+        car: DeployedDevice (car)
+        timeout: Timeout for each read operation
+    
+    Returns:
+        dict with:
+            'unlock': str or None - the unlock flag
+            'features': dict[int, str] - feature number -> flag mapping
+    """
+    result = {'unlock': None, 'features': {}}
+    
+    # First message is always unlock flag
+    resp = parse_response(car.recv(timeout=timeout))
+    if resp.success and resp.value and resp.value != 'done':
+        result['unlock'] = resp.value
+    else:
+        # No unlock flag received or already done
+        return result
+    
+    # Read feature flags until "done"
+    while True:
+        resp = parse_response(car.recv(timeout=timeout))
+        if not resp.success:
+            break
+        if resp.value == 'done' or resp.value is None:
+            break
+        if ',' in resp.value:
+            num_str, flag = resp.value.split(',', 1)
+            try:
+                result['features'][int(num_str)] = flag
+            except ValueError:
+                pass  # Invalid feature number, skip
+    
+    return result
