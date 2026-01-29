@@ -22,7 +22,7 @@ class TestSinglePairedFob:
     def test_get_flash_data(self, paired_fob):
         """Should be able to read fob's flash data."""
         flash = proto.get_flash_data(paired_fob)
-        assert flash.paired == 0x00, "Flash data should show paired"
+        assert flash.paired, "Flash data should show paired"
         assert flash.pair_info.car_id != b'\x00' * 8, "Should have a car ID"
 
 
@@ -85,6 +85,8 @@ class TestPairedAndUnpairedFob:
 
         # Query unpaired fob to verify it's now paired
         assert proto.is_paired(unpaired), "Should now be paired"
+
+        proto.cmd_reset(unpaired)
 
     def test_wrong_pin_fails_pairing(self, paired_and_unpaired_fob):
         """Pairing with wrong PIN should fail."""

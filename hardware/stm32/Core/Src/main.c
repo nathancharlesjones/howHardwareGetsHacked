@@ -71,15 +71,7 @@ UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-static FLASH_DATA flash_data __attribute__((section(".flash_data"))) = {
-    .paired = FLASH_UNPAIRED,
-    .pair_info = {{0}},
-    .feature_info = {
-        .car_id = {0},
-        .num_active = 0xFF,
-        .features = {0}
-    }
-};
+static FLASH_DATA flash_data __attribute__((section(".flash_data"))) = {0};
 
 static UART_HandleTypeDef* const uart_base[2] = { [HOST_UART] = &huart2, [BOARD_UART] = &huart1 };
 /* USER CODE END PV */

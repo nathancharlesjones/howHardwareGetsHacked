@@ -95,19 +95,7 @@ void initHardware_car(int argc, char ** argv)
 
 static void create_default_fob_state(void)
 {
-    FLASH_DATA default_state = {
-        .paired = FLASH_UNPAIRED,
-        .pair_info = {
-            .car_id = {0},
-            .password = {0},
-            .pin = {0}
-        },
-        .feature_info = {
-            .car_id = {0},
-            .num_active = 0xFF,
-            .features = {0}
-        }
-    };
+    FLASH_DATA default_state = {0};
     
     saveFobState(&default_state);
 }

@@ -65,24 +65,17 @@ int main(int argc, char **argv)
 
 // If paired fob, initialize the system information on first boot
 #if PAIRED == 1
-  if (fob_state_ram.paired == FLASH_UNPAIRED)
+  if (!fob_state_ram.paired)
   {
     strcpy((char *)(fob_state_ram.pair_info.password), PASSWORD);
     strcpy((char *)(fob_state_ram.pair_info.pin), PAIR_PIN);
     strcpy((char *)(fob_state_ram.pair_info.car_id), CAR_ID);
     strcpy((char *)(fob_state_ram.feature_info.car_id), CAR_ID);
-    fob_state_ram.paired = FLASH_PAIRED;
+    fob_state_ram.paired = true;
 
     saveFobState(&fob_state_ram);
   }
 #endif
-
-  // This will run on first boot to initialize features
-  if (fob_state_ram.feature_info.num_active == 0xFF)
-  {
-    fob_state_ram.feature_info.num_active = 0;
-    saveFobState(&fob_state_ram);
-  }
 
   // Signal ready to host
   uart_write(HOST_UART, (uint8_t *)"OK: started\n", 12);
@@ -114,7 +107,7 @@ int main(int argc, char **argv)
       }
     }
 
-    if (fob_state_ram.paired == FLASH_PAIRED)
+    if (fob_state_ram.paired)
     {
       // Paired fob: check for button press
       if (buttonPressed()) attemptUnlock(&fob_state_ram);
@@ -164,7 +157,7 @@ void processHostCommand(FLASH_DATA *fob_state_ram, const char *cmd)
   // Test command: isPaired
   if (strcmp(cmd, "isPaired") == 0)
   {
-    sendOK(fob_state_ram->paired == FLASH_PAIRED ? "1" : "0");
+    sendOK(fob_state_ram->paired ? "1" : "0");
     return;
   }
 
@@ -205,8 +198,6 @@ void processHostCommand(FLASH_DATA *fob_state_ram, const char *cmd)
   if (strcmp(cmd, "reset") == 0)
   {
     memset(fob_state_ram, 0, sizeof(FLASH_DATA));
-    fob_state_ram->paired = FLASH_UNPAIRED;
-    fob_state_ram->feature_info.num_active = 0;
     saveFobState(fob_state_ram);
     sendOK(NULL);
     // Note: After reset, fob is unpaired but still in main loop.
@@ -314,7 +305,7 @@ int hexToBytes(const char *hex, uint8_t *bytes, size_t maxLen)
 void pairFob(FLASH_DATA *fob_state_ram, const char *pin)
 {
   // Only paired fobs can initiate pairing
-  if (fob_state_ram->paired != FLASH_PAIRED)
+  if (!fob_state_ram->paired)
   {
     sendError("not paired");
     return;
@@ -354,7 +345,7 @@ void pairFob(FLASH_DATA *fob_state_ram, const char *pin)
  */
 void enableFeature(FLASH_DATA *fob_state_ram, const uint8_t *data, size_t len)
 {
-  if (fob_state_ram->paired != FLASH_PAIRED)
+  if (!fob_state_ram->paired)
   {
     sendError("not paired");
     return;
@@ -418,7 +409,7 @@ void enableFeature(FLASH_DATA *fob_state_ram, const uint8_t *data, size_t len)
  */
 void attemptUnlock(FLASH_DATA *fob_state_ram)
 {
-  if (fob_state_ram->paired != FLASH_PAIRED)
+  if (!fob_state_ram->paired)
   {
     sendError("not paired");
     return;
@@ -499,7 +490,7 @@ void receivePairData(FLASH_DATA *fob_state_ram)
         {
             // Got complete pairing packet - apply it
             memcpy(&fob_state_ram->pair_info, pairBuffer, sizeof(PAIR_PACKET));
-            fob_state_ram->paired = FLASH_PAIRED;
+            fob_state_ram->paired = true;
             memcpy(fob_state_ram->feature_info.car_id,
                    fob_state_ram->pair_info.car_id, 8);
             saveFobState(fob_state_ram);

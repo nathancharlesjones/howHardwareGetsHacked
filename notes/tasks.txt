@@ -22,3 +22,5 @@
 [ ] Need "CAR SECRET"?
 [ ] Reflashing doesn't overwrite old flash_data?
 [ ] Double-check fob top of main; is it doing what I want it to?
+[ ] Add .flash_data to TM4C
+[ ] Ensure flashing program overwrites .flash_data for STM32 and TM4C

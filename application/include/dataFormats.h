@@ -2,6 +2,7 @@
 #define DATA_FORMATS_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define UNLOCK_SIZE 64
 
@@ -28,7 +29,7 @@ typedef struct
 typedef struct
 __attribute__((aligned(4)))
 {
-  uint8_t paired;
+  bool paired;
   PAIR_PACKET pair_info;
   FEATURE_DATA feature_info;
 } FLASH_DATA;

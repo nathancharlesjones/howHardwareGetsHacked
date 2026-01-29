@@ -46,23 +46,35 @@ class Response:
 def parse_response(line: str) -> Response:
     """Parse a response line into a Response object."""
     if line is None or line == "":
-        return Response(success=False, error="timeout")
+        resp = Response(success=False, error="timeout")
+        print(resp)
+        return resp
     
     line = line.strip()
     
     if line == "":
-        return Response(success=False, error="timeout")
+        resp = Response(success=False, error="timeout")
+        print(resp)
+        return resp
     
     if line.startswith("OK"):
         if line == "OK":
-            return Response(success=True)
+            resp = Response(success=True)
+            print(resp)
+            return resp
         elif line.startswith("OK: "):
-            return Response(success=True, value=line[4:])
+            resp = Response(success=True, value=line[4:])
+            print(resp)
+            return resp
     
     if line.startswith("ERROR: "):
-        return Response(success=False, error=line[7:])
+        resp = Response(success=False, error=line[7:])
+        print(resp)
+        return resp
     
-    return Response(success=False, error=f"Unparseable: {line}")
+    resp = Response(success=False, error=f"Unparseable: {line}")
+    print(resp)
+    return resp
 
 
 # =============================================================================
