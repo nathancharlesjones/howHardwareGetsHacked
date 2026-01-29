@@ -29,6 +29,11 @@ from dataclasses import dataclass
 from typing import Optional, List
 from virtualserialports import VirtualSerialPorts
 
+import sys
+from pathlib import Path
+tools_dir = Path(__file__).parent.parent / "tools"
+sys.path.insert(0, str(tools_dir))
+
 
 PROJECT_ROOT = Path(__file__).parent.parent
 PROJECT_SCRIPT = PROJECT_ROOT / "project.py"
@@ -263,6 +268,11 @@ def deploy(hardware_config):
 @pytest.fixture
 def paired_fob(deploy):
     return deploy(RoleConfig("paired_fob", id="1", pin="123456"))
+
+
+@pytest.fixture
+def unpaired_fob(deploy):
+    return deploy(RoleConfig("unpaired_fob"))
 
 
 @pytest.fixture

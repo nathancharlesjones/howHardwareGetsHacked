@@ -7,7 +7,6 @@
 #include <unistd.h>             // For getcwd, access
 #include <string.h>             // For strncpy, memcpy
 #include <signal.h>             // For signal, SIGTERM, SIGINT
-#include <setjmp.h>             // For setjmp, longjmp
 
 #include "platform.h"
 #include "uart.h"
@@ -34,7 +33,6 @@ const char* FLASH_DATA_FILENAME = "flash_data.bin";
 
 // Private variables
 static char flash_data_file_path[PATH_MAX] = "";
-static jmp_buf g_reset_jmp;
 
 // Function implementations
 static void signal_handler(int sig)
@@ -83,8 +81,6 @@ static void initHardware(int argc, char ** argv)
     /* Initialize UARTs */
     uart_init(HOST_UART, argc, argv);
     uart_init(BOARD_UART, argc, argv);
-
-    setjmp(g_reset_jmp);
 }
 
 void initHardware_car(int argc, char ** argv)
@@ -158,17 +154,4 @@ void setLED(led_color_t color)
 bool buttonPressed(void)
 {
     return false;
-}
-
-/**
- * @brief Perform a software reset by jumping back to the setjmp point.
- * 
- * This simulates a microcontroller reset. The process stays alive,
- * file handles remain open, but execution returns to the setjmp point.
- */
-void softwareReset(void) {
-    longjmp(g_reset_jmp, 1);
-
-    // If no valid jump point, terminate
-    exit(EXIT_FAILURE);
 }

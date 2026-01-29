@@ -16,6 +16,5 @@ void loadFobState(FLASH_DATA *flash_data);
 bool saveFobState(const FLASH_DATA *flash_data);
 void setLED(led_color_t color);
 bool buttonPressed(void);
-void softwareReset(void);
 
 #endif // PLATFORM_H

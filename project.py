@@ -12,6 +12,7 @@ import os
 import subprocess
 from pathlib import Path
 from typing import List, Optional
+from tools.packaging import create_feature_package, save_feature_package
 
 
 # Project configuration
@@ -489,35 +490,15 @@ def run_command(args):
 # ==============================================================================
 
 def package_command(args):
-    """Handle the package subcommand"""
-    if not args.package_name or not args.car_id or args.feature_number is None:
-        print_error("package requires --package-name, --car-id, and --feature-number arguments")
+    """Package a feature for a car."""
+    if not args.id or args.feature is None:
+        print_error("package requires --id and --feature arguments")
         return 1
     
-    print_info(f"Creating package '{args.package_name}'...")
-    
-    package_tool = HOST_TOOLS_DIR / "package_tool.py"
-    
-    if not package_tool.exists():
-        print_error(f"Package tool not found at {package_tool}")
-        return 1
-    
-    cmd = [
-        sys.executable,
-        str(package_tool),
-        "--package-name", args.package_name,
-        "--car-id", args.car_id,
-        "--feature-number", str(args.feature_number)
-    ]
-    
-    result = subprocess.run(cmd)
-    
-    if result.returncode == 0:
-        print_success(f"Package '{args.package_name}' created successfully!")
-    else:
-        print_error("Package creation failed!")
-    
-    return result.returncode
+    output_path = args.output or f"application/packages/{args.id}_{args.feature}.bin"
+    save_feature_package(output_path, args.id.encode(), args.feature)
+    print(f"Feature {args.feature} packaged for car '{args.id}' -> {output_path}")
+
 
 
 # ==============================================================================
@@ -839,13 +820,11 @@ def main():
     
     # PACKAGE
     package_parser = subparsers.add_parser("package", help="Create feature package")
-    package_parser.add_argument("--package-name", type=str, required=True,
-                               help="Name of the package")
-    package_parser.add_argument("--car-id", type=str, required=True,
-                               help="Car ID")
-    package_parser.add_argument("--feature-number", type=int, required=True,
-                               help="Feature number")
+    package_parser.add_argument('--id', type=str, required=True, help='Car ID')
+    package_parser.add_argument('--feature', type=int, required=True, help='Feature number (1-3)')
+    package_parser.add_argument('--output', '-o', help='Output file path (optional)')
     package_parser.set_defaults(func=package_command)
+
     
     # ENABLE
     enable_parser = subparsers.add_parser("enable", help="Enable feature package")

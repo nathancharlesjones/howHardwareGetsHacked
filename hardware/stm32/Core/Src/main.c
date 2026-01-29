@@ -238,13 +238,6 @@ void uart_init(hw_uart_t uart, int argc, char ** argv)
   }
 }
 
-void softwareReset(void)
-{
-    NVIC_SystemReset();
-    // Won't reach here
-    while(1);
-}
-
 /**
  * @brief Check if there are characters available on a UART interface.
  *

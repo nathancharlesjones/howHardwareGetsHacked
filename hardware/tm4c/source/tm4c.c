@@ -3,8 +3,6 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "inc/hw_nvic.h"
-#include "inc/hw_types.h"
 #include "inc/hw_memmap.h"
 #include "driverlib/eeprom.h"
 #include "driverlib/gpio.h"
@@ -157,12 +155,4 @@ bool buttonPressed(void)
       pressed = (debounce_sw_state == current_sw_state);
     }
     return pressed;    
-}
-
-void softwareReset(void)
-{
-    // Request system reset via NVIC
-    HWREG(NVIC_APINT) = NVIC_APINT_VECTKEY | NVIC_APINT_SYSRESETREQ;
-    // Won't reach here
-    while(1);
 }
