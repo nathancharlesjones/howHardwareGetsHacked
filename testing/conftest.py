@@ -1,14 +1,18 @@
 """
 pytest configuration for car/fob black-box testing.
 
-Tests are run via: ./project.py test [categories] [--using platform@port,...]
+Tests are run via: ./project.py test [categories] [--using platform@port1,port2]
 
 Each test declares what roles it needs. The fixture system:
-1. Builds each role (via project.py build)
-2. For hardware: flashes and opens serial port
+1. Builds each role (via project.py build --test-build)
+2. For hardware: flashes and opens serial ports
 3. For x86: launches processes with virtual serial ports
 4. Returns serial port objects to the test
 5. Cleans up after test completes
+
+Mode selection:
+    --using platform@port1,port2  -> Hardware mode (both devices on real hardware)
+    (no --using)                  -> Simulation mode (x86 with virtual serial ports)
 
 x86 simulation wiring (using PyVirtualSerialPorts):
     Test <--[host1]--> exe1 <--[board]--> exe2 <--[host2]--> Test
@@ -22,7 +26,7 @@ import signal
 import time
 from pathlib import Path
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional, List
 from virtualserialports import VirtualSerialPorts
 
 
@@ -33,9 +37,10 @@ DEFAULT_TIMEOUT = 1.0
 
 
 @dataclass
-class HardwareTarget:
+class HardwareConfig:
+    """Hardware configuration: platform and list of serial ports."""
     platform: str
-    port: str
+    ports: List[str]
 
 
 @dataclass
@@ -51,7 +56,7 @@ class DeployedDevice:
     serial: serial.Serial
     platform: str
     _pid: Optional[int] = None
-    _vsp: Optional[VirtualSerialPorts] = None  # Keep reference for cleanup
+    _vsp: Optional[VirtualSerialPorts] = None
 
     def send(self, data: str) -> None:
         if not data.endswith('\n'):
@@ -91,7 +96,9 @@ class DeployedDevice:
 
 
 def build_role(cfg: RoleConfig, platform: str) -> Path:
-    cmd = ["python3", str(PROJECT_SCRIPT), "build", "--platform", platform, "--role", cfg.role]
+    """Build firmware for a role, returns path to binary."""
+    cmd = ["python3", str(PROJECT_SCRIPT), "build",
+           "--platform", platform, "--role", cfg.role, "--test-build"]
     if cfg.id:
         cmd += ["--id", cfg.id]
     if cfg.pin:
@@ -111,6 +118,7 @@ def build_role(cfg: RoleConfig, platform: str) -> Path:
 
 
 def flash_hardware(platform: str, port: str, binary: Path):
+    """Flash binary to hardware device."""
     cmd = [
         "python3", str(PROJECT_SCRIPT), "flash",
         "--platform", platform,
@@ -122,113 +130,135 @@ def flash_hardware(platform: str, port: str, binary: Path):
         raise RuntimeError(f"Flash failed:\n{result.stderr}")
 
 
-def deploy_hardware(cfg: RoleConfig, hw: HardwareTarget) -> DeployedDevice:
-    binary = build_role(cfg, hw.platform)
-    flash_hardware(hw.platform, hw.port, binary)
-    ser = serial.Serial(hw.port, DEFAULT_BAUD, timeout=DEFAULT_TIMEOUT)
-    time.sleep(0.1)
-    ser.reset_input_buffer()
-    return DeployedDevice(cfg.role, ser, hw.platform)
-
-
-def deploy_x86(cfg: RoleConfig, board_port: Optional[str]) -> Tuple[DeployedDevice, str]:
-    """
-    Deploy an x86 executable.
-
-    Args:
-        cfg: Role configuration
-        board_port: Port for board connection (None for first exe, which creates it)
-
-    Returns:
-        (DeployedDevice, board_port_for_next_exe)
-    """
-    binary = build_role(cfg, "x86")
-
-    # Create host connection (test <-> exe)
-    host_vsp = VirtualSerialPorts(2)
-    host_vsp.open()
-    host_vsp.start()
-    test_port, exe_host_port = host_vsp.ports
-
-    # Create or reuse board connection
-    board_vsp = None
-    if board_port is None:
-        board_vsp = VirtualSerialPorts(2)
-        board_vsp.open()
-        board_vsp.start()
-        exe_board_port, next_board_port = board_vsp.ports
-    else:
-        exe_board_port = board_port
-        next_board_port = None  # Already used
-
-    # Launch exe
-    pid = os.fork()
-    if pid == 0:
-        os.setsid()
-        os.execv(str(binary), [str(binary), f"host={exe_host_port}", f"board={exe_board_port}"])
-
-    time.sleep(0.1)
-
-    # Test connects to its end
-    ser = serial.Serial(test_port, DEFAULT_BAUD, timeout=DEFAULT_TIMEOUT)
-    ser.reset_input_buffer()
-
-    device = DeployedDevice(cfg.role, ser, "x86", _pid=pid, _vsp=host_vsp)
-
-    # First exe owns the board_vsp for cleanup
-    if board_vsp:
-        device._board_vsp = board_vsp
-
-    return device, next_board_port
-
-
 def pytest_addoption(parser):
-    parser.addoption("--using", action="append", default=[],
-                     help="Hardware: platform@port (e.g., stm32@/dev/ttyUSB0)")
+    parser.addoption("--using", type=str, default=None,
+                     help="Hardware: platform@port1,port2 (e.g., stm32@/dev/ttyUSB0,/dev/ttyUSB1)")
 
 
 @pytest.fixture(scope="session")
-def hardware_targets(request) -> list[HardwareTarget]:
-    targets = []
-    for spec in request.config.getoption("--using"):
-        platform, port = spec.split("@", 1)
-        targets.append(HardwareTarget(platform, port))
-    return targets
+def hardware_config(request) -> Optional[HardwareConfig]:
+    """Parse --using argument into HardwareConfig, or None for simulation mode."""
+    using = request.config.getoption("--using")
+    if not using:
+        return None
+    
+    platform, ports_str = using.split("@", 1)
+    ports = [p.strip() for p in ports_str.split(",")]
+    
+    if len(ports) < 2:
+        raise ValueError("Hardware mode requires at least 2 ports: --using platform@port1,port2")
+    
+    return HardwareConfig(platform=platform, ports=ports)
 
 
 @pytest.fixture
-def deploy(hardware_targets):
+def deploy(hardware_config):
     """
     Factory fixture for deploying roles.
-
+    
+    Automatically selects hardware or simulation mode based on --using flag.
+    
     Usage:
         def test_something(deploy):
             car = deploy(RoleConfig("car", id="123"))
             fob = deploy(RoleConfig("paired_fob", id="123", pin="654321"))
     """
     deployed = []
-    hw_idx = 0
-    board_port = None
+    
+    if hardware_config:
+        # Hardware mode
+        port_idx = 0
+        
+        def _deploy(cfg: RoleConfig) -> DeployedDevice:
+            nonlocal port_idx
+            if port_idx >= len(hardware_config.ports):
+                raise RuntimeError(f"Not enough hardware ports (have {len(hardware_config.ports)}, need more)")
+            
+            port = hardware_config.ports[port_idx]
+            port_idx += 1
+            
+            binary = build_role(cfg, hardware_config.platform)
+            flash_hardware(hardware_config.platform, port, binary)
+            
+            ser = serial.Serial(port, DEFAULT_BAUD, timeout=DEFAULT_TIMEOUT)
+            time.sleep(0.1)
+            ser.reset_input_buffer()
+            
+            # Wait for "OK: started" message
+            startup = ser.readline().decode('ascii', errors='replace').strip()
+            if not startup.startswith("OK"):
+                raise RuntimeError(f"Device didn't start properly, got: {startup}")
+            
+            dev = DeployedDevice(cfg.role, ser, hardware_config.platform)
+            deployed.append(dev)
+            return dev
+    
+    else:
+        # Simulation mode - create all virtual ports upfront
+        # Board connection: exe1 <-> exe2
+        board_vsp = VirtualSerialPorts(2)
+        board_vsp.open()
+        board_vsp.start()
+        board_ports = board_vsp.ports  # [exe1_board, exe2_board]
+        
+        # Host connections: test <-> exe1, test <-> exe2
+        host_vsps = []
+        exe_idx = 0
+        
+        def _deploy(cfg: RoleConfig) -> DeployedDevice:
+            nonlocal exe_idx
+            if exe_idx >= 2:
+                raise RuntimeError("Simulation mode only supports 2 devices")
+            
+            binary = build_role(cfg, "x86")
+            
+            # Create host connection for this exe
+            host_vsp = VirtualSerialPorts(2)
+            host_vsp.open()
+            host_vsp.start()
+            host_vsps.append(host_vsp)
+            test_port, exe_host_port = host_vsp.ports
+            
+            # Get this exe's board port
+            exe_board_port = board_ports[exe_idx]
+            exe_idx += 1
+            
+            # Test connects to its end
+            ser = serial.Serial(test_port, DEFAULT_BAUD, timeout=DEFAULT_TIMEOUT)
+            ser.reset_input_buffer()
 
-    def _deploy(cfg: RoleConfig) -> DeployedDevice:
-        nonlocal hw_idx, board_port
-        if hw_idx < len(hardware_targets):
-            hw = hardware_targets[hw_idx]
-            hw_idx += 1
-            dev = deploy_hardware(cfg, hw)
-        else:
-            dev, board_port = deploy_x86(cfg, board_port)
-        deployed.append(dev)
-        return dev
-
+            # Launch exe
+            pid = os.fork()
+            if pid == 0:
+                os.setsid()
+                os.execv(str(binary), [str(binary), f"host={exe_host_port}", f"board={exe_board_port}"])
+            
+            time.sleep(0.1)
+                        
+            # Wait for "OK: started" message
+            startup = ser.readline().decode('ascii', errors='replace').strip()
+            if not startup.startswith("OK"):
+                raise RuntimeError(f"Device didn't start properly, got: {startup}")
+            
+            dev = DeployedDevice(cfg.role, ser, "x86", _pid=pid, _vsp=host_vsp)
+            deployed.append(dev)
+            return dev
+    
     yield _deploy
-
+    
+    # Cleanup
     for d in deployed:
         d.close()
-        if hasattr(d, '_board_vsp') and d._board_vsp:
-            d._board_vsp.stop()
-            d._board_vsp.close()
+    
+    if not hardware_config:
+        # Clean up board VSP (only in simulation mode)
+        board_vsp.stop()
+        board_vsp.close()
 
+
+# =============================================================================
+# Convenience Fixtures
+# =============================================================================
 
 @pytest.fixture
 def paired_fob(deploy):

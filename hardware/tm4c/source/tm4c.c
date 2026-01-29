@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <string.h>
 
+#include "inc/hw_nvic.h"
+#include "inc/hw_types.h"
 #include "inc/hw_memmap.h"
 #include "driverlib/eeprom.h"
 #include "driverlib/gpio.h"
@@ -70,7 +72,7 @@ void initHardware_fob(int argc, char ** argv)
 
 void loadFlag(uint8_t* dest, flag_t flag)
 {
-	uint32_t* src = NULL;
+	uint32_t src = 0;
 	size_t size = 0;
 
 	switch(flag)
@@ -103,7 +105,7 @@ void loadFlag(uint8_t* dest, flag_t flag)
  */
 void loadFobState(FLASH_DATA *dest)
 {
-  memcpy(dest, FOB_STATE_PTR, sizeof(FLASH_DATA));
+  memcpy(dest, (FLASH_DATA*)FOB_STATE_PTR, sizeof(FLASH_DATA));
 }
 
 bool saveFobState(const FLASH_DATA *flash_data)
@@ -155,4 +157,12 @@ bool buttonPressed(void)
       pressed = (debounce_sw_state == current_sw_state);
     }
     return pressed;    
+}
+
+void softwareReset(void)
+{
+    // Request system reset via NVIC
+    HWREG(NVIC_APINT) = NVIC_APINT_VECTKEY | NVIC_APINT_SYSRESETREQ;
+    // Won't reach here
+    while(1);
 }

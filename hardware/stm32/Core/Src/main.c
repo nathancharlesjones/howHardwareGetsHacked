@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "dataFormats.h"
 #include "uart.h"
+//#include "stm32f0xx.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -243,6 +244,13 @@ void uart_init(hw_uart_t uart, int argc, char ** argv)
     MX_USART1_UART_Init();
     break;
   }
+}
+
+void softwareReset(void)
+{
+    NVIC_SystemReset();
+    // Won't reach here
+    while(1);
 }
 
 /**

@@ -7,6 +7,7 @@ opts.Add(EnumVariable('role', 'Device role', '',
 opts.Add('id', 'Device ID (required for car and paired_fob)', '')
 opts.Add('opt', 'Optimization level', '2')
 opts.Add(BoolVariable('debug', 'Debug build', False))
+opts.Add(BoolVariable('test', 'Test build (enables test commands)', False))
 
 # Optional feature flags
 opts.Add('unlock_flag', 'Custom unlock flag value', '')
@@ -49,6 +50,8 @@ elif env['platform'] == 'x86':
 env.Append(CPPFLAGS=[f'-O{env["opt"]}', '-Wall'])
 if env['debug']:
     env.Append(CPPFLAGS=['-g', '-DDEBUG'])
+if env['test']:
+    env.Append(CPPDEFINES=['TEST_BUILD'])
 
 # Add feature flag defines if provided
 if env['unlock_flag']:
@@ -93,3 +96,4 @@ if env['id']:
     print(f"  ID: {env['id']}")
 print(f"  Optimization: -O{env['opt']}")
 print(f"  Debug: {env['debug']}")
+print(f"  Test build: {env['test']}")

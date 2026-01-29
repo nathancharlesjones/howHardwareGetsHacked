@@ -26,6 +26,7 @@ local_env.Append(CPPPATH=[
 sources = [
     'source/tm4c.c',
     'source/uart_tm4c.c',
+    'source/syscalls.c',
     'libraries/tivaware/startup_gcc.c'
 ]
 

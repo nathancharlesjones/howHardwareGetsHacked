@@ -4,7 +4,7 @@ local_env = env.Clone()
 
 # Application sources (relative to application/)
 sources = [
-    'source/carFirmware.c' if env["role"] == "car" else 'source/fobFirmware.c',
+    'source/car.c' if env["role"] == "car" else 'source/fob.c',
     'source/messages.c',
 ]
 
