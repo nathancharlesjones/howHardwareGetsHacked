@@ -139,16 +139,16 @@ class TestCarPairedAndUnpaired:
 '''
 
 class TestStateManagement:
-    """Tests for restart and reset functionality."""
+    """Tests for reload and reset functionality."""
 
-    def test_restart_preserves_state(self, paired_fob):
-        """Software restart should preserve flash data."""
+    def test_reload_preserves_state(self, paired_fob):
+        """Software reload should preserve flash data."""
         # Get current state
         flash_before = proto.get_flash_data(paired_fob)
 
-        # Restart
-        resp = proto.cmd_restart(paired_fob)
-        assert resp.success, f"Restart failed: {resp.error}"
+        # Reload
+        resp = proto.cmd_reload(paired_fob)
+        assert resp.success, f"Reload failed: {resp.error}"
 
         # State should be preserved
         flash_after = proto.get_flash_data(paired_fob)

@@ -186,11 +186,11 @@ void processHostCommand(FLASH_DATA *fob_state_ram, const char *cmd)
     return;
   }
 
-  // Test command: restart (software reset)
-  if (strcmp(cmd, "restart") == 0)
+  // Test command: reload (reload data from flash)
+  if (strcmp(cmd, "reload") == 0)
   {
-    softwareReset();
-    // Won't reach here; device will send startup message on boot
+    loadFobState(fob_state_ram);
+    sendOK(NULL);
     return;
   }
 

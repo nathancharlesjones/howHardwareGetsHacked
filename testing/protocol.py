@@ -11,10 +11,10 @@ Standard Commands (production firmware):
 
 Test Commands (TEST_BUILD only):
     Both:
-        restart                   - Software reset (re-run main, state persists)
         reset                     - Factory reset (clear state, restart)
     
     Fob:
+        reload                    - Reload flash data, state persists
         btnPress                  - Simulate button press, blocks until unlock completes
         getFlashData              - Get FLASH_DATA as hex
         setFlashData <hex>        - Set FLASH_DATA from hex (persists to flash)
@@ -229,21 +229,6 @@ def cmd_pair(device, pin: str) -> Response:
 
 # --- Both Car and Fob ---
 
-def cmd_restart(device, timeout: float = 2.0) -> Response:
-    """
-    Software reset - re-run main, state persists.
-    
-    On STM32/TM4C: NVIC_SystemReset()
-    On x86: longjmp back to start of main
-    
-    The device will reset and send "OK: started" when ready.
-    """
-    device.send("restart")
-    # Wait for the device to restart and send its ready message
-    resp = device.recv(timeout=timeout)
-    return parse_response(resp)
-
-
 def cmd_reset(device) -> Response:
     """
     Factory reset - clear all state and restart.
@@ -255,6 +240,16 @@ def cmd_reset(device) -> Response:
 
 
 # --- Fob Only ---
+
+def cmd_reload(device, timeout: float = 2.0) -> Response:
+    """
+    Reload flash data, check state persists.
+    
+    Returns:
+        Response: OK when complete
+    """
+    return parse_response(device.send_recv("reload", timeout=timeout))
+
 
 def cmd_btn_press(device, timeout: float = 2.0) -> Response:
     """

@@ -118,15 +118,6 @@ void processHostCommand(const char *cmd)
     return;
   }
 
-  // Test command: restart (software reset)
-  if (strcmp(cmd, "restart") == 0)
-  {
-    // Note: We send OK before restart; the device will send "OK: started" on boot
-    softwareReset();
-    // Won't reach here
-    return;
-  }
-
   // Test command: reset (factory reset)
   if (strcmp(cmd, "reset") == 0)
   {
