@@ -168,7 +168,7 @@ class TestStateManagement:
         flash_before = proto.get_flash_data(paired_fob)
 
         # Restart
-        resp = proto.cmd_restart(paired_fob)
+        resp = proto.cmd_restart(paired_fob, timeout=10.0)
         assert resp.success, f"Restart failed: {resp.error}"
 
         # State should be preserved
@@ -189,20 +189,27 @@ class TestStateManagement:
 
     def test_set_flash_data(self, paired_fob):
         """Should be able to modify flash data directly."""
-        # Create custom state
-        new_flash = proto.FlashData.new_paired(
-            car_id=b'TESTCAR1',
-            password=b'TESTPWD1',
-            pin=b'999999\x00\x00'
-        )
+        # Save original state
+        original_flash = proto.get_flash_data(paired_fob)
+        
+        try:
+            # Create custom state
+            new_flash = proto.FlashData.new_paired(
+                car_id=b'TESTCAR1',
+                password=b'TESTPWD1',
+                pin=b'999999\x00\x00'
+            )
 
-        resp = proto.cmd_set_flash_data(paired_fob, new_flash)
-        assert resp.success, f"setFlashData failed: {resp.error}"
+            resp = proto.cmd_set_flash_data(paired_fob, new_flash)
+            assert resp.success, f"setFlashData failed: {resp.error}"
 
-        # Read back and verify
-        flash = proto.get_flash_data(paired_fob)
-        assert flash.pair_info.car_id == b'TESTCAR1'
-        assert flash.pair_info.password == b'TESTPWD1'
+            # Read back and verify
+            flash = proto.get_flash_data(paired_fob)
+            assert flash.pair_info.car_id == b'TESTCAR1'
+            assert flash.pair_info.password == b'TESTPWD1'
+        finally:
+            # Restore original state
+            proto.cmd_set_flash_data(paired_fob, original_flash)
 
 
 class TestCustomConfigurations:
@@ -218,6 +225,7 @@ class TestCustomConfigurations:
         # Wrong fob tries to unlock
         resp = proto.cmd_btn_press(wrong_fob)
         # Should fail (either ERROR response or car stays locked)
+        flags = proto.drain_unlock_flags(car)
 
         # Car should remain locked
         assert proto.is_locked(car), "Car should reject mismatched fob"

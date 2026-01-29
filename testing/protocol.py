@@ -222,7 +222,11 @@ def wait_for_paired(device, timeout: float = 2.0) -> Response:
     Returns:
         Response: Should be OK with value="paired"
     """
-    return parse_response(device.recv(timeout=timeout))
+    recvd = device.recv(timeout=timeout)
+    print("recvd:", recvd)
+    parsed = parse_response(recvd)
+    print("parsed:", parsed)
+    return parsed
 
 
 # =============================================================================
@@ -401,6 +405,7 @@ def drain_unlock_flags(car, timeout: float = 0.5) -> dict:
         result['unlock'] = resp.value
     else:
         # No unlock flag received or already done
+        result['error'] = resp.value
         return result
     
     # Read feature flags until "done"

@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 {
   initHardware_fob(argc, argv);
 
-  FLASH_DATA fob_state_ram;
+  FLASH_DATA fob_state_ram = {0};
   loadFobState(&fob_state_ram);
 
 // If paired fob, initialize the system information on first boot
@@ -151,6 +151,7 @@ int main(int argc, char **argv)
 
             uart_write(HOST_UART, (uint8_t *)"OK: paired\n", 11);
           }
+          else sendError(boardBuffer);
           boardIndex = 0;
         }
         else if (boardIndex < sizeof(boardBuffer) - 1)
@@ -363,7 +364,7 @@ void pairFob(FLASH_DATA *fob_state_ram, const char *pin)
   }
 
   // Verify PIN matches
-  if (strncmp(pin, (char *)fob_state_ram->pair_info.pin, 6) != 0)
+  if (memcmp(pin, (char *)fob_state_ram->pair_info.pin, 6) != 0)
   {
     sendError("wrong pin");
     return;
@@ -461,7 +462,7 @@ void attemptUnlock(FLASH_DATA *fob_state_ram)
 
   // Send unlock message with password
   MESSAGE_PACKET message;
-  message.message_len = sizeof(fob_state_ram->pair_info.password);
+  message.message_len = 8;
   message.magic = UNLOCK_MAGIC;
   message.buffer = fob_state_ram->pair_info.password;
   send_board_message(&message);
@@ -472,7 +473,9 @@ void attemptUnlock(FLASH_DATA *fob_state_ram)
 
   if (ack_result != ACK_SUCCESS)
   {
-    sendError("unlock failed");
+    char msg[64] = {0};
+    snprintf(msg, 63, "unlock failed; sent %d bytes for pw %8s",message.message_len, (char*)fob_state_ram->pair_info.password);
+    sendError(msg);
     return;
   }
 

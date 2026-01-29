@@ -41,7 +41,7 @@ void sendOK(const char *value);
 void sendError(const char *reason);
 
 // Declare password
-const uint8_t pass[] = PASSWORD;
+const uint8_t pass[8] = PASSWORD;
 const uint8_t car_id[] = CAR_ID;
 
 // State variables
@@ -193,9 +193,12 @@ void unlockCar(void)
   receive_board_message_by_type(&message, UNLOCK_MAGIC);
 
   // Validate password
-  if (memcmp(message.buffer, pass, sizeof(pass)) != 0)
+  if (memcmp(message.buffer, pass, 8) != 0)
   {
-    sendError("bad password");
+    char msg[64] = {0};
+    snprintf(msg, 63, "bad password; received %.*s, expected %.*s", message.message_len,
+      message.buffer, sizeof(pass), pass);
+    sendError(msg);
     sendAckFailure();
     return;
   }
