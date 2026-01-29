@@ -40,6 +40,7 @@ void unlockCar(FLASH_DATA *fob_state_ram);
 void enableFeature(FLASH_DATA *fob_state_ram, const uint8_t *data, size_t len);
 void startCar(FLASH_DATA *fob_state_ram);
 void attemptUnlock(FLASH_DATA *fob_state_ram);
+void receivePairData(FLASH_DATA *fob_state_ram);
 
 // Helper functions
 uint8_t receiveAck(void);
@@ -90,10 +91,6 @@ int main(int argc, char **argv)
   char cmdBuffer[MAX_CMD_LEN];
   uint16_t cmdIndex = 0;
 
-  // Buffer for board UART (pairing messages when unpaired)
-  uint8_t boardBuffer[64];
-  uint16_t boardIndex = 0;
-
   // Infinite loop for polling UART and button
   while (true)
   {
@@ -120,45 +117,12 @@ int main(int argc, char **argv)
     if (fob_state_ram.paired == FLASH_PAIRED)
     {
       // Paired fob: check for button press
-      if (buttonPressed())
-      {
-        attemptUnlock(&fob_state_ram);
-      }
+      if (buttonPressed()) attemptUnlock(&fob_state_ram);
     }
     else
     {
       // Unpaired fob: listen for pairing message on board UART
-      if (uart_avail(BOARD_UART))
-      {
-        uint8_t c = (uint8_t)uart_readb(BOARD_UART);
-
-        if (c == '\n' || c == '\r')
-        {
-          // Check if this is a valid pairing packet
-          // Format: [PAIR_MAGIC] [len] [PAIR_PACKET data...]
-          // len should equal boardIndex (the bytes we received, excluding magic and len itself)
-          if (boardIndex >= 2 &&
-              boardBuffer[0] == PAIR_MAGIC &&
-              boardBuffer[1] == (boardIndex - 2) &&
-              (boardIndex - 2) == sizeof(PAIR_PACKET))
-          {
-            // Valid pairing packet - extract and apply
-            memcpy(&fob_state_ram.pair_info, &boardBuffer[2], sizeof(PAIR_PACKET));
-            fob_state_ram.paired = FLASH_PAIRED;
-            strcpy((char *)fob_state_ram.feature_info.car_id,
-                   (char *)fob_state_ram.pair_info.car_id);
-            saveFobState(&fob_state_ram);
-
-            uart_write(HOST_UART, (uint8_t *)"OK: paired\n", 11);
-          }
-          else sendError(boardBuffer);
-          boardIndex = 0;
-        }
-        else if (boardIndex < sizeof(boardBuffer) - 1)
-        {
-          boardBuffer[boardIndex++] = c;
-        }
-      }
+      if (uart_avail(BOARD_UART)) receivePairData(&fob_state_ram);
     }
   }
 }
@@ -487,6 +451,71 @@ void attemptUnlock(FLASH_DATA *fob_state_ram)
 
   // Unlock successful
   sendOK(NULL);
+}
+
+void receivePairData(FLASH_DATA *fob_state_ram)
+{
+  static enum {
+      PAIR_STATE_WAIT_MAGIC,
+      PAIR_STATE_WAIT_LEN,
+      PAIR_STATE_WAIT_DATA
+  } pairState = PAIR_STATE_WAIT_MAGIC;
+  static uint8_t pairBuffer[sizeof(PAIR_PACKET)];
+  static uint8_t pairLen = 0;
+  static uint8_t pairExpectedLen = 0;
+
+  uint8_t c = (uint8_t)uart_readb(BOARD_UART);
+
+  switch (pairState)
+  {
+    case PAIR_STATE_WAIT_MAGIC:
+        if (c == PAIR_MAGIC)
+        {
+            pairState = PAIR_STATE_WAIT_LEN;
+        }
+        // Ignore non-magic bytes
+        break;
+
+    case PAIR_STATE_WAIT_LEN:
+        pairExpectedLen = c;
+        pairLen = 0;
+        
+        // Validate length
+        if (pairExpectedLen == sizeof(PAIR_PACKET))
+        {
+            pairState = PAIR_STATE_WAIT_DATA;
+        }
+        else
+        {
+            // Invalid length - reset state machine
+            pairState = PAIR_STATE_WAIT_MAGIC;
+        }
+        break;
+
+    case PAIR_STATE_WAIT_DATA:
+        pairBuffer[pairLen++] = c;
+        
+        if (pairLen >= pairExpectedLen)
+        {
+            // Got complete pairing packet - apply it
+            memcpy(&fob_state_ram->pair_info, pairBuffer, sizeof(PAIR_PACKET));
+            fob_state_ram->paired = FLASH_PAIRED;
+            memcpy(fob_state_ram->feature_info.car_id,
+                   fob_state_ram->pair_info.car_id, 8);
+            saveFobState(fob_state_ram);
+            
+            // No async message - test will query isPaired
+            
+            // Reset state machine (though we're now paired, so this branch won't run)
+            pairState = PAIR_STATE_WAIT_MAGIC;
+        }
+        else if (pairLen >= sizeof(pairBuffer))
+        {
+            // Buffer overflow - reset state machine
+            pairState = PAIR_STATE_WAIT_MAGIC;
+        }
+        break;
+  }
 }
 
 /**

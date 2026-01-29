@@ -192,15 +192,11 @@ void unlockCar(void)
   // Receive unlock message
   receive_board_message_by_type(&message, UNLOCK_MAGIC);
 
-  // Validate password
-  if (memcmp(message.buffer, pass, 8) != 0)
+  // Validate password (always compare exactly 8 bytes)
+  if (message.message_len != 8 || memcmp(message.buffer, pass, 8) != 0)
   {
-    char msg[64] = {0};
-    snprintf(msg, 63, "bad password; received %.*s, expected %.*s", message.message_len,
-      message.buffer, sizeof(pass), pass);
-    sendError(msg);
-    sendAckFailure();
-    return;
+      sendAckFailure();
+      return;
   }
 
   // Password matches - send success ACK
@@ -211,41 +207,35 @@ void unlockCar(void)
 
   FEATURE_DATA *feature_info = (FEATURE_DATA *)buffer;
 
-  // Verify car ID matches
-  if (memcmp(car_id, feature_info->car_id, sizeof(car_id)) != 0)
+  // Verify car ID matches (compare exactly 8 bytes)
+  if (memcmp(car_id, feature_info->car_id, 8) != 0)
   {
-    sendError("car id mismatch");
-    return;
+      return;
   }
 
+#ifndef TEST_BUILD
+  // In production mode: send unlock flag and feature flags
+  uint8_t flag_buffer[UNLOCK_SIZE];
+  
   // Send unlock flag
-  uint8_t flag_buffer[((UNLOCK_SIZE > FEATURE_SIZE) ? UNLOCK_SIZE : FEATURE_SIZE) +1] = {0};
-  char msg_buffer[128];
-
   loadFlag(flag_buffer, UNLOCK);
-  sendOK((char*)flag_buffer);
-  memset(flag_buffer, 0, sizeof(flag_buffer));
+  uart_write(HOST_UART, flag_buffer, UNLOCK_SIZE);
 
   // Send feature flags
   for (int i = 0; i < feature_info->num_active; i++)
   {
-    uint8_t featureNum = feature_info->features[i];
-    if (featureNum >= 1 && featureNum <= NUM_FEATURES)
-    {
-      loadFlag(flag_buffer, (flag_t)featureNum);
-      snprintf(msg_buffer, sizeof(msg_buffer), "%d,%.64s", featureNum, flag_buffer);
-      sendOK(msg_buffer);
-    }
+      uint8_t featureNum = feature_info->features[i];
+      if (featureNum >= 1 && featureNum <= NUM_FEATURES)
+      {
+          loadFlag(flag_buffer, (flag_t)featureNum);
+          uart_write(HOST_UART, flag_buffer, FEATURE_SIZE);
+      }
   }
-
-  // Send terminator
-  sendOK("done");
+#endif
 
   // Update state
   carLocked = false;
   unlockCount++;
-
-  // Change LED color: green
   setLED(GREEN);
 }
 

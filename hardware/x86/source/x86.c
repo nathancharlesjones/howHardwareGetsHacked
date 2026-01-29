@@ -4,9 +4,10 @@
 #include <linux/limits.h>       // For PATH_MAX
 #include <stdlib.h>             // For exit
 #include <libgen.h>             // For dirname
-#include <unistd.h>             // For getcwd, access, execv
+#include <unistd.h>             // For getcwd, access
 #include <string.h>             // For strncpy, memcpy
 #include <signal.h>             // For signal, SIGTERM, SIGINT
+#include <setjmp.h>             // For setjmp, longjmp
 
 #include "platform.h"
 #include "uart.h"
@@ -33,6 +34,7 @@ const char* FLASH_DATA_FILENAME = "flash_data.bin";
 
 // Private variables
 static char flash_data_file_path[PATH_MAX] = "";
+static jmp_buf g_reset_jmp;
 
 // Function implementations
 static void signal_handler(int sig)
@@ -81,6 +83,8 @@ static void initHardware(int argc, char ** argv)
     /* Initialize UARTs */
     uart_init(HOST_UART, argc, argv);
     uart_init(BOARD_UART, argc, argv);
+
+    setjmp(g_reset_jmp);
 }
 
 void initHardware_car(int argc, char ** argv)
@@ -117,8 +121,6 @@ void initHardware_fob(int argc, char ** argv)
         create_default_fob_state();
     }
 
-    FLASH_DATA data;
-    loadFobState(&data);
     setLED(WHITE); 
 }
 
@@ -170,23 +172,15 @@ bool buttonPressed(void)
     return false;
 }
 
-// Store argv[0] for re-exec
-static char *g_exe_path = NULL;
-static char **g_argv = NULL;
+/**
+ * @brief Perform a software reset by jumping back to the setjmp point.
+ * 
+ * This simulates a microcontroller reset. The process stays alive,
+ * file handles remain open, but execution returns to the setjmp point.
+ */
+void softwareReset(void) {
+    longjmp(g_reset_jmp, 1);
 
-// Call this from initHardware to save the executable path
-void platform_save_argv(int argc, char **argv)
-{
-    g_exe_path = argv[0];
-    g_argv = argv;
-}
-
-void softwareReset(void)
-{
-    // Re-exec ourselves with same arguments
-    // This effectively restarts the process
-    if (g_exe_path && g_argv) execv(g_exe_path, g_argv);
-
-    // If execv fails, just exit
-    exit(1);
+    // If no valid jump point, terminate
+    exit(EXIT_FAILURE);
 }

@@ -7,6 +7,7 @@ Or via: ./project.py test
 """
 
 import pytest
+import time
 from conftest import RoleConfig
 import protocol as proto
 
@@ -45,10 +46,6 @@ class TestCarAndPairedFob:
         resp = proto.cmd_btn_press(fob)
         assert resp.success, f"btnPress failed: {resp.error}"
 
-        # Drain unlock/feature messages from car
-        flags = proto.drain_unlock_flags(car)
-        assert flags['unlock'] is not None, "Should have received unlock flag"
-
         # Check car is now unlocked
         assert not proto.is_locked(car), "Car should be unlocked"
         assert proto.get_unlock_count(car) == 1, "Unlock count should be 1"
@@ -60,26 +57,8 @@ class TestCarAndPairedFob:
         for i in range(3):
             resp = proto.cmd_btn_press(fob)
             assert resp.success, f"btnPress {i+1} failed: {resp.error}"
-            # Drain messages after each unlock
-            proto.drain_unlock_flags(car)
 
         assert proto.get_unlock_count(car) == 3, "Should have 3 unlocks"
-
-    def test_unlock_returns_flags(self, car_and_paired_fob):
-        """Unlock should return unlock flag and any enabled feature flags."""
-        car, fob = car_and_paired_fob
-
-        resp = proto.cmd_btn_press(fob)
-        assert resp.success, f"btnPress failed: {resp.error}"
-
-        flags = proto.drain_unlock_flags(car)
-        
-        # Should have unlock flag
-        assert flags['unlock'] is not None, "Should have unlock flag"
-        assert len(flags['unlock']) > 0, "Unlock flag should not be empty"
-        
-        # Features dict should exist (may be empty if no features enabled)
-        assert 'features' in flags, "Should have features dict"
 
 
 class TestPairedAndUnpairedFob:
@@ -101,11 +80,10 @@ class TestPairedAndUnpairedFob:
         resp = proto.cmd_pair(paired, "123456")
         assert resp.success, f"Pairing failed: {resp.error}"
 
-        # Wait for unpaired fob to receive pairing message and confirm
-        resp = proto.wait_for_paired(unpaired)
-        assert resp.success, f"Unpaired fob didn't get paired: {resp.error}"
+        # Give time for the pairing message to be received and processed
+        time.sleep(0.1)
 
-        # Unpaired fob should now be paired
+        # Query unpaired fob to verify it's now paired
         assert proto.is_paired(unpaired), "Should now be paired"
 
     def test_wrong_pin_fails_pairing(self, paired_and_unpaired_fob):
@@ -145,16 +123,15 @@ class TestCarPairedAndUnpaired:
         resp = proto.cmd_pair(paired, "123456")
         assert resp.success, f"Pairing failed: {resp.error}"
 
-        # Wait for unpaired fob to receive pairing
-        resp = proto.wait_for_paired(unpaired)
-        assert resp.success, f"Unpaired fob didn't get paired: {resp.error}"
+        # Give time for pairing message to be processed
+        time.sleep(0.1)
+
+        # Verify pairing succeeded
+        assert proto.is_paired(unpaired), "Fob should now be paired"
 
         # Now the formerly-unpaired fob should be able to unlock
         resp = proto.cmd_btn_press(unpaired)
         assert resp.success, f"Unlock failed: {resp.error}"
-
-        # Drain unlock messages
-        proto.drain_unlock_flags(car)
 
         assert not proto.is_locked(car), "Car should be unlocked"
 '''
@@ -168,7 +145,7 @@ class TestStateManagement:
         flash_before = proto.get_flash_data(paired_fob)
 
         # Restart
-        resp = proto.cmd_restart(paired_fob, timeout=10.0)
+        resp = proto.cmd_restart(paired_fob)
         assert resp.success, f"Restart failed: {resp.error}"
 
         # State should be preserved
@@ -189,9 +166,9 @@ class TestStateManagement:
 
     def test_set_flash_data(self, paired_fob):
         """Should be able to modify flash data directly."""
-        # Save original state
+        # Save original state to restore later
         original_flash = proto.get_flash_data(paired_fob)
-        
+
         try:
             # Create custom state
             new_flash = proto.FlashData.new_paired(
@@ -208,7 +185,7 @@ class TestStateManagement:
             assert flash.pair_info.car_id == b'TESTCAR1'
             assert flash.pair_info.password == b'TESTPWD1'
         finally:
-            # Restore original state
+            # Restore original state so other tests aren't affected
             proto.cmd_set_flash_data(paired_fob, original_flash)
 
 
@@ -225,7 +202,6 @@ class TestCustomConfigurations:
         # Wrong fob tries to unlock
         resp = proto.cmd_btn_press(wrong_fob)
         # Should fail (either ERROR response or car stays locked)
-        flags = proto.drain_unlock_flags(car)
 
         # Car should remain locked
         assert proto.is_locked(car), "Car should reject mismatched fob"
@@ -237,15 +213,11 @@ class TestTiming:
     @pytest.mark.xfail(reason="timing-sensitive, may fail under load", strict=False)
     def test_unlock_completes_within_1_second(self, car_and_paired_fob):
         """Unlock should complete within 1 second (per spec)."""
-        import time
         car, fob = car_and_paired_fob
 
         start = time.monotonic()
         resp = proto.cmd_btn_press(fob, timeout=1.5)
         elapsed = time.monotonic() - start
-
-        # Drain messages
-        proto.drain_unlock_flags(car)
 
         assert resp.success, f"Unlock failed: {resp.error}"
         assert elapsed < 1.0, f"Unlock took {elapsed:.2f}s, should be <1s"

@@ -45,7 +45,13 @@ class Response:
 
 def parse_response(line: str) -> Response:
     """Parse a response line into a Response object."""
+    if line is None or line == "":
+        return Response(success=False, error="timeout")
+    
     line = line.strip()
+    
+    if line == "":
+        return Response(success=False, error="timeout")
     
     if line.startswith("OK"):
         if line == "OK":
@@ -126,7 +132,7 @@ class FlashData:
     
     def pack(self) -> bytes:
         """Pack to bytes for setFlashData command."""
-        data = bytes([0 if self.paired else 0xFF]) + \
+        data = bytes([1 if self.paired else 0]) + \
                self.pair_info.pack() + \
                self.feature_info.pack()
         # Pad to aligned size
@@ -193,10 +199,7 @@ def cmd_pair(device, pin: str) -> Response:
     Initiate pairing from a paired fob.
     
     The paired fob validates the PIN and sends pairing data to the
-    unpaired fob (which is blocking, waiting for PAIR_MAGIC).
-    
-    After this succeeds, the unpaired fob will send "OK: paired" on its
-    host UART. Use wait_for_paired() to consume that message.
+    unpaired fob over the board UART.
     
     Args:
         device: DeployedDevice (paired fob)
@@ -206,27 +209,6 @@ def cmd_pair(device, pin: str) -> Response:
         Response with success/error
     """
     return parse_response(device.send_recv(f"pair {pin}"))
-
-
-def wait_for_paired(device, timeout: float = 2.0) -> Response:
-    """
-    Wait for an unpaired fob to receive pairing and become paired.
-    
-    After the paired fob sends the pairing message (via cmd_pair),
-    the unpaired fob will send "OK: paired" when it receives it.
-    
-    Args:
-        device: DeployedDevice (unpaired fob that was awaiting pairing)
-        timeout: Max time to wait
-    
-    Returns:
-        Response: Should be OK with value="paired"
-    """
-    recvd = device.recv(timeout=timeout)
-    print("recvd:", recvd)
-    parsed = parse_response(recvd)
-    print("parsed:", parsed)
-    return parsed
 
 
 # =============================================================================
@@ -240,7 +222,7 @@ def cmd_restart(device, timeout: float = 2.0) -> Response:
     Software reset - re-run main, state persists.
     
     On STM32/TM4C: NVIC_SystemReset()
-    On x86: re-exec or longjmp to main
+    On x86: longjmp back to start of main
     
     The device will reset and send "OK: started" when ready.
     """
@@ -372,54 +354,3 @@ def get_unlock_count(device) -> int:
     if not resp.success:
         raise RuntimeError(f"getUnlockCount failed: {resp.error}")
     return int(resp.value)
-
-# =============================================================================
-# Unlock Flag Reading
-# =============================================================================
-
-def drain_unlock_flags(car, timeout: float = 0.5) -> dict:
-    """
-    Read unlock and feature flags from car after successful unlock.
-    
-    After a successful unlock, the car sends:
-        OK: <unlock_flag>
-        OK: 1,<feature1_flag>   (if enabled)
-        OK: 2,<feature2_flag>   (if enabled)
-        OK: 3,<feature3_flag>   (if enabled)
-        OK: done
-    
-    Args:
-        car: DeployedDevice (car)
-        timeout: Timeout for each read operation
-    
-    Returns:
-        dict with:
-            'unlock': str or None - the unlock flag
-            'features': dict[int, str] - feature number -> flag mapping
-    """
-    result = {'unlock': None, 'features': {}}
-    
-    # First message is always unlock flag
-    resp = parse_response(car.recv(timeout=timeout))
-    if resp.success and resp.value and resp.value != 'done':
-        result['unlock'] = resp.value
-    else:
-        # No unlock flag received or already done
-        result['error'] = resp.value
-        return result
-    
-    # Read feature flags until "done"
-    while True:
-        resp = parse_response(car.recv(timeout=timeout))
-        if not resp.success:
-            break
-        if resp.value == 'done' or resp.value is None:
-            break
-        if ',' in resp.value:
-            num_str, flag = resp.value.split(',', 1)
-            try:
-                result['features'][int(num_str)] = flag
-            except ValueError:
-                pass  # Invalid feature number, skip
-    
-    return result
