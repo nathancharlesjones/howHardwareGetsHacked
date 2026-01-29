@@ -571,35 +571,69 @@ def monitor_command(args):
 # LIST COMMAND
 # ==============================================================================
 
+def identify_board(port):
+    if port.vid == 0x0483:
+        return "ST Nucleo"
+
+    if port.vid == 0x1CBE:
+        return "TI Tiva / LaunchPad"
+
+    # Fallback for weird Windows descriptors
+    desc = (port.description or "").lower()
+    if "stlink" in desc:
+        return "ST Nucleo (heuristic)"
+
+    return None
+
+
+def normalize_port(port):
+    """OS-specific cleanup, if needed."""
+    if sys.platform == "darwin":
+        if port.device.startswith("/dev/tty."):
+            return None
+    return port
+
+
 def list_command(args):
-    """Handle the list subcommand"""
-    
-    if args.list_type == "platforms":
+    """Handle the list subcommand"""    
+    if args.list_type == "platforms" or args.list_type is None:
         print_info("Available platforms:")
         for platform in AVAILABLE_PLATFORMS:
             print(f"  • {platform}")
     
-    elif args.list_type == "roles":
+    if args.list_type == "roles" or args.list_type is None:
         print_info("Available roles:")
         for role in AVAILABLE_ROLES:
             print(f"  • {role}")
-    
-    elif args.list_type == "devices":
+
+    if args.list_type == "devices" or args.list_type is None:
         print_info("Connected devices:")
-        # TODO: Implement device detection
-        # Could use pyserial.tools.list_ports
         try:
             import serial.tools.list_ports
             ports = serial.tools.list_ports.comports()
+            found = False
             if ports:
                 for port in ports:
-                    print(f"  • {port.device}: {port.description}")
+                    port = normalize_port(port)
+                    board = identify_board(port)
+                    if board:
+                        found = True
+                        print(f"  • Board: {board}")
+                        print(f"      Port: {port.device}")
+                        print(f"      USB:  VID=0x{port.vid:04X} PID=0x{port.pid:04X}")
+                        if port.serial_number:
+                            print(f"      SN:   {port.serial_number}")
+                        if port.product:
+                            print(f"      Desc: {port.product}")
+                if not found:
+                    print("  (no STM32 or TM4C devices found)")
             else:
                 print("  (no devices found)")
         except ImportError:
             print_warning("Install pyserial to detect devices: pip install pyserial")
     
-    elif args.list_type == "builds":
+    '''
+    if args.list_type == "builds" or args.list_type is None:
         print_info("Build configurations:")
         # TODO: List available/built configurations
         if BUILD_DIR.exists():
@@ -611,30 +645,8 @@ def list_command(args):
                 print("  (no builds found)")
         else:
             print("  (build directory does not exist)")
-    
-    else:
-        # List everything
-        print_info("Project Information:")
-        print(f"\n{Colors.BOLD}Platforms:{Colors.ENDC}")
-        for platform in AVAILABLE_PLATFORMS:
-            print(f"  • {platform}")
-        
-        print(f"\n{Colors.BOLD}Roles:{Colors.ENDC}")
-        for role in AVAILABLE_ROLES:
-            print(f"  • {role}")
-        
-        print(f"\n{Colors.BOLD}Connected Devices:{Colors.ENDC}")
-        try:
-            import serial.tools.list_ports
-            ports = serial.tools.list_ports.comports()
-            if ports:
-                for port in ports:
-                    print(f"  • {port.device}: {port.description}")
-            else:
-                print("  (no devices found)")
-        except ImportError:
-            print("  (install pyserial to detect devices)")
-    
+    '''
+
     return 0
 
 
