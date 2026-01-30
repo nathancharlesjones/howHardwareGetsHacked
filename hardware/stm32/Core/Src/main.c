@@ -104,6 +104,8 @@ static void initHardware(int argc, char ** argv)
   uart_init(HOST_UART, argc, argv);
 
   setLED(OFF);
+
+  while(1) HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin));
 }
 
 void initHardware_car(int argc, char ** argv)

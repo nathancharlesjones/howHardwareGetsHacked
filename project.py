@@ -424,30 +424,35 @@ def clean_command(args):
 
 def flash_command(args):
     """Handle the flash subcommand"""
-    if not args.role or not args.platform:
-        print_error("flash requires --role and --platform arguments")
+    from tools.flashing import flash_device, FlashError
+
+    if args.platform == "x86":
+        print_error("x86 platform does not support flashing. Use 'simulate' for x86.")
         return 1
     
-    print_info(f"Flashing {args.role} to {args.platform}...")
+    binary = Path(args.binary)
+    if not binary.exists():
+        print_error(f"Binary not found: {args.binary}")
+        return 1
     
-    # TODO: Implement actual flashing logic
-    # This might involve:
-    # 1. Finding the built executable
-    # 2. Detecting or using specified serial port
-    # 3. Calling appropriate flash tool (avrdude, openocd, etc.)
+    print_info(f"Flashing {binary.name} to {args.platform}...")
+    if args.identifier:
+        print_info(f"  Using probe: {args.identifier}")
     
-    flash_cmd = ["echo", "Flash command not yet implemented"]
-    if args.port:
-        flash_cmd.append(f"(port: {args.port})")
-    
-    result = subprocess.run(flash_cmd)
-    
-    if result.returncode == 0:
-        print_success(f"Successfully flashed {args.role} to {args.platform}")
-    else:
-        print_error("Flash failed!")
-    
-    return result.returncode
+    try:
+        flash_device(
+            platform=args.platform,
+            binary_path=str(binary),
+            identifier=args.identifier,
+            verify=not args.no_verify,
+            reset=not args.no_reset,
+            verbose=args.verbose,
+        )
+        print_success(f"Successfully flashed {binary.name} to {args.platform}")
+        return 0
+    except FlashError as e:
+        print_error(str(e))
+        return 1
 
 
 # ==============================================================================
@@ -656,13 +661,11 @@ def list_command(args):
 
 def deploy_command(args):
     """Handle the deploy subcommand (build + flash)"""
-    if not args.role or not args.platform:
-        print_error("deploy requires --role and --platform arguments")
-        return 1
+    from tools.flashing import flash_device, FlashError
     
     print_info(f"Deploying {args.role} to {args.platform}...")
     
-    # First, build
+    # Step 1: Build
     print_info("Step 1: Building...")
     build_result = build_command(args)
     
@@ -670,16 +673,42 @@ def deploy_command(args):
         print_error("Build failed, aborting deployment")
         return build_result
     
-    # Then, flash
-    print_info("Step 2: Flashing...")
-    flash_result = flash_command(args)
-    
-    if flash_result == 0:
-        print_success(f"Successfully deployed {args.role} to {args.platform}!")
+    # Step 2: Find the binary
+    id_val = getattr(args, 'id', None)
+    if args.role in ["car", "paired_fob"] and id_val:
+        folder = f"{args.role}_{id_val}"
     else:
-        print_error("Deployment failed at flash stage")
+        folder = args.role
     
-    return flash_result
+    build_dir = Path("hardware") / args.platform / "build" / folder
+    # Look for .bin or .elf file
+    binary = None
+    for ext in ['.bin', '.elf']:
+        candidates = list(build_dir.glob(f"*{ext}"))
+        if candidates:
+            binary = candidates[0]
+            break
+    
+    if not binary or not binary.exists():
+        print_error(f"Could not find binary in {build_dir}")
+        return 1
+    
+    # Step 3: Flash
+    print_info(f"Step 2: Flashing {binary.name}...")
+    try:
+        flash_device(
+            platform=args.platform,
+            binary_path=str(binary),
+            identifier=getattr(args, 'identifier', None),
+            verify=True,
+            reset=True,
+            verbose=args.verbose,
+        )
+        print_success(f"Successfully deployed {args.role} to {args.platform}!")
+        return 0
+    except FlashError as e:
+        print_error(f"Flash failed: {e}")
+        return 1
 
 
 # ==============================================================================
@@ -724,35 +753,38 @@ def configure_command(args):
 # ==============================================================================
 
 def debug_command(args):
-    """Handle the debug subcommand"""
-    if not args.platform:
-        print_error("debug requires --platform argument")
+    """Handle the debug subcommand - start GDB server"""
+    from tools.flashing import start_gdb_server, FlashError
+
+    if args.platform == "x86":
+        print_error("x86 platform does not support flashing. Use 'simulate' for x86.")
         return 1
     
-    print_info(f"Starting debugger for {args.platform}...")
+    print_info(f"Starting GDB server for {args.platform}...")
+    print_info(f"  GDB port: {args.gdb_port}")
+    if args.identifier:
+        print_info(f"  Using probe: {args.identifier}")
     
-    # TODO: Implement debugger launch
-    # This would launch GDB, OpenOCD, or other debugger based on platform
+    print_info("\nConnect with:")
+    print(f"  arm-none-eabi-gdb -ex 'target remote localhost:{args.gdb_port}' <your.elf>")
+    print("\nPress Ctrl+C to stop the server.\n")
     
-    if args.platform == "x86":
-        debugger = "gdb"
-    elif args.platform == "arm":
-        debugger = "arm-none-eabi-gdb"
-    elif args.platform == "avr":
-        debugger = "avr-gdb"
-    else:
-        debugger = "gdb"
-    
-    print_info(f"Debugger: {debugger}")
-    print_warning("Debug launch not yet implemented")
-    
-    # Example implementation might be:
-    # cmd = [debugger, executable_path]
-    # if args.port:
-    #     cmd.extend(["--remote", args.port])
-    # subprocess.run(cmd)
-    
-    return 0
+    try:
+        proc = start_gdb_server(
+            platform=args.platform,
+            identifier=args.identifier,
+            gdb_port=args.gdb_port,
+            verbose=True,
+        )
+        proc.wait()
+        return proc.returncode
+    except FlashError as e:
+        print_error(str(e))
+        return 1
+    except KeyboardInterrupt:
+        print_info("\nStopping GDB server...")
+        proc.terminate()
+        return 0
 
 
 # ==============================================================================
@@ -811,13 +843,17 @@ def main():
     clean_parser.set_defaults(func=clean_command)
     
     # FLASH
-    flash_parser = subparsers.add_parser("flash", help="Flash program to hardware")
-    flash_parser.add_argument("--platform", choices=AVAILABLE_PLATFORMS,
-                             required=True, help="Target platform")
-    flash_parser.add_argument("--role", choices=AVAILABLE_ROLES,
-                             required=True, help="Target role")
-    flash_parser.add_argument("--port", type=str,
-                             help="Serial port (auto-detect if not specified)")
+    flash_parser = subparsers.add_parser("flash", help="Flash binary to hardware")
+    flash_parser.add_argument("--platform", "-p", required=True, choices=["stm32", "tm4c"],
+                             help="Target platform (stm32=Nucleo-F411RE, tm4c=EK-TM4C123GXL)")
+    flash_parser.add_argument("--binary", "-f", required=True,
+                             help="Path to binary file (.bin or .elf)")
+    flash_parser.add_argument("--identifier", "-i",
+                             help="Debug probe serial number (for multi-device setups)")
+    flash_parser.add_argument("--no-verify", action="store_true",
+                             help="Skip verification after flashing")
+    flash_parser.add_argument("--no-reset", action="store_true",
+                             help="Don't reset device after flashing")
     flash_parser.set_defaults(func=flash_command)
     
     # RUN
@@ -863,16 +899,18 @@ def main():
     
     # DEPLOY
     deploy_parser = subparsers.add_parser("deploy", help="Build and flash in one step")
-    deploy_parser.add_argument("--platform", choices=AVAILABLE_PLATFORMS,
-                              required=True, help="Target platform")
-    deploy_parser.add_argument("--role", choices=AVAILABLE_ROLES,
-                              required=True, help="Target role")
+    deploy_parser.add_argument("--platform", "-p", required=True, choices=["stm32", "tm4c"],
+                              help="Target platform")
+    deploy_parser.add_argument("--role", required=True, choices=AVAILABLE_ROLES,
+                              help="Target role")
     deploy_parser.add_argument("--id", type=str,
                               help="Device ID (required for car and paired_fob)")
     deploy_parser.add_argument("--pin", type=str,
                               help="Device PIN (required for paired_fob)")
-    deploy_parser.add_argument("--port", type=str,
-                              help="Serial port (auto-detect if not specified)")
+    deploy_parser.add_argument("--identifier", "-i",
+                              help="Debug probe serial number (for multi-device setups)")
+    deploy_parser.add_argument("--test-build", action="store_true", dest="test_build",
+                              help="Enable test commands in firmware")
     deploy_parser.set_defaults(func=deploy_command)
     
     # CONFIGURE
@@ -882,13 +920,13 @@ def main():
     configure_parser.set_defaults(func=configure_command)
     
     # DEBUG
-    debug_parser = subparsers.add_parser("debug", help="Launch debugger")
-    debug_parser.add_argument("--platform", choices=AVAILABLE_PLATFORMS,
-                             required=True, help="Target platform")
-    debug_parser.add_argument("--role", choices=AVAILABLE_ROLES,
-                             help="Target role")
-    debug_parser.add_argument("--port", type=str,
-                             help="Debug port/interface")
+    debug_parser = subparsers.add_parser("debug", help="Start GDB server for debugging")
+    debug_parser.add_argument("--platform", "-p", required=True, choices=["stm32", "tm4c"],
+                             help="Target platform")
+    debug_parser.add_argument("--identifier", "-i",
+                             help="Debug probe serial number")
+    debug_parser.add_argument("--gdb-port", type=int, default=3333,
+                             help="GDB server port (default: 3333)")
     debug_parser.set_defaults(func=debug_command)
     
     # Parse arguments

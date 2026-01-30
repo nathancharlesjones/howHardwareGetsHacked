@@ -11,8 +11,10 @@ Each test declares what roles it needs. The fixture system:
 5. Cleans up after test completes
 
 Mode selection:
-    --using platform@port1,port2  -> Hardware mode (both devices on real hardware)
-    (no --using)                  -> Simulation mode (x86 with virtual serial ports)
+    --using board@id1,id2  -> Hardware mode (both devices on real hardware)
+                              board: stm32 or tm4c
+                              id1,id2: probe serial numbers OR serial port paths
+    (no --using)           -> Simulation mode (x86 with virtual serial ports)
 
 x86 simulation wiring (using PyVirtualSerialPorts):
     Test <--[host1]--> exe1 <--[board]--> exe2 <--[host2]--> Test
@@ -26,13 +28,15 @@ import signal
 import time
 from pathlib import Path
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from virtualserialports import VirtualSerialPorts
 
 import sys
 from pathlib import Path
 tools_dir = Path(__file__).parent.parent / "tools"
 sys.path.insert(0, str(tools_dir))
+
+from flashing import flash_device, FlashError
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -43,9 +47,9 @@ DEFAULT_TIMEOUT = 1.0
 
 @dataclass
 class HardwareConfig:
-    """Hardware configuration: platform and list of serial ports."""
-    platform: str
-    ports: List[str]
+    """Hardware configuration: board type and list of probe identifiers."""
+    board: str  # "stm32" or "tm4c"
+    identifiers: List[str]  # Serial numbers or paths
 
 
 @dataclass
@@ -122,22 +126,90 @@ def build_role(cfg: RoleConfig, platform: str) -> Path:
     return exe
 
 
-def flash_hardware(platform: str, port: str, binary: Path):
-    """Flash binary to hardware device."""
-    cmd = [
-        "python3", str(PROJECT_SCRIPT), "flash",
-        "--platform", platform,
-        "--port", port,
-        "--bin", str(binary)
-    ]
-    result = subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=True, text=True)
-    if result.returncode != 0:
-        raise RuntimeError(f"Flash failed:\n{result.stderr}")
+def find_serial_port_for_probe(identifier: str, board: str) -> str:
+    """
+    Find the serial port associated with a debug probe.
+    
+    Args:
+        identifier: Either a serial number or already a port path
+        board: Board type for VID/PID matching
+        
+    Returns:
+        Serial port path (e.g., /dev/ttyACM0)
+    """
+    # If it looks like a port path already, return it
+    if identifier.startswith('/dev/') or identifier.startswith('COM'):
+        return identifier
+    
+    # Otherwise, search by serial number
+    try:
+        import serial.tools.list_ports
+        ports = serial.tools.list_ports.comports()
+        
+        # VID/PID pairs for debug probes that have serial ports
+        # ST-Link on Nucleo boards exposes a virtual COM port
+        # TI ICDI on Tiva LaunchPads also exposes a virtual COM port
+        for port in ports:
+            if port.serial_number == identifier:
+                return port.device
+            # Also check if identifier is in the hardware ID
+            if identifier in (port.hwid or ''):
+                return port.device
+        
+        # If not found by serial, try matching by VID/PID and position
+        # This is a fallback - ideally users should use serial numbers
+        raise RuntimeError(
+            f"Could not find serial port for probe '{identifier}'.\n"
+            f"Available ports: {[p.device for p in ports]}\n"
+            f"Hint: Use 'list probes' to see connected debug probes."
+        )
+    except ImportError:
+        raise RuntimeError("pyserial not installed. Install with: pip install pyserial")
+
+
+def flash_hardware(board: str, identifier: str, binary: Path) -> str:
+    """
+    Flash binary to hardware device using OpenOCD.
+    
+    Args:
+        board: Board type ("stm32" or "tm4c")
+        identifier: Probe serial number or serial port path
+        binary: Path to binary file
+        
+    Returns:
+        Serial port path for communicating with the device
+    """
+    # Determine the probe identifier (serial number) for OpenOCD
+    # If identifier is a port path, we need to find the associated probe
+    if identifier.startswith('/dev/') or identifier.startswith('COM'):
+        # User gave us a port - we'll use it for serial, but need probe SN for flashing
+        # For now, if only one probe is connected, OpenOCD will find it
+        # For multi-probe setups, users should use serial numbers
+        probe_id = None
+        serial_port = identifier
+    else:
+        probe_id = identifier
+        serial_port = find_serial_port_for_probe(identifier, board)
+    
+    # Flash using our flashing module
+    try:
+        flash_device(
+            board=board,
+            binary_path=str(binary),
+            identifier=probe_id,
+            verify=True,
+            reset=True,
+            verbose=False,
+        )
+    except FlashError as e:
+        raise RuntimeError(f"Flash failed:\n{e}")
+    
+    return serial_port
 
 
 def pytest_addoption(parser):
     parser.addoption("--using", type=str, default=None,
-                     help="Hardware: platform@port1,port2 (e.g., stm32@/dev/ttyUSB0,/dev/ttyUSB1)")
+                     help="Hardware: board@id1,id2 (e.g., stm32@SN1,SN2 or tm4c@/dev/ttyACM0,/dev/ttyACM1)")
 
 
 @pytest.fixture(scope="session")
@@ -147,13 +219,23 @@ def hardware_config(request) -> Optional[HardwareConfig]:
     if not using:
         return None
     
-    platform, ports_str = using.split("@", 1)
-    ports = [p.strip() for p in ports_str.split(",")]
+    if "@" not in using:
+        raise ValueError(
+            f"Invalid --using format: '{using}'\n"
+            f"Expected: board@id1,id2 (e.g., stm32@SN1,SN2 or tm4c@/dev/ttyACM0,/dev/ttyACM1)"
+        )
     
-    if len(ports) < 2:
-        raise ValueError("Hardware mode requires at least 2 ports: --using platform@port1,port2")
+    board, ids_str = using.split("@", 1)
+    identifiers = [i.strip() for i in ids_str.split(",")]
     
-    return HardwareConfig(platform=platform, ports=ports)
+    # Validate board type
+    if board not in ["stm32", "tm4c"]:
+        raise ValueError(f"Unknown board '{board}'. Supported: stm32, tm4c")
+    
+    if len(identifiers) < 2:
+        raise ValueError("Hardware mode requires at least 2 identifiers: --using board@id1,id2")
+    
+    return HardwareConfig(board=board, identifiers=identifiers)
 
 
 @pytest.fixture
@@ -172,20 +254,30 @@ def deploy(hardware_config):
     
     if hardware_config:
         # Hardware mode
-        port_idx = 0
+        id_idx = 0
         
         def _deploy(cfg: RoleConfig) -> DeployedDevice:
-            nonlocal port_idx
-            if port_idx >= len(hardware_config.ports):
-                raise RuntimeError(f"Not enough hardware ports (have {len(hardware_config.ports)}, need more)")
+            nonlocal id_idx
+            if id_idx >= len(hardware_config.identifiers):
+                raise RuntimeError(
+                    f"Not enough hardware devices "
+                    f"(have {len(hardware_config.identifiers)}, need more)"
+                )
             
-            port = hardware_config.ports[port_idx]
-            port_idx += 1
+            identifier = hardware_config.identifiers[id_idx]
+            id_idx += 1
             
-            binary = build_role(cfg, hardware_config.platform)
-            flash_hardware(hardware_config.platform, port, binary)
+            # Build firmware for hardware platform
+            binary = build_role(cfg, hardware_config.board)
             
-            ser = serial.Serial(port, DEFAULT_BAUD, timeout=DEFAULT_TIMEOUT)
+            # Flash and get serial port
+            serial_port = flash_hardware(hardware_config.board, identifier, binary)
+            
+            # Give device time to reset and boot
+            time.sleep(0.2)
+            
+            # Open serial connection
+            ser = serial.Serial(serial_port, DEFAULT_BAUD, timeout=DEFAULT_TIMEOUT)
             time.sleep(0.1)
             ser.reset_input_buffer()
             
@@ -194,7 +286,7 @@ def deploy(hardware_config):
             if not startup.startswith("OK"):
                 raise RuntimeError(f"Device didn't start properly, got: {startup}")
             
-            dev = DeployedDevice(cfg.role, ser, hardware_config.platform)
+            dev = DeployedDevice(cfg.role, ser, hardware_config.board)
             deployed.append(dev)
             return dev
     
