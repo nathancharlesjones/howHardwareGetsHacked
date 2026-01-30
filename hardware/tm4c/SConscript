@@ -27,7 +27,7 @@ sources = [
     'source/tm4c.c',
     'source/uart_tm4c.c',
     'source/syscalls.c',
-    'libraries/tivaware/startup_gcc.c'
+    'libraries/tivaware/startup_tm4c123gh6pm_baremetal.c'
 ]
 
 local_env.Append(LINKFLAGS= [

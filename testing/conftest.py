@@ -200,6 +200,7 @@ def flash_hardware(board: str, identifier: str, binary: Path) -> str:
             verify=True,
             reset=True,
             verbose=False,
+            clear_flash=True
         )
     except FlashError as e:
         raise RuntimeError(f"Flash failed:\n{e}")

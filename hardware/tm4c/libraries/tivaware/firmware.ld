@@ -18,8 +18,17 @@ MEMORY
     SRAM    (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00008000
 }
 
+/* Top of stack (used by startup file) */
+_stack_top = ORIGIN(RAM) + LENGTH(RAM);
+
 SECTIONS
 {
+    /* Interrupt vector table — MUST be first */
+    .isr_vector :
+    {
+        KEEP(*(.isr_vector))
+    } > FLASH
+    
     .text :
     {
         _text = .;

@@ -1,0 +1,2 @@
+[console_scripts]
+gdbgui = gdbgui.cli:main

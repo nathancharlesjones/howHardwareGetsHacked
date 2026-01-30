@@ -447,6 +447,7 @@ def flash_command(args):
             verify=not args.no_verify,
             reset=not args.no_reset,
             verbose=args.verbose,
+            clear_flash=args.clear_flash
         )
         print_success(f"Successfully flashed {binary.name} to {args.platform}")
         return 0
@@ -854,6 +855,9 @@ def main():
                              help="Skip verification after flashing")
     flash_parser.add_argument("--no-reset", action="store_true",
                              help="Don't reset device after flashing")
+    flash_parser.add_argument("--no-clear-flash", dest="clear_flash", action="store_false",
+                             help="Do NOT mass-erase flash before programming")
+    flash_parser.set_defaults(clear_flash=True)
     flash_parser.set_defaults(func=flash_command)
     
     # RUN

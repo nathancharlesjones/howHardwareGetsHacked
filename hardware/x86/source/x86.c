@@ -11,6 +11,7 @@
 #include "platform.h"
 #include "uart.h"
 #include "uart_x86.h"
+#include "ui.h"
 
 // Defines
 #ifndef UNLOCK_FLAG
@@ -39,6 +40,7 @@ static void signal_handler(int sig)
 {
     //(void)sig;
     uart_cleanup();
+    closeThread();
     exit(0);
 }
 
@@ -81,6 +83,8 @@ static void initHardware(int argc, char ** argv)
     /* Initialize UARTs */
     uart_init(HOST_UART, argc, argv);
     uart_init(BOARD_UART, argc, argv);
+
+    initThread(argc, argv);
 }
 
 void initHardware_car(int argc, char ** argv)
@@ -147,11 +151,23 @@ bool saveFobState(const FLASH_DATA* data)
     return (written == sizeof(FLASH_DATA));
 }
 
-void setLED(led_color_t color)
+void __attribute__((weak)) initThread(int argc, char ** argv)
 {
+    // Empty
 }
 
-bool buttonPressed(void)
+void  __attribute__((weak)) closeThread(void)
 {
+    // Empty
+}
+
+void  __attribute__((weak)) setLED(led_color_t color)
+{
+    // Empty
+}
+
+bool  __attribute__((weak)) buttonPressed(void)
+{
+    // Empty
     return false;
 }

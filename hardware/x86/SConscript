@@ -4,13 +4,15 @@ local_env = env.Clone()
 
 # x86-specific include paths
 local_env.Append(CPPPATH=[
-    '#/hardware/x86/include'
+    '#/hardware/x86/include',
+    '#/hardware/x86/ui'
 ])
 
 # x86 sources
 sources = [
     'source/x86.c',
-    'source/uart_x86.c'
+    'source/uart_x86.c',
+    'ui/console/console_x86.c'
 ]
 
 local_env.Append(LINKFLAGS = [

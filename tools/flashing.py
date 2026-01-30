@@ -112,6 +112,7 @@ def flash_device(
     verify: bool = True,
     reset: bool = True,
     verbose: bool = False,
+    clear_flash: bool = False,
 ) -> None:
     """
     Flash a binary to an embedded device using OpenOCD.
@@ -139,6 +140,16 @@ def flash_device(
     # Build command
     cmd = [openocd]
     cmd.extend(_build_openocd_config_args(platform, identifier))
+
+    ocd_cmds = []
+
+    if clear_flash:
+        # Ensure target is halted and fully erase flash
+        ocd_cmds.extend([
+            "init",
+            "reset halt",
+            "flash erase_address 0 0",
+        ])
     
     # Build the program command
     # OpenOCD's "program" command handles erase + write + optional verify + reset
@@ -149,7 +160,10 @@ def flash_device(
         program_cmd += " reset"
     program_cmd += " exit"
     
-    cmd.extend(["-c", program_cmd])
+    ocd_cmds.append(program_cmd)
+
+    for c in ocd_cmds:
+        cmd.extend(["-c", c])
     
     if verbose:
         print(f"Running: {' '.join(cmd)}")
@@ -162,9 +176,6 @@ def flash_device(
     )
     
     if "** Verified OK **" not in result.stderr:
-        raise RuntimeError("Flashing failed")
-    '''
-    if result.returncode != 0:
         error_msg = f"Flash failed for {platform}"
         if identifier:
             error_msg += f" (identifier: {identifier})"
@@ -174,9 +185,7 @@ def flash_device(
         if "no device found" in result.stderr.lower() or "unable to find" in result.stderr.lower():
             error_msg += "\n\nHint: Check that the device is connected and you have permissions."
             error_msg += "\nOn Linux, you may need udev rules. Try: sudo openocd ..."
-        
-        raise FlashError(error_msg)
-    '''
+        raise RuntimeError("Flashing failed")
 
     if verbose:
         print(result.stdout)

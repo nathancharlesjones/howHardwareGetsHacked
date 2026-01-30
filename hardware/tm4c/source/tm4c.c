@@ -3,6 +3,9 @@
 #include <stddef.h>
 #include <string.h>
 
+#include "inc/hw_ints.h"
+#include "driverlib/pin_map.h"
+
 #include "inc/hw_memmap.h"
 #include "driverlib/eeprom.h"
 #include "driverlib/gpio.h"
@@ -32,6 +35,12 @@ static uint8_t current_sw_state = GPIO_PIN_4;
 
 static void initHardware(int argc, char ** argv)
 {
+	// Set system clock (example: 16 MHz PIOSC)
+	SysCtlClockSet(SYSCTL_SYSDIV_1 |
+	               SYSCTL_USE_OSC |
+	               SYSCTL_OSC_MAIN |
+	               SYSCTL_XTAL_16MHZ);
+	
 	// Ensure EEPROM peripheral is enabled
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_EEPROM0);
 	EEPROMInit();
@@ -41,6 +50,30 @@ static void initHardware(int argc, char ** argv)
 
 	// Initialize board link UART
 	uart_init(BOARD_UART, argc, argv);
+
+	// Enable GPIO Port F
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
+	while(!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOF));
+
+	// Configure LED pins
+	GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE,
+	    GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3);
+
+	GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1, GPIO_PIN_1); // r
+	GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_3, GPIO_PIN_3); // g
+	GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, GPIO_PIN_2); // b
+	while(1);
+
+	led_color_t color = WHITE;
+	setLED(color);
+	while(1)
+	{
+		if(buttonPressed())
+		{
+			color = (color + 1) & 0b11;
+			setLED(color);
+		}
+	}
 }
 
 void initHardware_car(int argc, char ** argv)
