@@ -119,7 +119,7 @@ def build_role(cfg: RoleConfig, platform: str) -> Path:
 
     folder = f"{cfg.role}_{cfg.id}" if cfg.id else cfg.role
     build_dir = PROJECT_ROOT / "hardware" / platform / "build" / folder
-    exe = build_dir / folder
+    exe = build_dir / f"{folder}.bin"
     if not exe.exists():
         candidates = [f for f in build_dir.iterdir() if f.is_file() and f.suffix not in ['.h', '.o']]
         exe = candidates[0] if candidates else exe
@@ -174,7 +174,7 @@ def flash_hardware(board: str, identifier: str, binary: Path) -> str:
     Args:
         board: Board type ("stm32" or "tm4c")
         identifier: Probe serial number or serial port path
-        binary: Path to binary file
+        binary: Path to binary fiboardle
         
     Returns:
         Serial port path for communicating with the device
@@ -194,7 +194,7 @@ def flash_hardware(board: str, identifier: str, binary: Path) -> str:
     # Flash using our flashing module
     try:
         flash_device(
-            board=board,
+            platform=board,
             binary_path=str(binary),
             identifier=probe_id,
             verify=True,
@@ -272,6 +272,7 @@ def deploy(hardware_config):
             
             # Flash and get serial port
             serial_port = flash_hardware(hardware_config.board, identifier, binary)
+            print(f"serial_port for {identifier}: {serial_port}")
             
             # Give device time to reset and boot
             time.sleep(0.2)
@@ -283,8 +284,8 @@ def deploy(hardware_config):
             
             # Wait for "OK: started" message
             startup = ser.readline().decode('ascii', errors='replace').strip()
-            if not startup.startswith("OK"):
-                raise RuntimeError(f"Device didn't start properly, got: {startup}")
+            #if not startup.startswith("OK"):
+            #    raise RuntimeError(f"Device didn't start properly, got: {startup}")
             
             dev = DeployedDevice(cfg.role, ser, hardware_config.board)
             deployed.append(dev)

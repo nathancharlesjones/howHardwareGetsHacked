@@ -197,11 +197,10 @@ void processHostCommand(FLASH_DATA *fob_state_ram, const char *cmd)
   // Test command: reset (factory reset)
   if (strcmp(cmd, "reset") == 0)
   {
+    // Should this unpair the fob??
     memset(fob_state_ram, 0, sizeof(FLASH_DATA));
     saveFobState(fob_state_ram);
     sendOK(NULL);
-    // Note: After reset, fob is unpaired but still in main loop.
-    // A restart would be needed to re-enter the pairing wait state.
     return;
   }
 #endif

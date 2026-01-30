@@ -161,6 +161,9 @@ def flash_device(
         text=True,
     )
     
+    if "** Verified OK **" not in result.stderr:
+        raise RuntimeError("Flashing failed")
+    '''
     if result.returncode != 0:
         error_msg = f"Flash failed for {platform}"
         if identifier:
@@ -173,7 +176,8 @@ def flash_device(
             error_msg += "\nOn Linux, you may need udev rules. Try: sudo openocd ..."
         
         raise FlashError(error_msg)
-    
+    '''
+
     if verbose:
         print(result.stdout)
         print(result.stderr)
