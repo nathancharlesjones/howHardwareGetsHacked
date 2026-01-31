@@ -71,7 +71,7 @@ UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-static FLASH_DATA flash_data __attribute__((section(".flash_data"))) = {0};
+static FLASH_DATA flash_data __attribute__((section(".flash_data")));
 
 static UART_HandleTypeDef* const uart_base[2] = { [HOST_UART] = &huart2, [BOARD_UART] = &huart1 };
 /* USER CODE END PV */
@@ -163,7 +163,7 @@ bool saveFobState(const FLASH_DATA *src)
   };
 
   uint8_t padded_data[FLASH_DATA_BYTES];
-  memset(padded_data, 0, sizeof(padded_data));
+  memset(padded_data, FLASH_UNPAIRED, sizeof(padded_data));
   memcpy((FLASH_DATA*)(&padded_data), src, sizeof(FLASH_DATA));
 
   uint32_t sector_err = 0;

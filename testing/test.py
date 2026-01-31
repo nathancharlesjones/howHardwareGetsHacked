@@ -13,7 +13,6 @@ import protocol as proto
 
 from packaging import create_feature_package
 
-
 class TestSinglePairedFob:
     """Tests using only a single paired fob."""
 
@@ -24,7 +23,7 @@ class TestSinglePairedFob:
     def test_get_flash_data_for_paired_fob(self, paired_fob):
         """Should be able to read fob's flash data."""
         flash = proto.get_flash_data(paired_fob)
-        assert flash.paired, "Flash data should show paired"
+        assert flash.paired == 0x01, "Flash data should show paired"
         assert flash.pair_info.car_id != b'\x00' * 8, "Should have a car ID"
         assert flash.pair_info.pin != b'\x00' * 8, "Should have a pin"
         assert flash.pair_info.password != b'\x00' * 8, "Should have a password"
@@ -140,7 +139,7 @@ class TestSingleUnpairedFob:
     def test_get_flash_data_for_unpaired_fob(self, unpaired_fob):
         """Should be able to read fob's flash data."""
         flash = proto.get_flash_data(unpaired_fob)
-        assert not flash.paired, "Flash data should show unpaired"
+        assert flash.paired == 0xFF, "Flash data should show unpaired"
         assert flash.pair_info.car_id == b'\x00' * 8, "Should not have a car ID"
         assert flash.pair_info.pin == b'\x00' * 8, "Should not have a pin"
         assert flash.pair_info.password == b'\x00' * 8, "Should not have a password"
