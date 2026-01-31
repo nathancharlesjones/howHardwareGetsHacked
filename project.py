@@ -16,8 +16,9 @@ from tools.packaging import create_feature_package, save_feature_package
 
 
 # Project configuration
-AVAILABLE_PLATFORMS = ["stm32", "tm4c", "x86"]  # Update with your actual platforms
-AVAILABLE_ROLES = ["car", "paired_fob", "unpaired_fob"]  # Update with your actual roles
+AVAILABLE_PLATFORMS = ["stm32", "tm4c", "x86"]
+AVAILABLE_ROLES = ["car", "paired_fob", "unpaired_fob"]
+AVAILABLE_UI = ["console", "microui"]
 HOST_TOOLS_DIR = Path("host_tools")  # Adjust to your project structure
 #BUILD_DIR = Path(f"hardware/{args.platform}/build")  # Adjust to your build output directory
 
@@ -88,7 +89,7 @@ def run_scons(build_configs: List[List[str]], clean: bool = False, dry_run: bool
 
 
 def build_scons_args(platform: str, role: str, id_val: Optional[str] = None, 
-                     pin: Optional[str] = None, unlock_flag: Optional[str] = None,
+                     pin: Optional[str] = None, ui: Optional[str] = None, unlock_flag: Optional[str] = None,
                      feature1_flag: Optional[str] = None, feature2_flag: Optional[str] = None,
                      feature3_flag: Optional[str] = None, test_build: bool = False) -> List[str]:
     """
@@ -113,6 +114,9 @@ def build_scons_args(platform: str, role: str, id_val: Optional[str] = None,
         args.append(f"id={id_val}")
     if pin:
         args.append(f"pin={pin}")
+
+    if ui:
+        args.append(f"ui={ui}")
     
     # Add feature flags if provided
     if unlock_flag:
@@ -152,42 +156,45 @@ def get_build_configs_for_target(args) -> List[List[str]]:
     feature1_flag = getattr(args, 'feature1_flag', None)
     feature2_flag = getattr(args, 'feature2_flag', None)
     feature3_flag = getattr(args, 'feature3_flag', None)
+
+    # Look for UI specification
+    ui = getattr(args, 'ui', None)
     
     # Pattern 1: id + pin (no role/platform) -> all roles for all platforms
     if hasattr(args, 'id') and args.id and hasattr(args, 'pin') and args.pin and not args.role and not args.platform:
         for platform in AVAILABLE_PLATFORMS:
             for role in AVAILABLE_ROLES:
                 if role == "paired_fob":
-                    configs.append(build_scons_args(platform, role, args.id, args.pin,
+                    configs.append(build_scons_args(platform, role, args.id, args.pin, ui,
                                                    unlock_flag, feature1_flag, feature2_flag, feature3_flag,
                                                    getattr(args, 'test_build', False)))
                 elif role == "car":
-                    configs.append(build_scons_args(platform, role, args.id, None,
+                    configs.append(build_scons_args(platform, role, args.id, None, ui,
                                                    unlock_flag, feature1_flag, feature2_flag, feature3_flag,
                                                    getattr(args, 'test_build', False)))
                 else:  # unpaired_fob
-                    configs.append(build_scons_args(platform, role, None, None,
+                    configs.append(build_scons_args(platform, role, None, None, ui,
                                                    unlock_flag, feature1_flag, feature2_flag, feature3_flag,
                                                    getattr(args, 'test_build', False)))
         return configs
     
     # Pattern 2: car + id + platform
     if args.role == "car" and hasattr(args, 'id') and args.id and args.platform:
-        configs.append(build_scons_args(args.platform, "car", args.id, None,
+        configs.append(build_scons_args(args.platform, "car", args.id, None, ui,
                                        unlock_flag, feature1_flag, feature2_flag, feature3_flag,
                                        getattr(args, 'test_build', False)))
         return configs
     
     # Pattern 3: paired_fob + id + pin + platform
     if args.role == "paired_fob" and hasattr(args, 'id') and args.id and hasattr(args, 'pin') and args.pin and args.platform:
-        configs.append(build_scons_args(args.platform, "paired_fob", args.id, args.pin,
+        configs.append(build_scons_args(args.platform, "paired_fob", args.id, args.pin, ui,
                                        unlock_flag, feature1_flag, feature2_flag, feature3_flag,
                                        getattr(args, 'test_build', False)))
         return configs
     
     # Pattern 4: unpaired_fob + platform
     if args.role == "unpaired_fob" and args.platform:
-        configs.append(build_scons_args(args.platform, "unpaired_fob", None, None,
+        configs.append(build_scons_args(args.platform, "unpaired_fob", None, None, ui,
                                        unlock_flag, feature1_flag, feature2_flag, feature3_flag,
                                        getattr(args, 'test_build', False)))
         return configs
@@ -300,6 +307,7 @@ def build_command(args):
         print("  • build --role car          --id ID           --platform PLATFORM")
         print("  • build --role paired_fob   --id ID --pin PIN --platform PLATFORM")
         print("  • build --role unpaired_fob                   --platform PLATFORM")
+        print("  • x86 ports may also provide --ui")
         return 1
     
     # Prepare build environments for each configuration
@@ -447,7 +455,7 @@ def flash_command(args):
             verify=not args.no_verify,
             reset=not args.no_reset,
             verbose=args.verbose,
-            clear_flash=args.clear_flash
+            erase_flash_sector=getattr(args, 'erase_flash_sector', None)
         )
         print_success(f"Successfully flashed {binary.name} to {args.platform}")
         return 0
@@ -816,6 +824,8 @@ def main():
                              help="Device ID (required for car and paired_fob)")
     build_parser.add_argument("--pin", type=str,
                              help="Device PIN (required for paired_fob)")
+    build_parser.add_argument("--ui", choices=AVAILABLE_UI,
+                             help="Desired UI for x86 port")
 
     # Optional feature flags
     build_parser.add_argument("--unlock-flag", type=str, dest="unlock_flag",
@@ -855,8 +865,8 @@ def main():
                              help="Skip verification after flashing")
     flash_parser.add_argument("--no-reset", action="store_true",
                              help="Don't reset device after flashing")
-    flash_parser.add_argument("--no-clear-flash", dest="clear_flash", action="store_false",
-                             help="Do NOT mass-erase flash before programming")
+    flash_parser.add_argument("--erase-flash-sector", "-e", type=int,
+                             help="Flash sector to optionally erase before programming")
     flash_parser.set_defaults(clear_flash=True)
     flash_parser.set_defaults(func=flash_command)
     

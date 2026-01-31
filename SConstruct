@@ -4,6 +4,8 @@ opts.Add(EnumVariable('platform', 'Target platform', '',
                       allowed_values=('stm32', 'tm4c', 'x86')))
 opts.Add(EnumVariable('role', 'Device role', '',
                       allowed_values=('car', 'paired_fob', 'unpaired_fob')))
+opts.Add(EnumVariable('ui', 'UI type for x86 port', '',
+                      allowed_values=('', 'console', 'microui')))
 opts.Add('id', 'Device ID (required for car and paired_fob)', '')
 opts.Add('opt', 'Optimization level', '2')
 opts.Add(BoolVariable('debug', 'Debug build', False))
@@ -24,6 +26,10 @@ if env['role'] in ['car', 'paired_fob']:
         print(f"Error: 'id' parameter is required when ROLE={env['ROLE']}")
         print("Usage: scons platform=platform1 ROLE=car id=12345")
         Exit(1)
+
+if env['ui'] != '' and env['platform'] != "x86":
+    print("Error: ui option given for non-x86 platform")
+    Exit(1)
 
 # Platform-specific toolchain configuration
 if env['platform'] in ['stm32', 'tm4c']:

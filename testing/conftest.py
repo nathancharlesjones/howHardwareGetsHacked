@@ -200,7 +200,7 @@ def flash_hardware(board: str, identifier: str, binary: Path) -> str:
             verify=True,
             reset=True,
             verbose=False,
-            clear_flash=True
+            erase_flash_sector=5 if board=="stm32" else None
         )
     except FlashError as e:
         raise RuntimeError(f"Flash failed:\n{e}")

@@ -12,7 +12,6 @@ local_env.Append(CPPPATH=[
 sources = [
     'source/x86.c',
     'source/uart_x86.c',
-    'ui/console/console_x86.c'
 ]
 
 local_env.Append(LINKFLAGS = [

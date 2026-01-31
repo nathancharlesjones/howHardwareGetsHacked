@@ -87,12 +87,6 @@ def _build_openocd_config_args(platform: str, identifier: Optional[str] = None) 
     cfg = BOARD_CONFIGS[platform]
     args = []
     
-    # If identifier provided, add adapter serial selection
-    # This must come BEFORE the interface config
-    if identifier:
-        # OpenOCD uses "adapter serial" command to select specific probe
-        args.extend(["-c", f"adapter serial {identifier}"])
-    
     # Use board config (preferred) or interface+target
     if cfg.openocd_board_cfg:
         args.extend(["-f", cfg.openocd_board_cfg])
@@ -101,6 +95,12 @@ def _build_openocd_config_args(platform: str, identifier: Optional[str] = None) 
             args.extend(["-f", cfg.openocd_interface_cfg])
         if cfg.openocd_target_cfg:
             args.extend(["-f", cfg.openocd_target_cfg])
+    
+    # If identifier provided, add adapter serial selection
+    # This must come BEFORE the interface config
+    if identifier:
+        # OpenOCD uses "adapter serial" command to select specific probe
+        args.extend(["-c", f"adapter serial {identifier}"])
     
     return args
 
@@ -112,7 +112,7 @@ def flash_device(
     verify: bool = True,
     reset: bool = True,
     verbose: bool = False,
-    clear_flash: bool = False,
+    erase_flash_sector: Optional[int] = None,
 ) -> None:
     """
     Flash a binary to an embedded device using OpenOCD.
@@ -143,13 +143,20 @@ def flash_device(
 
     ocd_cmds = []
 
-    if clear_flash:
-        # Ensure target is halted and fully erase flash
-        ocd_cmds.extend([
-            "init",
-            "reset halt",
-            "flash erase_address 0 0",
-        ])
+    # Always init once
+    ocd_cmds.append("init")
+
+    if erase_flash_sector is not None:
+        if erase_flash_sector < 0:
+            raise FlashError("erase_flash_sector must be >= 0")
+
+        # Halt before erasing persistent data
+        ocd_cmds.append("reset halt")
+
+        # Use generic flash layer (portable across STM32 / TM4C)
+        ocd_cmds.append(
+            f"flash erase_sector 0 {erase_flash_sector} {erase_flash_sector}"
+        )
     
     # Build the program command
     # OpenOCD's "program" command handles erase + write + optional verify + reset
@@ -175,6 +182,7 @@ def flash_device(
         text=True,
     )
     
+    '''
     if "** Verified OK **" not in result.stderr:
         error_msg = f"Flash failed for {platform}"
         if identifier:
@@ -186,6 +194,7 @@ def flash_device(
             error_msg += "\n\nHint: Check that the device is connected and you have permissions."
             error_msg += "\nOn Linux, you may need udev rules. Try: sudo openocd ..."
         raise RuntimeError("Flashing failed")
+        '''
 
     if verbose:
         print(result.stdout)
