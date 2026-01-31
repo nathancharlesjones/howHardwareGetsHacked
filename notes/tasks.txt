@@ -1,26 +1,59 @@
-[ ] Test Tiva unlock
-[X] Copy over host tools (just package_tool and enable_tool, since features are binary files)
-[X] Copy over deployment tool --> Nah, not yet.
-[X] Make SCons build scripts
-	[X] Add flags
-[X] Make top-level make "ALL" call
-	[X] Eliminate complication? Require all/most args?
-[X] Manually test: unlock (Y), package feature (Y), enable feature (Y), unlock (Y), pair fob (Y), unlock (Y)
-[X] Add x86 port
-	[X] Fix atlas.inl problem
-	[X] Add text UI
-	[X] Wire in to Scons build, run sim
-[X] Add unit tests
-	[X] Update car, fob, platforms, conftest, test, protocol
-	[X] Add TEST_BUILD to build args and -DTEST_BUILD to conftest
-	[X] Duplication of unlock/start sequence in fob?
-	[X] Reset unpairs?
-[X] Fix strcmp in car firmware (Thanks, Claude!)
-[X] Should secrets, messages be put in a different folder? --> gen_secrets can go in tools
-[ ] Update on new car id? ("Building car didn't trigger new car secret, secrets.h if only car id changed")
-[X] Delete unneccessary code in saveFobState
-[ ] Need "CAR SECRET"?
-[ ] Reflashing doesn't overwrite old flash_data?
-[X] Double-check fob top of main; is it doing what I want it to?
-[ ] Add .flash_data to TM4C
-[ ] Ensure flashing program overwrites .flash_data for STM32 and TM4C
+Which would I like to finish before continuing Part 2?
+>> Refactor tooling
+	>> project.py
+	>> flashing
+	>> debug
+	>> conftest
+>> Run tests on STM32
+	>> Fix flash
+>> Run tests on TM4C
+	>> Fix linker, init code
+	>> Test blinky, serial, single test
+
+Which would I like to finish before finishing Part 2?
+>> Simulate
+>> Update makefiles to match SCons
+>> Add logging
+>> Create README
+>> Fix debugging
+
+[ ] TEST-1 Get all tests passing for STM32 @module(tests) @module(stm32)
+	[ ] TEST-1.1 Add erasing to flash step during deployment depends:TOOL-1
+[ ] TEST-2 Get all tests passing for TM4C @module(tests) @module(tm4c)
+	[ ] TEST-2.1 Get one test working for TM4C depends:TEST-2.2
+	[ ] TEST-2.2 Talk to TM4C over serial depends:TEST-2.3
+	[ ] TEST-2.3 Get to blinky
+		[ ] TEST-2.3.1 Fix linker script (no STACK_SIZE, set top at estack)
+		[ ] TEST-2.3.2 Add init code
+[ ] UNIT-1 Add more unit tests @module(tests)
+[ ] CONF-1 Simplify conftest.py @module(tests)
+[ ] PING-1 Add "ping" command? @module(tests)
+[ ] THRD-1 Add support for three deployed devices
+[ ] FLASH-1 Fix flash code @module(fob)
+	[ ] FOB-1.1 Decide whether to add .flash_data to TM4C or make STM32 look like starter code
+[ ] UI-1 Build console and microui UIs
+	[ ] UI-1.1 Fix conditional compilation depends:TOOL-1
+	[ ] UI-1.2 Build microui
+		[ ] UI-1.2.1 Figure out why checkmark closed test window
+		[ ] UI-1.2.2 Run test gui inside microui.c
+		[ ] UI-1.2.3 Build fob and car guis
+	[ ] UI-1.3 Add "simulate" command to project.py
+[ ] PROJ-1 Refactor project.py @module(tools)
+[ ] CARID-1 Ensure build script updates on new car ID ("Building car didn't trigger new car secret, secrets.h if only car id changed") @module(tools)
+[ ] FLASHT-1 Decide whether to simplify or remove flashing.py @module(tools)
+[ ] SECRET-1 Decide whether to keep or remove CAR_SECRET from secret.h
+[ ] STRMEM-1 Check that pins, IDs, and passwords are copied, stored, and compared correctly
+[ ] MAKE-1 Update makefiles to match scons @module(tools)
+[ ] LOG-1 Add logging
+	[ ] LOG-1.1 Define macros
+	[ ] LOG-1.2 Add commands
+		[ ] LOG-1.2.1 Read logs
+		[ ] LOG-1.2.2 Clear logs?
+		[ ] LOG-1.2.3 Change severity for function
+		[ ] LOG-1.2.4 Global disable?
+	[ ] LOG-1.3 Decide whether to add logging to file on x86
+	[ ] LOG-1.4 Update SCons?
+[ ] DBG-1 Get debugging working
+	[ ] DBG-1.1 Install arm-none-eabi-gdb
+	[ ] DBG-1.2 Refactor debug command in project.py
+[ ] RDME-1 Ask Claude/ChatGPT to create README for repo (incl "how to port")

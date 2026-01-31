@@ -1,0 +1,26 @@
+[ ] TASK_ID-1 Short description of the task @module(core) depends:TASK_ID +tag +tag
+    [ ] TASK_ID-1.1 Nested task @module(core) depends:TASK_ID +tag +tag
+
+Status:
+[ ]  incomplete
+[x]  complete
+[-]  blocked / won't do / parked (optional)
+
+Ex:
+[ ] BOOT-1 Clean up startup sequence @module(boot)
+    [ ] BOOT-1.1 Move clock init earlier
+    [ ] BOOT-1.2 Verify flash wait states +hardware
+
+[ ] FLASH-3 Unify flash layout @module(storage)
+    [ ] FLASH-3.1 Define linker symbols
+    [ ] FLASH-3.2 Migrate persistent data depends:FLASH-3.1
+    [ ] FLASH-3.3 Add erase-on-upgrade option +tests
+
+[x] LOG-2 Remove printf from ISR paths @module(logging)
+
+Searching:
+grep '^\[ \]' todo.txt   		# all open tasks
+grep '^\[x\]' todo.txt   		# all completed tasks
+grep '^.*AUTH-' todo.txt		# all tasks with id AUTH
+grep '@module(auth)' todo.txt 	# all tasks for module auth
+grep -n 'AUTH-2' todo.txt 		# all
