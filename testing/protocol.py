@@ -138,7 +138,7 @@ class FeatureData:
 
 @dataclass
 class FlashData:
-    paired: bool
+    paired: int
     pair_info: PairPacket
     feature_info: FeatureData
     
@@ -154,7 +154,7 @@ class FlashData:
     def unpack(cls, data: bytes) -> 'FlashData':
         """Unpack from bytes received from getFlashData."""
         return cls(
-            paired=data[0] != 0,
+            paired=data[0],
             pair_info=PairPacket.unpack(data[1:25]),
             feature_info=FeatureData.unpack(data[25:37])
         )

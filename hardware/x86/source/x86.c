@@ -95,7 +95,8 @@ void initHardware_car(int argc, char ** argv)
 
 static void create_default_fob_state(void)
 {
-    FLASH_DATA default_state = {0};
+    FLASH_DATA default_state;
+    memset(&default_state, 0xFF, sizeof(FLASH_DATA));
     
     saveFobState(&default_state);
 }

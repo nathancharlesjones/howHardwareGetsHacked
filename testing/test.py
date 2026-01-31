@@ -24,9 +24,9 @@ class TestSinglePairedFob:
         """Should be able to read fob's flash data."""
         flash = proto.get_flash_data(paired_fob)
         assert flash.paired == 0x01, "Flash data should show paired"
-        assert flash.pair_info.car_id != b'\x00' * 8, "Should have a car ID"
-        assert flash.pair_info.pin != b'\x00' * 8, "Should have a pin"
-        assert flash.pair_info.password != b'\x00' * 8, "Should have a password"
+        assert flash.pair_info.car_id != b'\xFF' * 8, "Should have a car ID"
+        assert flash.pair_info.pin != b'\xFF' * 8, "Should have a pin"
+        assert flash.pair_info.password != b'\xFF' * 8, "Should have a password"
 
     def test_paired_fob_can_enable_feature_with_valid_id_and_valid_feature_when_there_is_room(self, paired_fob):
         """Should be able to enable valid features."""
@@ -140,9 +140,9 @@ class TestSingleUnpairedFob:
         """Should be able to read fob's flash data."""
         flash = proto.get_flash_data(unpaired_fob)
         assert flash.paired == 0xFF, "Flash data should show unpaired"
-        assert flash.pair_info.car_id == b'\x00' * 8, "Should not have a car ID"
-        assert flash.pair_info.pin == b'\x00' * 8, "Should not have a pin"
-        assert flash.pair_info.password == b'\x00' * 8, "Should not have a password"
+        assert flash.pair_info.car_id == b'\xFF' * 8, "Should not have a car ID"
+        assert flash.pair_info.pin == b'\xFF' * 8, "Should not have a pin"
+        assert flash.pair_info.password == b'\xFF' * 8, "Should not have a password"
 
     def test_unpaired_fob_rejects_feature(self, unpaired_fob):        
         #resp = proto.cmd_btn_press(fob)

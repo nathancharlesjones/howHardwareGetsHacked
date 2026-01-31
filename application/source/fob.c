@@ -72,9 +72,17 @@ int main(int argc, char **argv)
     strcpy((char *)(fob_state_ram.pair_info.car_id), CAR_ID);
     strcpy((char *)(fob_state_ram.feature_info.car_id), CAR_ID);
     fob_state_ram.paired = FLASH_PAIRED;
+    fob_state_ram.feature_info.num_active = 0;
 
     saveFobState(&fob_state_ram);
   }
+#else
+  // This will run on first boot to initialize features
+  if (fob_state_ram.feature_info.num_active == 0xFF)
+  {
+    fob_state_ram.feature_info.num_active = 0;
+    saveFobState(&fob_state_ram);
+  }  
 #endif
 
   // Signal ready to host

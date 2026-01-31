@@ -61,3 +61,4 @@ Which would I like to finish before finishing Part 2?
 [ ] RDME-1 Ask Claude/ChatGPT to create README for repo (incl "how to port")
 [ ] DOCS-1 Ask Claude/ChatGPT to create Mermaid block/class diagram to show how app and hardware (and ui?) interact
 [ ] DOCS-2 Ask Claude/ChatGPT to create Mermaid block/class diagram to show how exe and tests interact
+[ ] TEST-3 Add "delete flash_data.bin" (or reset?) to end of tests with x86 programs
