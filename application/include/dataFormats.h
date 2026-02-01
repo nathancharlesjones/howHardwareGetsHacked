@@ -29,7 +29,7 @@ typedef struct
 typedef struct
 __attribute__((aligned(4)))
 {
-  bool paired;
+  uint8_t paired;
   PAIR_PACKET pair_info;
   FEATURE_DATA feature_info;
 } FLASH_DATA;

@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 
 // If paired fob, initialize the system information on first boot
 #if PAIRED == 1
-  if (fob_state_ram.paired = FLASH_UNPAIRED)
+  if (FLASH_UNPAIRED == fob_state_ram.paired)
   {
     strcpy((char *)(fob_state_ram.pair_info.password), PASSWORD);
     strcpy((char *)(fob_state_ram.pair_info.pin), PAIR_PIN);
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
   }
 #else
   // This will run on first boot to initialize features
-  if (fob_state_ram.feature_info.num_active == 0xFF)
+  if (0xFF == fob_state_ram.feature_info.num_active)
   {
     fob_state_ram.feature_info.num_active = 0;
     saveFobState(&fob_state_ram);
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
     {
       uint8_t c = (uint8_t)uart_readb(HOST_UART);
 
-      if (c == '\n' || c == '\r')
+      if ('\n' == c || '\r' == c)
       {
         if (cmdIndex > 0)
         {
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
       }
     }
 
-    if (fob_state_ram.paired == FLASH_PAIRED)
+    if (FLASH_PAIRED == fob_state_ram.paired)
     {
       // Paired fob: check for button press
       if (buttonPressed()) attemptUnlock(&fob_state_ram);
@@ -165,7 +165,7 @@ void processHostCommand(FLASH_DATA *fob_state_ram, const char *cmd)
   // Test command: isPaired
   if (strcmp(cmd, "isPaired") == 0)
   {
-    sendOK((fob_state_ram->paired == FLASH_PAIRED) ? "1" : "0");
+    sendOK((FLASH_PAIRED == fob_state_ram->paired) ? "1" : "0");
     return;
   }
 
@@ -390,7 +390,7 @@ void enableFeature(FLASH_DATA *fob_state_ram, const uint8_t *data, size_t len)
   // Search for feature in list (check if already enabled)
   for (int i = 0; i < fob_state_ram->feature_info.num_active; i++)
   {
-    if (fob_state_ram->feature_info.features[i] == enable_message->feature)
+    if (enable_message->feature == fob_state_ram->feature_info.features[i])
     {
       sendError("already enabled");
       return;
@@ -467,7 +467,7 @@ void receivePairData(FLASH_DATA *fob_state_ram)
   switch (pairState)
   {
     case PAIR_STATE_WAIT_MAGIC:
-        if (c == PAIR_MAGIC)
+        if (PAIR_MAGIC == c)
         {
             pairState = PAIR_STATE_WAIT_LEN;
         }
@@ -479,7 +479,7 @@ void receivePairData(FLASH_DATA *fob_state_ram)
         pairLen = 0;
         
         // Validate length
-        if (pairExpectedLen == sizeof(PAIR_PACKET))
+        if (sizeof(PAIR_PACKET) == pairExpectedLen)
         {
             pairState = PAIR_STATE_WAIT_DATA;
         }

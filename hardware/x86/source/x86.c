@@ -104,9 +104,12 @@ static void create_default_fob_state(void)
 void initHardware_fob(int argc, char ** argv)
 {
     initHardware(argc, argv);
-    
+
+#ifndef TEST_BUILD
     /* Create default fob state file if it doesn't exist */
-    if (access(flash_data_file_path, F_OK) != 0) {
+    if (access(flash_data_file_path, F_OK) != 0)
+#endif
+    {
         create_default_fob_state();
     }
 
@@ -121,7 +124,7 @@ void loadFlag(uint8_t* dest, flag_t flag)
         [FEATURE2] = FEATURE2_FLAG,
         [FEATURE3] = FEATURE3_FLAG
     };
-    size_t size = (flag == UNLOCK) ? UNLOCK_SIZE : FEATURE_SIZE;
+    size_t size = (UNLOCK == flag) ? UNLOCK_SIZE : FEATURE_SIZE;
     memcpy(dest, flags[flag], size);
 }
 
@@ -148,8 +151,8 @@ bool saveFobState(const FLASH_DATA* data)
     
     size_t written = fwrite(data, 1, sizeof(FLASH_DATA), fp);
     fclose(fp);
-    
-    return (written == sizeof(FLASH_DATA));
+
+    return (sizeof(FLASH_DATA) == written);
 }
 
 void __attribute__((weak)) initThread(int argc, char ** argv)
