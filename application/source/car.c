@@ -41,8 +41,8 @@ void sendOK(const char *value);
 void sendError(const char *reason);
 
 // Declare password
-const uint8_t pass[8] = PASSWORD;
-const uint8_t car_id[] = CAR_ID;
+const char pass[8] = PASSWORD;
+const char car_id[11] = CAR_ID;
 
 // State variables
 static bool carLocked = true;
@@ -182,9 +182,11 @@ void unlockCar(void)
 
   // Receive unlock message
   receive_board_message_by_type(&message, UNLOCK_MAGIC);
+  // Ensure nul termination
+  message.buffer[7] = '\0';
 
   // Validate password (always compare exactly 8 bytes)
-  if (message.message_len != 8 || memcmp(message.buffer, pass, 8) != 0)
+  if (message.message_len != (strlen(pass) + 1) || strcmp((char*)message.buffer, pass) != 0)
   {
       sendAckFailure();
       return;
@@ -199,7 +201,7 @@ void unlockCar(void)
   FEATURE_DATA *feature_info = (FEATURE_DATA *)buffer;
 
   // Verify car ID matches (compare exactly 8 bytes)
-  if (memcmp(car_id, feature_info->car_id, 8) != 0)
+  if (strcmp(car_id, feature_info->car_id) != 0)
   {
       return;
   }

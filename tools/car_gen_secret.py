@@ -19,7 +19,7 @@ from pathlib import Path
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--car-id", type=int, required=True)
+    parser.add_argument("--car-id", type=str, required=True)
     parser.add_argument("--secret-file", type=Path, required=True)
     parser.add_argument("--header-file", type=Path, required=True)
     args = parser.parse_args()
@@ -32,7 +32,7 @@ def main():
         secrets = {}
 
     # Add dummy secret
-    car_secret = args.car_id + 1
+    car_secret = int(args.car_id) + 1
     secrets[str(args.car_id)] = car_secret
 
     # Save the secret file

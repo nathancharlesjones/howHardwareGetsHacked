@@ -22,10 +22,10 @@ def create_feature_package(car_id: bytes, feature_number: int) -> bytes:
     if not 1 <= feature_number <= 3:
         raise ValueError(f"feature_number must be 1-3, got {feature_number}")
     
-    # Ensure car_id is exactly 8 bytes
+    # Ensure car_id is exactly 11 bytes
     if isinstance(car_id, str):
         car_id = car_id.encode('ascii')
-    car_id_padded = car_id.ljust(8, b'\x00')[:8]
+    car_id_padded = car_id.ljust(11, b'\x00')[:11]
     
     return car_id_padded + bytes([feature_number])
 

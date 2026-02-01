@@ -12,15 +12,15 @@
 // Defines a struct for the format of a pairing message
 typedef struct
 {
-  uint8_t car_id[8];
-  uint8_t password[8];
-  uint8_t pin[8];
+  char car_id[11];
+  char password[8];
+  char pin[7];
 } PAIR_PACKET;
 
 // Defines a struct for the format of start message
 typedef struct
 {
-  uint8_t car_id[8];
+  char car_id[11];
   uint8_t num_active;
   uint8_t features[NUM_FEATURES];
 } FEATURE_DATA;

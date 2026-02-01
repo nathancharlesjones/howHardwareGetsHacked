@@ -19,7 +19,7 @@ from pathlib import Path
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--car-id", type=int)
+    parser.add_argument("--car-id", type=str)
     parser.add_argument("--pair-pin", type=str)
     parser.add_argument("--secret-file", type=Path)
     parser.add_argument("--header-file", type=Path)

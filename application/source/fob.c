@@ -29,7 +29,7 @@
 /*** Structure definitions ***/
 // Defines a struct for the format of an enable message
 typedef struct {
-  uint8_t car_id[8];
+  char car_id[11];
   uint8_t feature;
 } ENABLE_PACKET;
 
@@ -67,10 +67,11 @@ int main(int argc, char **argv)
 #if PAIRED == 1
   if (FLASH_UNPAIRED == fob_state_ram.paired)
   {
-    strcpy((char *)(fob_state_ram.pair_info.password), PASSWORD);
-    strcpy((char *)(fob_state_ram.pair_info.pin), PAIR_PIN);
-    strcpy((char *)(fob_state_ram.pair_info.car_id), CAR_ID);
-    strcpy((char *)(fob_state_ram.feature_info.car_id), CAR_ID);
+    memset(&fob_state_ram, 0, sizeof(FLASH_DATA));
+    strcpy(fob_state_ram.pair_info.password, PASSWORD);
+    strcpy(fob_state_ram.pair_info.pin, PAIR_PIN);
+    strcpy(fob_state_ram.pair_info.car_id, CAR_ID);
+    strcpy(fob_state_ram.feature_info.car_id, CAR_ID);
     fob_state_ram.paired = FLASH_PAIRED;
     fob_state_ram.feature_info.num_active = 0;
 
@@ -326,7 +327,7 @@ void pairFob(FLASH_DATA *fob_state_ram, const char *pin)
   }
 
   // Verify PIN matches
-  if (memcmp(pin, (char *)fob_state_ram->pair_info.pin, 6) != 0)
+  if (strcmp(pin, fob_state_ram->pair_info.pin) != 0)
   {
     sendError("wrong pin");
     return;
@@ -365,9 +366,10 @@ void enableFeature(FLASH_DATA *fob_state_ram, const uint8_t *data, size_t len)
   }
 
   ENABLE_PACKET *enable_message = (ENABLE_PACKET *)data;
+  enable_message->car_id[10] = '\0';
 
   // Verify car ID matches
-  if (memcmp(fob_state_ram->pair_info.car_id, enable_message->car_id, 8) != 0)
+  if (strcmp(fob_state_ram->pair_info.car_id, enable_message->car_id) != 0)
   {
     sendError("car id mismatch");
     return;
@@ -424,9 +426,9 @@ void attemptUnlock(FLASH_DATA *fob_state_ram)
 
   // Send unlock message with password
   MESSAGE_PACKET message;
-  message.message_len = 8;
+  message.message_len = strlen(fob_state_ram->pair_info.password) + 1;
   message.magic = UNLOCK_MAGIC;
-  message.buffer = fob_state_ram->pair_info.password;
+  message.buffer = (uint8_t *)&fob_state_ram->pair_info.password;
   send_board_message(&message);
 
   // Wait for ACK from car (with timeout)
@@ -435,9 +437,10 @@ void attemptUnlock(FLASH_DATA *fob_state_ram)
 
   if (ack_result != ACK_SUCCESS)
   {
-    char msg[64] = {0};
-    snprintf(msg, 63, "unlock failed; sent %d bytes for pw %8s",message.message_len, (char*)fob_state_ram->pair_info.password);
-    sendError(msg);
+    //char msg[64] = {0};
+    //snprintf(msg, 63, "unlock failed; sent %d bytes for pw %8s",message.message_len, (char*)fob_state_ram->pair_info.password);
+    //sendError(msg);
+    sendError("unlock failed");
     return;
   }
 
@@ -496,10 +499,12 @@ void receivePairData(FLASH_DATA *fob_state_ram)
         if (pairLen >= pairExpectedLen)
         {
             // Got complete pairing packet - apply it
-            memcpy(&fob_state_ram->pair_info, pairBuffer, sizeof(PAIR_PACKET));
+            memcpy((uint8_t*)&fob_state_ram->pair_info, (uint8_t*)pairBuffer, sizeof(PAIR_PACKET));
+            fob_state_ram->pair_info.car_id[10] = '\0';
+            fob_state_ram->pair_info.password[7] = '\0';
+            fob_state_ram->pair_info.pin[6] = '\0';
             fob_state_ram->paired = FLASH_PAIRED;
-            memcpy(fob_state_ram->feature_info.car_id,
-                   fob_state_ram->pair_info.car_id, 8);
+            strcpy(fob_state_ram->feature_info.car_id, fob_state_ram->pair_info.car_id);
             saveFobState(fob_state_ram);
             
             // No async message - test will query isPaired

@@ -90,49 +90,49 @@ def parse_response(line: str) -> Response:
 #
 # Total: 1 + 24 + 12 = 37 bytes (but aligned to 4, so likely 40 bytes)
 
-FLASH_DATA_SIZE = 40  # Adjust based on actual sizeof(FLASH_DATA)
+FLASH_DATA_SIZE = 44  # Adjust based on actual sizeof(FLASH_DATA)
 
 NUM_FEATURES = 3
 
 
 @dataclass
 class PairPacket:
-    car_id: bytes      # 8 bytes
+    car_id: bytes      # 11 bytes
     password: bytes    # 8 bytes
-    pin: bytes         # 8 bytes
+    pin: bytes         # 7 bytes
     
     def pack(self) -> bytes:
-        return self.car_id.ljust(8, b'\x00')[:8] + \
+        return self.car_id.ljust(11, b'\x00')[:11] + \
                self.password.ljust(8, b'\x00')[:8] + \
-               self.pin.ljust(8, b'\x00')[:8]
+               self.pin.ljust(7, b'\x00')[:7]
     
     @classmethod
     def unpack(cls, data: bytes) -> 'PairPacket':
         return cls(
-            car_id=data[0:8],
-            password=data[8:16],
-            pin=data[16:24]
+            car_id=data[0:11],
+            password=data[11:19],
+            pin=data[19:26]
         )
 
 
 @dataclass
 class FeatureData:
-    car_id: bytes      # 8 bytes
+    car_id: bytes      # 11 bytes
     num_active: int    # 1 byte
     features: list     # 3 bytes (feature flags/indices)
     
     def pack(self) -> bytes:
         feat_bytes = bytes(self.features[:NUM_FEATURES]).ljust(NUM_FEATURES, b'\x00')
-        return self.car_id.ljust(8, b'\x00')[:8] + \
+        return self.car_id.ljust(11, b'\x00')[:11] + \
                bytes([self.num_active]) + \
                feat_bytes
     
     @classmethod
     def unpack(cls, data: bytes) -> 'FeatureData':
         return cls(
-            car_id=data[0:8],
-            num_active=data[8],
-            features=list(data[9:12])
+            car_id=data[0:11],
+            num_active=data[11],
+            features=list(data[12:15])
         )
 
 
@@ -155,8 +155,8 @@ class FlashData:
         """Unpack from bytes received from getFlashData."""
         return cls(
             paired=data[0],
-            pair_info=PairPacket.unpack(data[1:25]),
-            feature_info=FeatureData.unpack(data[25:37])
+            pair_info=PairPacket.unpack(data[1:27]),
+            feature_info=FeatureData.unpack(data[27:43])
         )
     
     @classmethod
