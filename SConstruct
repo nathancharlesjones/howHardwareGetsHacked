@@ -95,11 +95,21 @@ app_binary = SConscript(
 
 Default(app_binary)
 
-print(f"\nBuild configuration:")
-print(f"  Platform: {env['platform']}")
-print(f"  Role: {env['role']}")
+print(f"-- Build configuration --")
+print(f"  • Platform:       {env['platform']}")
+if env['ui']:
+    print(f"  • UI:             {env['ui']}")
+print(f"  • Role:           {env['role']}")
 if env['id']:
-    print(f"  ID: {env['id']}")
-print(f"  Optimization: -O{env['opt']}")
-print(f"  Debug: {env['debug']}")
-print(f"  Test build: {env['test']}")
+    print(f"  • ID:             {env['id']}")
+print(f"  • Optimization:   -O{env['opt']}")
+print(f"  • Debug:          {env['debug']}")
+print(f"  • Test build:     {env['test']}")
+if env['unlock_flag']:
+    print(f"  • Unlock flag:    {env['unlock_flag']}")
+if env['feature1_flag']:
+    print(f"  • Feature 1 flag: {env['feature1_flag']}")
+if env['feature2_flag']:
+    print(f"  • Feature 2 flag: {env['feature2_flag']}")
+if env['feature3_flag']:
+    print(f"  • Feature 3 flag: {env['feature3_flag']}")

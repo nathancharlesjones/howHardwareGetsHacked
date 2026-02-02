@@ -17,7 +17,7 @@ Which would I like to finish before finishing Part 2?
 >> Create README
 >> Fix debugging
 
-[ ] TEST-1 Get all tests passing for STM32 @module(tests) @module(stm32)
+[X] TEST-1 Get all tests passing for STM32 @module(tests) @module(stm32)
 	[X] TEST-1.1 Add erasing to flash step during deployment depends:TOOL-1
 	[X] TEST-1.2 Fix code that checks flash data, so that it expects all 0xFFs on reset in fob.c
 	[X] TEST-1.3 Fix code that checks flash data, so that it expects all 0xFFs on reset in testing files
