@@ -91,7 +91,7 @@ int main(int argc, char **argv)
       }
     }
 
-    // Check for board messages (non-blocking)
+    // Check for board messages (blocking)
     if (uart_avail(BOARD_UART)) unlockCar();
   }
 }
@@ -180,8 +180,16 @@ void unlockCar(void)
   uint8_t buffer[256];
   message.buffer = buffer;
 
+  /*
+  char msg[64];
+  strcpy(msg, "Inside unlockCar, before msg receive\n");
+  uart_write(HOST_UART, msg, strlen(msg));
+  */
+
   // Receive unlock message
   receive_board_message_by_type(&message, UNLOCK_MAGIC);
+  //strcpy(msg, "After msg receive\n");
+  //uart_write(HOST_UART, msg, strlen(msg));
   // Ensure nul termination
   message.buffer[7] = '\0';
 

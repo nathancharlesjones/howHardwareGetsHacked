@@ -215,6 +215,11 @@ void processHostCommand(FLASH_DATA *fob_state_ram, const char *cmd)
 #endif
 
   // Unknown command
+  /*
+  char msg[64] = {0};
+  snprintf(msg, sizeof(msg), "unknown command: %s", cmd);
+  sendError(msg);
+  */
   sendError("unknown command");
 }
 

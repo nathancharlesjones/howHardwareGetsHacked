@@ -220,6 +220,23 @@ void setLED(led_color_t color)
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, color == GREEN);
 }
 
+static void uart_flush_rx(UART_HandleTypeDef *huart)
+{
+    uint8_t dummy;
+
+    // Clear overrun / framing / noise flags first
+    __HAL_UART_CLEAR_OREFLAG(huart);
+    __HAL_UART_CLEAR_FEFLAG(huart);
+    __HAL_UART_CLEAR_NEFLAG(huart);
+    __HAL_UART_CLEAR_PEFLAG(huart);
+
+    // Drain RX FIFO / RDR
+    while (__HAL_UART_GET_FLAG(huart, UART_FLAG_RXNE))
+    {
+        HAL_UART_Receive(huart, &dummy, 1, 0);
+    }
+}
+
 /**
  * @brief Initialize the UART interfaces.
  *
@@ -236,6 +253,9 @@ void uart_init(hw_uart_t uart, int argc, char ** argv)
     MX_USART1_UART_Init();
     break;
   }
+
+  // Clear out receive buffers
+  uart_flush_rx(uart_base[uart]);
 }
 
 /**
@@ -245,7 +265,33 @@ void uart_init(hw_uart_t uart, int argc, char ** argv)
  * @return true if there is data available.
  * @return false if there is no data available.
  */
-bool uart_avail(hw_uart_t uart) { return (__HAL_UART_GET_FLAG(uart_base[uart], UART_FLAG_RXNE) != RESET); }
+bool uart_avail(hw_uart_t uart)
+{
+    UART_HandleTypeDef *huart = uart_base[uart];
+
+    // IDLE means discard & return false
+    if (__HAL_UART_GET_FLAG(huart, UART_FLAG_IDLE))
+    {
+        volatile uint32_t tmp;
+        tmp = huart->Instance->SR;  // read status
+        tmp = huart->Instance->DR;  // read data (clears IDLE)
+        (void)tmp;
+        return false;
+    }
+
+    // Any RX error means discard & return false
+    if (__HAL_UART_GET_FLAG(huart, UART_FLAG_ORE) ||
+        __HAL_UART_GET_FLAG(huart, UART_FLAG_FE)  ||
+        __HAL_UART_GET_FLAG(huart, UART_FLAG_NE)  ||
+        __HAL_UART_GET_FLAG(huart, UART_FLAG_PE))
+    {
+        uart_flush_rx(huart);
+        return false;
+    }
+
+    return __HAL_UART_GET_FLAG(huart, UART_FLAG_RXNE) != RESET;
+}
+
 
 /**
  * @brief Read a byte from a UART interface.

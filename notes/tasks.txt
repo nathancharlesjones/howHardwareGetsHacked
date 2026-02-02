@@ -19,8 +19,8 @@ Which would I like to finish before finishing Part 2?
 
 [ ] TEST-1 Get all tests passing for STM32 @module(tests) @module(stm32)
 	[X] TEST-1.1 Add erasing to flash step during deployment depends:TOOL-1
-	[ ] TEST-1.2 Fix code that checks flash data, so that it expects all 0xFFs on reset in fob.c
-	[ ] TEST-1.3 Fix code that checks flash data, so that it expects all 0xFFs on reset in testing files
+	[X] TEST-1.2 Fix code that checks flash data, so that it expects all 0xFFs on reset in fob.c
+	[X] TEST-1.3 Fix code that checks flash data, so that it expects all 0xFFs on reset in testing files
 [ ] TEST-2 Get all tests passing for TM4C @module(tests) @module(tm4c)
 	[ ] TEST-2.1 Get one test working for TM4C depends:TEST-2.2
 	[ ] TEST-2.2 Talk to TM4C over serial depends:TEST-2.3
@@ -45,6 +45,8 @@ Which would I like to finish before finishing Part 2?
 [ ] FLASHT-1 Decide whether to simplify or remove flashing.py @module(tools)
 [ ] SECRET-1 Decide whether to keep or remove CAR_SECRET from secret.h
 [ ] STRMEM-1 Check that pins, IDs, and passwords are copied, stored, and compared correctly
+	[X] STRMEM-1.1 Fix firmware code
+	[ ] STRMEM-1.2 Make opaque struct; use mpack so Python can see it?
 [ ] MAKE-1 Update makefiles to match scons @module(tools)
 [ ] LOG-1 Add logging
 	[ ] LOG-1.1 Define macros
@@ -61,5 +63,4 @@ Which would I like to finish before finishing Part 2?
 [ ] RDME-1 Ask Claude/ChatGPT to create README for repo (incl "how to port")
 [ ] DOCS-1 Ask Claude/ChatGPT to create Mermaid block/class diagram to show how app and hardware (and ui?) interact
 [ ] DOCS-2 Ask Claude/ChatGPT to create Mermaid block/class diagram to show how exe and tests interact
-[ ] TEST-3 Add "delete flash_data.bin" (or reset?) to end of tests with x86 programs
-[ ] DFMT-1 Fix data formats; provide helper C (with serialize, deserialize, cmp, etc) to wrap that so it's easy to change?
+[X] TEST-3 Wrap if check on x86 programs so default flash_data.bin file is always made fresh for TEST_BUILDs
