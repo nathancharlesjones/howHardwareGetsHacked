@@ -191,7 +191,7 @@ class FlashData:
 # Standard Commands (Production)
 # =============================================================================
 
-def cmd_enable(device, feature_package: bytes) -> Response:
+def cmd_enable(device, feature_package: bytes, timeout: float = 2.0) -> Response:
     """
     Enable a packaged feature on the fob.
     
@@ -203,7 +203,7 @@ def cmd_enable(device, feature_package: bytes) -> Response:
         Response with success/error
     """
     hex_data = feature_package.hex()
-    return parse_response(device.send_recv(f"enable {hex_data}"))
+    return parse_response(device.send_recv(f"enable {hex_data}", timeout=timeout))
 
 
 def cmd_pair(device, pin: str) -> Response:
@@ -292,14 +292,14 @@ def cmd_set_flash_data(device, flash_data: FlashData) -> Response:
     return parse_response(device.send_recv(f"setFlashData {hex_data}"))
 
 
-def cmd_is_paired(device) -> Response:
+def cmd_is_paired(device, timeout: float = 2.0) -> Response:
     """
     Check if fob is paired.
     
     Returns:
         Response with value="1" if paired, "0" if not
     """
-    return parse_response(device.send_recv("isPaired"))
+    return parse_response(device.send_recv("isPaired", timeout=timeout))
 
 
 def get_flash_data(device) -> FlashData:
@@ -315,9 +315,9 @@ def get_flash_data(device) -> FlashData:
     return FlashData.from_hex(resp.value)
 
 
-def is_paired(device) -> bool:
+def is_paired(device, timeout: float = 2.0) -> bool:
     """Convenience: check if fob is paired."""
-    resp = cmd_is_paired(device)
+    resp = cmd_is_paired(device, timeout=timeout)
     if not resp.success:
         raise RuntimeError(f"isPaired failed: {resp.error}")
     return resp.value == "1"

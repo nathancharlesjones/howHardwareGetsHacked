@@ -61,6 +61,7 @@ Which would I like to finish before finishing Part 2?
 	[ ] DBG-1.1 Install arm-none-eabi-gdb
 	[ ] DBG-1.2 Refactor debug command in project.py
 [ ] RDME-1 Ask Claude/ChatGPT to create README for repo (incl "how to port")
+	[ ] RDME-1.1 Install Claude CLI
 [ ] DOCS-1 Ask Claude/ChatGPT to create Mermaid block/class diagram to show how app and hardware (and ui?) interact
 [ ] DOCS-2 Ask Claude/ChatGPT to create Mermaid block/class diagram to show how exe and tests interact
 [X] TEST-3 Wrap if check on x86 programs so default flash_data.bin file is always made fresh for TEST_BUILDs

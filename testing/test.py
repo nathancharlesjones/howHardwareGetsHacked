@@ -37,7 +37,6 @@ class TestSinglePairedFob:
         
         # Package feature
         pkg = create_feature_package(flash.pair_info.car_id, 1)
-        print(pkg)
 
         # Enable feature
         resp = proto.cmd_enable(paired_fob, pkg)
@@ -80,7 +79,7 @@ class TestSinglePairedFob:
         
         # Get flash data; ensure features 1 and features match
         flash = proto.get_flash_data(paired_fob)
-        assert flash.feature_info.num_active == 3, f"Paired fob did not report correct number of active feaures; expected 1, received {flash.feature_info.num_active}"
+        assert flash.feature_info.num_active == 3, f"Paired fob did not report correct number of active feaures; expected 3, received {flash.feature_info.num_active}"
 
         # After modifying fob state, reset
         proto.cmd_reset(paired_fob)
@@ -207,7 +206,7 @@ class TestPairedAndUnpairedFob:
         assert resp.success, f"Pairing failed: {resp.error}"
 
         # Give time for the pairing message to be received and processed
-        time.sleep(0.1)
+        time.sleep(1)
 
         # Query unpaired fob to verify it's now paired
         assert proto.is_paired(unpaired), "Should now be paired"
