@@ -1,4 +1,4 @@
-Import('env')
+Import('env', 'drivers')
 
 local_env = env.Clone()
 
@@ -59,13 +59,6 @@ app_objects = SConscript(
     exports={'env': local_env}  # Pass our configured environment
 )
 
-driver_lib = SConscript(
-    f'#/hardware/{env["platform"]}/SConscript_stm32_drivers',
-    variant_dir=f'#/hardware/{env["platform"]}/build/drivers',
-    duplicate=0,
-    exports={'env': local_env}
-)
-
-app = local_env.Program(f'{env["name"]}.bin', app_objects + sources + driver_lib)
+app = local_env.Program(f'{env["name"]}.bin', app_objects + sources + drivers)
 
 Return('app')

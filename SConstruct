@@ -66,10 +66,17 @@ env.Append(CPPPATH=[
     '#/application/include',  # messages.h, dataFormats.h
 ])
 
-# Export environment for the driver build script
-Export('env')
+stm32_drivers = SConscript(
+    'hardware/stm32/Drivers/SConscript',
+    exports={'env': env}
+)
 
-# Just build the application - it will handle its own dependencies
+tm4c_drivers = SConscript(
+    'hardware/tm4c/libraries/SConscript',
+    exports={'env': env}
+)
+
+# List of all targets, one per platform/role combination
 all_targets = []
 
 for platform in AVAILABLE_PLATFORMS:
@@ -77,6 +84,8 @@ for platform in AVAILABLE_PLATFORMS:
         e = env.Clone()
         e['platform'] = platform
         e['role'] = role
+
+        drivers = None
 
         # Platform-specific toolchain configuration
         if platform in ['stm32', 'tm4c']:
@@ -95,6 +104,7 @@ for platform in AVAILABLE_PLATFORMS:
                 '-c',
                 '-g'
             ])
+            drivers = stm32_drivers if platform == 'stm32' else tm4c_drivers
 
         e['name'] = f'{role}_{e["id"]}' if e['id'] else role
         e['build_dir'] = f'hardware/{platform}/build/{e["name"]}'
@@ -105,7 +115,7 @@ for platform in AVAILABLE_PLATFORMS:
             f'hardware/{platform}/SConscript',
             variant_dir=e['build_dir'],
             duplicate=0,
-            exports={'env': e}
+            exports={'env': e, 'drivers' : drivers}
         )
 
         all_targets.append(tgt)
@@ -115,6 +125,8 @@ Alias('all', all_targets)
 
 for platform in ['stm32', 'tm4c', 'x86']:
     Alias(platform, [t for t in all_targets if platform in str(t)])
+
+Default(t for t in all_targets if (platform in str(t) and role in str(t)))
 
 '''
 # Print build configuration

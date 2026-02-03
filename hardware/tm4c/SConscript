@@ -1,4 +1,4 @@
-Import('env')
+Import('env', 'drivers')
 
 local_env = env.Clone()
 local_env.Replace(LINK='arm-none-eabi-ld')
@@ -74,13 +74,6 @@ libs = [
     libgcc_path, # GCC runtime
 ]
 
-driver_lib = SConscript(
-    f'#/hardware/{env["platform"]}/libraries/tivaware/SConscript_tm4c_drivers',
-    variant_dir=f'#/hardware/{env["platform"]}/build/drivers',
-    duplicate=0,
-    exports={'env': local_env}
-)
-
-app = local_env.Program(f'{env["name"]}.bin', app_objects + sources + driver_lib + libs)
+app = local_env.Program(f'{env["name"]}.bin', app_objects + sources + drivers + libs)
 
 Return('app')
