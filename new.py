@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 # Project configuration
-AVAILABLE_ROLES = ["car", "paired_fob", "unpaired_fob"]
+AVAILABLE_ROLES = ["car", "paired_fob", "unpaired_fob", "all"]
 AVAILABLE_PLATFORMS = ["stm32", "tm4c", "x86"]
 
 class Colors:
@@ -36,9 +36,12 @@ def print_info(msg: str):
 
 ################################################################################
 ##                                                                            ##
-##  SCONS COMMAND                                                             ##
+##  BUILD COMMAND                                                             ##
 ##                                                                            ##
 ################################################################################
+
+def build_command(args):
+    pass
 
 def scons_command(args):
     # Validate arguments
@@ -175,17 +178,19 @@ if __name__ == "__main__":
     
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
     
-    # SCONS
-    scons_parser = subparsers.add_parser("scons", help="Build/clean project targets using SCons")
-    scons_parser.add_argument("--role", choices=AVAILABLE_ROLES, required=True, help=f"Target role")
-    scons_parser.add_argument("--platform", choices=AVAILABLE_PLATFORMS, required=True, help="Target platform")
-    scons_parser.add_argument("--id", type=car_id,
+    # BUILD
+    build_parser = subparsers.add_parser("build", help="Build/clean project targets using SCons")
+    build_parser.add_argument("--role", choices=AVAILABLE_ROLES, help=f"Target role")
+    build_parser.add_argument("--platform", choices=AVAILABLE_PLATFORMS, help="Target platform")
+    build_parser.add_argument("--id", type=car_id,
         help="Device ID (required for car and paired_fob)")
-    scons_parser.add_argument("--pin", type=pin,
+    build_parser.add_argument("--pin", type=pin,
         help="Device PIN (required for paired_fob)")
-    scons_parser.add_argument("scons_args", nargs=argparse.REMAINDER,
-        help="Arguments passed directly to SCons. Run 'scons -- -h' for more info.")
-    scons_parser.set_defaults(func=scons_command)
+    build_parser.add_argument("scons_args", nargs=argparse.REMAINDER,
+        help="Arguments passed directly to SCons. Run 'build -- -h' for more info.")
+    build_parser.set_defaults(func=scons_command)
+
+    # CLEAN
 
     # FLASH
     flash_parser = subparsers.add_parser("flash", help="Flash binary to hardware")

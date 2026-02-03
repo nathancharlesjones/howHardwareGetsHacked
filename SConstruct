@@ -1,11 +1,15 @@
+AVAILABLE_PLATFORMS = ["stm32", "tm4c", "x86"]
+AVAILABLE_ROLES = ["car", "paired_fob", "unpaired_fob"]
+AVAILABLE_UI = ["console", "microui"]
+
 # Build options
 opts = Variables()
-opts.Add(EnumVariable('platform', 'Target platform', '',
-                      allowed_values=('stm32', 'tm4c', 'x86')))
-opts.Add(EnumVariable('role', 'Device role', '',
-                      allowed_values=('car', 'paired_fob', 'unpaired_fob')))
-opts.Add(EnumVariable('ui', 'UI type for x86 port', '',
-                      allowed_values=('', 'console', 'microui')))
+opts.Add(EnumVariable('platform', 'Target platform', None,
+                      allowed_values=(AVAILABLE_PLATFORMS)))
+opts.Add(EnumVariable('role', 'Device role', None,
+                      allowed_values=(AVAILABLE_ROLES)))
+opts.Add(EnumVariable('ui', 'UI type for x86 port', None,
+                      allowed_values=(AVAILABLE_UI)))
 opts.Add('id', 'Device ID (required for car and paired_fob)', '')
 opts.Add('opt', 'Optimization level', '2')
 opts.Add(BoolVariable('debug', 'Debug build', False))
@@ -20,37 +24,24 @@ opts.Add('feature3_flag', 'Custom feature 3 flag value', '')
 env = Environment(variables=opts)
 Help(opts.GenerateHelpText(env))
 
-# Validate that id is provided when required
-if env['role'] in ['car', 'paired_fob']:
-    if not env['id']:
-        print(f"Error: 'id' parameter is required when ROLE={env['ROLE']}")
-        print("Usage: scons platform=platform1 ROLE=car id=12345")
+if GetOption('help'):
+    Return()
+
+# Validate inputs
+platform = env.get('platform')
+role = env.get('role')
+car_id = env.get('id')
+ui = env.get('ui')
+
+if 'all' in COMMAND_LINE_TARGETS or role in ['car', 'paired_fob']:
+    if not car_id:
+        print(f"Error: 'id' parameter is required when role={role}")
+        print("Usage: scons platform=platform1 role=car id=12345")
         Exit(1)
 
-if env['ui'] != '' and env['platform'] != "x86":
+if platform in ["stm32", "tm4c"] and ui != '':
     print("Error: ui option given for non-x86 platform")
     Exit(1)
-
-# Platform-specific toolchain configuration
-if env['platform'] in ['stm32', 'tm4c']:
-    # ARM toolchain
-    env.Replace(CC='arm-none-eabi-gcc')
-    env.Replace(AR='arm-none-eabi-ar')
-    env.Replace(AS='arm-none-eabi-as')
-    env["arch_flags"] = [
-        '-mcpu=cortex-m4',
-        '-mthumb'
-    ]
-    env.Append(CPPFLAGS = [
-        '-ffunction-sections',
-        '-fdata-sections',
-        '-Wall',
-        '-c',
-        '-g'
-    ])
-elif env['platform'] == 'x86':
-    # x86 toolchain (use defaults)
-    pass  # env already has gcc/ar
 
 # Common compiler flags
 env.Append(CPPFLAGS=[f'-O{env["opt"]}', '-Wall'])
@@ -69,32 +60,64 @@ if env['feature2_flag']:
 if env['feature3_flag']:
     env.Append(CPPDEFINES=[('FEATURE3_FLAG', f'\\"{env["feature3_flag"]}\\"')])
 
-if env['role'] in ['car', 'paired_fob']:
-    env['name'] = f'{env["role"]}_{env["id"]}'
-else:
-    env['name'] = f'{env["role"]}'
-
-env['build_dir'] = f'hardware/{env["platform"]}/build/{env["name"]}'
-
 # Include paths
 env.Append(CPPPATH=[
     '#/hardware/include',     # platform.h, uart.h
     '#/application/include',  # messages.h, dataFormats.h
-    f'#/{env["build_dir"]}'   # secrets.h
 ])
 
 # Export environment for the driver build script
 Export('env')
 
 # Just build the application - it will handle its own dependencies
-app_binary = SConscript(
-    f'hardware/{env["platform"]}/SConscript',
-    variant_dir=env["build_dir"],
-    duplicate=0
-)
+all_targets = []
 
-Default(app_binary)
+for platform in AVAILABLE_PLATFORMS:
+    for role in AVAILABLE_ROLES:
+        e = env.Clone()
+        e['platform'] = platform
+        e['role'] = role
 
+        # Platform-specific toolchain configuration
+        if platform in ['stm32', 'tm4c']:
+            # ARM toolchain
+            e.Replace(CC='arm-none-eabi-gcc')
+            e.Replace(AR='arm-none-eabi-ar')
+            e.Replace(AS='arm-none-eabi-as')
+            e["arch_flags"] = [
+                '-mcpu=cortex-m4',
+                '-mthumb'
+            ]
+            e.Append(CPPFLAGS = [
+                '-ffunction-sections',
+                '-fdata-sections',
+                '-Wall',
+                '-c',
+                '-g'
+            ])
+
+        e['name'] = f'{role}_{e["id"]}' if e['id'] else role
+        e['build_dir'] = f'hardware/{platform}/build/{e["name"]}'
+
+        e.Append(CPPPATH=[f'#/{e["build_dir"]}'])   # secrets.h
+
+        tgt = SConscript(
+            f'hardware/{platform}/SConscript',
+            variant_dir=e['build_dir'],
+            duplicate=0,
+            exports={'env': e}
+        )
+
+        all_targets.append(tgt)
+
+# Build targets: all, stm32, tm4c, x86
+Alias('all', all_targets)
+
+for platform in ['stm32', 'tm4c', 'x86']:
+    Alias(platform, [t for t in all_targets if platform in str(t)])
+
+'''
+# Print build configuration
 print(f"-- Build configuration --")
 print(f"  • Platform:       {env['platform']}")
 if env['ui']:
@@ -113,3 +136,4 @@ if env['feature2_flag']:
     print(f"  • Feature 2 flag: {env['feature2_flag']}")
 if env['feature3_flag']:
     print(f"  • Feature 3 flag: {env['feature3_flag']}")
+'''
