@@ -17,8 +17,9 @@ def main():
 		inStr = input(">> ")
 		while inStr != 'q':
 			# Check for enable command
-			device.write(inStr.encode('utf-8'))
+			device.write((inStr+'\n').encode('utf-8'))
 			print(device.readline().decode('utf-8').strip())
+			inStr = input(">> ")
 	except serial.SerialException as e:
 	    print(f"Error opening serial port: {e}")
 

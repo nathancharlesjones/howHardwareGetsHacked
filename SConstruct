@@ -1,4 +1,5 @@
-AVAILABLE_PLATFORMS = ["stm32", "tm4c", "x86"]
+#AVAILABLE_PLATFORMS = ["stm32", "tm4c", "x86"]
+AVAILABLE_PLATFORMS = ["stm32", "x86"]
 AVAILABLE_ROLES = ["car", "paired_fob", "unpaired_fob"]
 AVAILABLE_UI = ["console", "microui"]
 

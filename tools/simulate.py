@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Simulation environment for x86 testing.
 
@@ -137,6 +139,12 @@ class SimulationEnvironment:
         # Launch executable
         pid = os.fork()
         if pid == 0:
+            # Child process: redirect stdout/stderr to /dev/null and exec the binary
+            devnull = os.open(os.devnull, os.O_WRONLY)
+            os.dup2(devnull, 1)  # redirect stdout
+            os.dup2(devnull, 2)  # redirect stderr
+            os.close(devnull)
+
             # Child process: set up new session and exec the binary
             os.setsid()
             os.execv(cmd_args[0], cmd_args)
