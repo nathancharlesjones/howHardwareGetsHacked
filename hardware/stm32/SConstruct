@@ -1,10 +1,15 @@
-Import('app_env', 'gen_secrets_action')
+AVAILABLE_ROLES = ["car", "paired_fob", "unpaired_fob"]
 
-stm32_env = app_env.Clone()
+opts = Variables()
+opts.Add(EnumVariable('role', 'Device role', None,
+                      allowed_values=(AVAILABLE_ROLES)))
+opts.Add('id', 'Device ID (required for car and paired_fob)', '')
 
+stm32_env = Environment(variables=opts)
 stm32_env.Replace(CC='arm-none-eabi-gcc')
 stm32_env.Replace(AR='arm-none-eabi-ar')
-stm32_env.Replace(AS='arm-none-eabi-as')
+stm32_env.Replace(AS='arm-none-eabi-gcc -x assembler-with-cpp')
+stm32_env.Append(CPPFLAGS=['-O2', '-Wall'])
 
 stm32_env["arch_flags"]=[
     '-mcpu=cortex-m4',
@@ -19,6 +24,7 @@ stm32_env.Append(CPPFLAGS=
     '-ffunction-sections',
     '-fdata-sections',
     '-Wall',
+    '-c'
 ])
 
 # STM32-specific defines
@@ -72,4 +78,4 @@ app_objects = SConscript(
 app = stm32_env.Program(f'{stm32_env["name"]}.bin', app_objects + sources + drivers)
 stm32_env.Depends(app, secrets_h)
 
-Return('app')
+Default('app')

@@ -37,13 +37,13 @@ OPT = -Og
 
 #ROLE ?=
 ifeq ($(ROLE),car)
-FIRMWARE_SRC := carFirmware.c
+FIRMWARE_SRC := car.c
 BUILD_DIR = build/$(ROLE)_$(CAR_ID)
 else ifeq ($(ROLE),paired_fob)
-FIRMWARE_SRC := fobFirmware.c
+FIRMWARE_SRC := fob.c
 BUILD_DIR = build/$(ROLE)_$(CAR_ID)
 else ifeq ($(ROLE),unpaired_fob)
-FIRMWARE_SRC := fobFirmware.c
+FIRMWARE_SRC := fob.c
 BUILD_DIR = build/$(ROLE)
 else
 $(error ROLE not set correctly)

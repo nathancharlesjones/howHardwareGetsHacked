@@ -1,0 +1,24 @@
+mkdir -p hardware/{platform}/build/unpaired_fob
+or
+         hardware/{platform}/build/{role_id}
+
+./car_gen_secrets.py --car-id {id} --secret-file secrets/car_secrets.json --header-file hardware/{platform}/build/{role_id}/secrets.h
+or
+./fob_gen_secrets.py --car-id {id} --pair-pin {pin} --secret-file secrets/car_secrets.json --header-file hardware/{platform}/build/{role_id}/secrets.h --paired
+or
+./fob_gen_secrets.py --car-id 0 --pair-pin "000000" --secret-file secrets/car_secrets.json --header-file hardware/{platform}/build/unpaired_fob/secrets.h
+
+scons -h
+scons (-c) platform={platform}                         role=unpaired_fob                   (debug={y/n} test={y/n} opt=#)
+scons (-c) platform={platform}                         role=car          id={id} pin={pin} (debug={y/n} test={y/n} opt=# unlock_flag={flag} ...)
+scons (-c) platform={platform}                         role=paired_fob   id={id} pin={pin} (debug={y/n} test={y/n} opt=#)
+scons (-c) platform=x86        (ui={console, microui}) role=unpaired_fob                   (debug={y/n} test={y/n} opt=#)
+scons (-c) platform=x86        (ui={console, microui}) role=car          id={id} pin={pin} (debug={y/n} test={y/n} opt=# unlock_flag={flag} ...)
+scons (-c) platform=x86        (ui={console, microui}) role=paired_fob   id={id} pin={pin} (debug={y/n} test={y/n} opt=#)
+
+and 
+
+"all":
+FOREACH platform
+    FOREACH role
+        scons (-c) platform={platform} role={car} id={id} pin={pin} (debug={y/n} test={y/n} opt=# unlock_flag={flag} ...) --> UI? Matter that I'm sending uneeded args?
