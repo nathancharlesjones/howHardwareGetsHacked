@@ -1,24 +1,36 @@
-Import('env', 'drivers')
+Import('app_env', 'gen_secrets_action')
 
-local_env = env.Clone()
-local_env.Replace(LINK='arm-none-eabi-ld')
+tm4c_env = app_env.Clone()
+tm4c_env.Replace(CC='arm-none-eabi-gcc')
+tm4c_env.Replace(AR='arm-none-eabi-ar')
+tm4c_env.Replace(AS='arm-none-eabi-as')
+tm4c_env.Replace(LINK='arm-none-eabi-ld')
+
+tm4c_env['arch_flags']=[
+    '-mcpu=cortex-m4',
+    '-mthumb'
+]
 
 # TM4C-specific flags
-local_env.Append(CPPFLAGS=
-    local_env["arch_flags"] + [
+tm4c_env.Append(CPPFLAGS=
+    tm4c_env['arch_flags'] + [
+    '-ffunction-sections',
+    '-fdata-sections',
+    '-Wall',
+    '-c',
     '-std=c99',
     '-pedantic'
 ])
 
 # TM4C-specific defines
-local_env.Append(CPPDEFINES=[
+tm4c_env.Append(CPPDEFINES=[
     'PART_TM4C123GH6PM',
     'TARGET_IS_TM4C123_RB1',
     'gcc'
 ])
 
 # TM4C-specific include paths
-local_env.Append(CPPPATH=[
+tm4c_env.Append(CPPPATH=[
     '#/hardware/tm4c/libraries/tivaware'
 ])
 
@@ -30,20 +42,33 @@ sources = [
     'libraries/tivaware/startup_tm4c123gh6pm_baremetal.c'
 ]
 
-local_env.Append(LINKFLAGS= [
+tm4c_env.Append(LINKFLAGS= [
     '-T', 'hardware/tm4c/libraries/tivaware/firmware.ld',
     '--entry', 'Firmware_Startup',
     '--gc-sections',
-    f"-Map={env['build_dir']}/TM4C.map"
+    f"-Map={tm4c_env['build_dir']}/TM4C.map"
 
 ])
+
+secrets_h = tm4c_env.Command(
+    target='secrets.h',
+    source=['#secrets/car_secrets.json'],
+    action=gen_secrets_action
+)
+
+drivers = SConscript(
+    'libraries/SConscript',
+    variant_dir='drivers',   # relative to current variant_dir
+    duplicate=0,
+    exports={'env': tm4c_env}
+)
 
 # Build application with our architecture-specific environment
 app_objects = SConscript(
     '#/application/SConscript',
     variant_dir='application',  # Relative to current variant_dir
     duplicate=0,
-    exports={'env': local_env}  # Pass our configured environment
+    exports={'env': tm4c_env}  # Pass our configured environment
 )
 
 # Find exact library paths
@@ -51,15 +76,15 @@ import subprocess
 import os
 
 libgcc_path = subprocess.check_output(
-    ['arm-none-eabi-gcc'] + env['arch_flags'] + ['-print-file-name=libgcc.a']
+    ['arm-none-eabi-gcc'] + tm4c_env['arch_flags'] + ['-print-file-name=libgcc.a']
 ).decode().strip()
 
 libc_path = subprocess.check_output(
-    ['arm-none-eabi-gcc'] + env['arch_flags'] + ['-print-file-name=libc.a']
+    ['arm-none-eabi-gcc'] + tm4c_env['arch_flags'] + ['-print-file-name=libc.a']
 ).decode().strip()
 
 libm_path = subprocess.check_output(
-    ['arm-none-eabi-gcc'] + env['arch_flags'] + ['-print-file-name=libm.a']
+    ['arm-none-eabi-gcc'] + tm4c_env['arch_flags'] + ['-print-file-name=libm.a']
 ).decode().strip()
 
 print(f"Using libraries:")
@@ -74,6 +99,7 @@ libs = [
     libgcc_path, # GCC runtime
 ]
 
-app = local_env.Program(f'{env["name"]}.bin', app_objects + sources + drivers + libs)
+app = tm4c_env.Program(f'{tm4c_env["name"]}.bin', app_objects + sources + drivers + libs)
+tm4c_env.Depends(app, secrets_h)
 
 Return('app')

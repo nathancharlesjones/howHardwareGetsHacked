@@ -3,27 +3,17 @@ Import('env')
 # Clone a clean environment specifically for drivers
 driver_env = env.Clone()
 
-# Force driver flags (independent of firmware variants)
-driver_env.Replace(
-    opt='3',
-    debug=False,
-)
+# Override any previous optimization flag
+# Relies on compiler observing the "last flag wins" rule
+driver_env.Append(CPPFLAGS=[
+    '-03'
+])
 
-# Make sure firmware flags don't leak in
-driver_env.Replace(
-    CPPDEFINES=[],
-)
+driver_sources = Glob('libraries/tivaware/driverlib/*.c')
 
-driver_src = '#/hardware/tm4c/libraries/tivaware/driverlib'
-driver_build = '#/hardware/tm4c/build/drivers'
-
-VariantDir(driver_build, driver_src, duplicate=0)
-
-driver_sources = Glob(driver_build + '/*.c')
-
-lib = driver_env.StaticLibrary(
-    target=driver_build + '/tm4c_hal',
+tm4c_drivers = driver_env.StaticLibrary(
+    target='/tm4c_hal',
     source=driver_sources
 )
 
-Return('lib')
+Return('tm4c_drivers')

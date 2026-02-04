@@ -1,24 +1,35 @@
-Import('env', 'drivers')
+Import('app_env', 'gen_secrets_action')
 
-local_env = env.Clone()
+stm32_env = app_env.Clone()
 
-local_env["arch_flags"].append('-mfpu=fpv4-sp-d16')
-local_env["arch_flags"].append('-mfloat-abi=hard')
+stm32_env.Replace(CC='arm-none-eabi-gcc')
+stm32_env.Replace(AR='arm-none-eabi-ar')
+stm32_env.Replace(AS='arm-none-eabi-as')
+
+stm32_env["arch_flags"]=[
+    '-mcpu=cortex-m4',
+    '-mthumb',
+    '-mfpu=fpv4-sp-d16',
+    '-mfloat-abi=hard'
+]
 
 # STM32-specific flags
-local_env.Append(CPPFLAGS=
-    local_env["arch_flags"] + [
-    '-gdwarf-2',
+stm32_env.Append(CPPFLAGS=
+    stm32_env["arch_flags"] + [
+    '-ffunction-sections',
+    '-fdata-sections',
+    '-Wall',
+    '-c'
 ])
 
 # STM32-specific defines
-local_env.Append(CPPDEFINES=[
+stm32_env.Append(CPPDEFINES=[
     'USE_HAL_DRIVER',
     'STM32F411xE'
 ])
 
 # STM32-specific include paths
-local_env.Append(CPPPATH=[
+stm32_env.Append(CPPPATH=[
     '#/hardware/stm32/Core/Inc',
     '#/hardware/stm32/Drivers/STM32F4xx_HAL_Driver/Inc',
     '#/hardware/stm32/Drivers/STM32F4xx_HAL_Driver/Inc/Legacy',
@@ -37,28 +48,42 @@ sources = [
     'startup_stm32f411xe.s'
 ]
 
-local_env.Append(LINKFLAGS=
-    local_env["arch_flags"] + [
+stm32_env.Append(LINKFLAGS=
+    stm32_env["arch_flags"] + [
     '-T', 'hardware/stm32/STM32F411XX_FLASH.ld',
     '-Wl,--gc-sections',
-    f'-Wl,-Map={env["build_dir"]}/STM32.map,--cref',
+    f'-Wl,-Map={stm32_env["build_dir"]}/STM32.map,--cref',
     '-specs=nano.specs'
 ])
 
-local_env.Append(LIBS=[
+stm32_env.Append(LIBS=[
     'c',
     'm',
     'nosys'
 ])
+
+secrets_h = stm32_env.Command(
+    target='secrets.h',
+    source=['#secrets/car_secrets.json'],
+    action=gen_secrets_action
+)
+
+drivers = SConscript(
+    'Drivers/SConscript',
+    variant_dir='drivers',   # relative to current variant_dir
+    duplicate=0,
+    exports={'env': stm32_env}
+)
 
 # Build application with our architecture-specific environment
 app_objects = SConscript(
     '#/application/SConscript',
     variant_dir='application',  # Relative to current variant_dir
     duplicate=0,
-    exports={'env': local_env}  # Pass our configured environment
+    exports={'env': stm32_env}  # Pass our configured environment
 )
 
-app = local_env.Program(f'{env["name"]}.bin', app_objects + sources + drivers)
+app = stm32_env.Program(f'{stm32_env["name"]}.bin', app_objects + sources + drivers)
+stm32_env.Depends(app, secrets_h)
 
 Return('app')

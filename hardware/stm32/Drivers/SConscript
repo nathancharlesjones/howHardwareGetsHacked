@@ -3,27 +3,17 @@ Import('env')
 # Clone a clean environment specifically for drivers
 driver_env = env.Clone()
 
-# Force driver flags (independent of firmware variants)
-driver_env.Replace(
-    opt='3',
-    debug=False,
-)
+# Override any previous optimization flag
+# Relies on compiler observing the "last flag wins" rule
+driver_env.Append(CPPFLAGS=[
+    '-03'
+])
 
-# Make sure firmware flags don't leak in
-driver_env.Replace(
-    CPPDEFINES=[],
-)
+driver_sources = Glob('drivers/*.c')
 
-driver_src = '#/hardware/stm32/Drivers/STM32F4xx_HAL_Driver/Src'
-driver_build = '#/hardware/stm32/build/drivers'
-
-VariantDir(driver_build, driver_src, duplicate=0)
-
-driver_sources = Glob(driver_build + '/*.c')
-
-lib = driver_env.StaticLibrary(
-    target=driver_build + '/stm32_hal',
+stm32_drivers = driver_env.StaticLibrary(
+    target='/stm32_hal',
     source=driver_sources
 )
 
-Return('lib')
+Return('stm32_drivers')

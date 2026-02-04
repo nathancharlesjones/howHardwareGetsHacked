@@ -1,9 +1,9 @@
-Import('env')
+Import('app_env', 'gen_secrets_action')
 
-local_env = env.Clone()
+x86_env = app_env.Clone()
 
 # x86-specific include paths
-local_env.Append(CPPPATH=[
+x86_env.Append(CPPPATH=[
     '#/hardware/x86/include',
     '#/hardware/x86/ui'
 ])
@@ -14,24 +14,31 @@ sources = [
     'source/uart_x86.c',
 ]
 
-local_env.Append(LINKFLAGS = [
+x86_env.Append(LINKFLAGS = [
     '-Wl,--gc-sections',
-    f'-Wl,-Map={env["build_dir"]}/x86.map,--cref'
+    f'-Wl,-Map={x86_env["build_dir"]}/x86.map,--cref'
 ])
 
-local_env.Append(LIBS=[
+x86_env.Append(LIBS=[
     'm',
     'pthread'
 ])
+
+secrets_h = x86_env.Command(
+    target='secrets.h',
+    source=['#secrets/car_secrets.json'],
+    action=gen_secrets_action
+)
 
 # Build application with our architecture-specific environment
 app_objects = SConscript(
     '#/application/SConscript',
     variant_dir='application',  # Relative to current variant_dir
     duplicate=0,
-    exports={'env': local_env}  # Pass our configured environment
+    exports={'env': x86_env}  # Pass our configured environment
 )
 
-app = local_env.Program(f'{env["name"]}', app_objects + sources)
+app = x86_env.Program(f'{x86_env["name"]}', app_objects + sources)
+x86_env.Depends(app, secrets_h)
 
 Return('app')
