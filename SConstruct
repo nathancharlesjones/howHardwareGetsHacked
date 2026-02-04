@@ -1,3 +1,7 @@
+import os
+import sys
+import subprocess
+
 #AVAILABLE_PLATFORMS = ["stm32", "tm4c", "x86"]
 AVAILABLE_PLATFORMS = ["stm32", "x86"]
 AVAILABLE_ROLES = ["car", "paired_fob", "unpaired_fob"]
@@ -30,20 +34,84 @@ if GetOption('help'):
     Return()
 
 # Validate inputs
-platform = app_env.get('platform')
+single_build_mode = (len(COMMAND_LINE_TARGETS) == 0)
+plat = app_env.get('platform')
 role = app_env.get('role')
 car_id = app_env.get('id')
+pin = app_env.get('pin')
 ui = app_env.get('ui')
 
-if 'all' in COMMAND_LINE_TARGETS or role in ['car', 'paired_fob']:
-    if not car_id:
-        print(f"Error: 'id' parameter is required when role={role}")
-        print("Usage: scons platform=platform1 role=car id=12345")
+if single_build_mode:
+    if not plat or not role:
+        print("Error: single-build mode requires both 'platform' and 'role'")
+        print("Usage: scons platform=stm32 role=car id=12345")
         Exit(1)
 
-if platform in ["stm32", "tm4c"] and ui is not None:
-    print("Error: ui option given for non-x86 platform")
+    if not car_id and role in ['car', 'paired_fob']:
+        print("Error: 'id' parameter is required when building 'car' or 'paired_fob'")
+        print("Usage: scons platform=platform1 role=car id=12345")
+        print("    or scons stm32 id=12345 pin=123456")
+        Exit(1)
+
+    if not pin and role == 'paired_fob':
+        print("Error: 'pin' parameter is required when building 'paired_fob'")
+        print("Usage: scons platform=platform1 role=paired_fob id=12345 pin=123456")
+        print("    or scons stm32 id=12345 pin=123456")
+        Exit(1)
+    
+    if ui and plat in ["stm32", "tm4c"]:
+        print("Error: ui option given for non-x86 platform")
+        Exit(1)
+else:
+    if role or plat:
+        print("Error: 'platform' and/or 'role' parameters given when building a collection of targets")
+        print("Usage: scons platform=platform1 role=car id=12345  <-- Platform and role required")
+        print("    or scons all id=12345 pin=123456               <-- No platform or role required")
+        Exit(1)
+
+    if not car_id:
+        print("Error: 'id' parameter is required when building 'car' or 'paired_fob'")
+        print("Usage: scons platform=platform1 role=car id=12345")
+        print("    or scons stm32 id=12345 pin=123456")
+        Exit(1)
+
+    if not pin:
+        print("Error: 'pin' parameter is required when building 'paired_fob'")
+        print("Usage: scons platform=platform1 role=paired_fob id=12345 pin=123456")
+        print("    or scons stm32 id=12345 pin=123456")
+        Exit(1)
+
+if car_id:
+    if not car_id.isdigit():
+        print("Error: 'id' must be numeric")
+        Exit(1)
+    iCar_id = int(car_id)
+    if (iCar_id < 0) or (iCar_id > (2**32-1)):
+        print("Error: 'id' must fit within a 32-bit unsigned integer [0, 4'294'967'295]")
+        Exit(1)
+
+if pin:
+    if not pin.isdigit():
+        print("Error: 'pin' must be numeric")
+        Exit(1)
+    if len(pin) != 6:
+        print("Error: 'pin' must be exactly 6 digits")
+        Exit(1)
+
+if not app_env['opt'].isdigit() or app_env['opt'] not in ['0', '1', '2', '3', 's']:
+    print("Error: 'opt' must be one of: 0, 1, 2, 3, s")
     Exit(1)
+
+required_files = [
+    'tools/car_gen_secret.py',
+    'tools/fob_gen_secret.py',
+    'secrets/car_secrets.json',
+]
+
+for f in required_files:
+    if not os.path.exists(f):
+        print(f"Error: required file missing: {f}")
+        Exit(1)
 
 # Add feature flag defines if provided
 if app_env['unlock_flag']:
@@ -67,9 +135,6 @@ app_env.Append(CPPPATH=[
     '#/hardware/include',     # platform.h, uart.h
     '#/application/include',  # messages.h, dataFormats.h
 ])
-
-import sys
-import subprocess
 
 def gen_secrets_action(target, source, env):
     secrets_h = str(target[0])
@@ -107,35 +172,46 @@ def gen_secrets_action(target, source, env):
 
 Export('gen_secrets_action')
 
+if single_build_mode:
+    app_env['name'] = f"{app_env['role']}_{app_env['id']}" if app_env['role'] in ['car', 'paired_fob'] else app_env['role']
+    app_env['build_dir'] = f"hardware/{app_env['platform']}/build/{app_env['name']}"
+    app_env.Append(CPPPATH=[f'#/{app_env["build_dir"]}'])   # secrets.h
 
-# List of all targets, one per platform/role combination
-all_targets = []
+    app = SConscript(
+        f"hardware/{app_env['platform']}/SConscript",
+        variant_dir=app_env['build_dir'],
+        duplicate=0,
+        exports={'app_env': app_env}
+    )
+    Default(app)
 
-for platform in AVAILABLE_PLATFORMS:
-    for role in AVAILABLE_ROLES:
-        e = app_env.Clone()
-        e['role'] = role
-        e['name'] = f"{role}_{e['id']}" if role in ['car', 'paired_fob'] else role
-        e['build_dir'] = f"hardware/{platform}/build/{e['name']}"
+else:
+    # List of all targets, one per platform/role combination
+    all_targets = []
 
-        e.Append(CPPPATH=[f'#/{e["build_dir"]}'])   # secrets.h
+    for platform in AVAILABLE_PLATFORMS:
+        for role in AVAILABLE_ROLES:
+            e = app_env.Clone()
+            e['role'] = role
+            e['name'] = f"{role}_{e['id']}" if role in ['car', 'paired_fob'] else role
+            e['build_dir'] = f"hardware/{platform}/build/{e['name']}"
 
-        tgt = SConscript(
-            f'hardware/{platform}/SConscript',
-            variant_dir=e['build_dir'],
-            duplicate=0,
-            exports={'app_env': e}
-        )
+            e.Append(CPPPATH=[f'#/{e["build_dir"]}'])   # secrets.h
 
-        all_targets.append(tgt)
+            tgt = SConscript(
+                f'hardware/{platform}/SConscript',
+                variant_dir=e['build_dir'],
+                duplicate=0,
+                exports={'app_env': e}
+            )
 
-# Build targets: all, stm32, tm4c, x86
-Alias('all', all_targets)
+            all_targets.append(tgt)
 
-for platform in ['stm32', 'tm4c', 'x86']:
-    Alias(platform, [t for t in all_targets if platform in str(t)])
+    # Build targets: all, stm32, tm4c, x86
+    Alias('all', all_targets)
 
-#Default(t for t in all_targets if (platform in str(t) and role in str(t)))
+    for platform in ['stm32', 'tm4c', 'x86']:
+        Alias(platform, [t for t in all_targets if platform in str(t)])
 
 '''
 # Print build configuration

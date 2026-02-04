@@ -14,6 +14,10 @@ sources = [
     'source/uart_x86.c',
 ]
 
+ui = x86_env.get('ui')
+if ui:
+    sources.append(f"ui/{ui}/{ui}_x86.c")
+
 x86_env.Append(LINKFLAGS = [
     '-Wl,--gc-sections',
     f'-Wl,-Map={x86_env["build_dir"]}/x86.map,--cref'
