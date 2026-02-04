@@ -11,6 +11,7 @@ opts.Add(EnumVariable('role', 'Device role', None,
 opts.Add(EnumVariable('ui', 'UI type for x86 port', None,
                       allowed_values=(AVAILABLE_UI)))
 opts.Add('id', 'Device ID (required for car and paired_fob)', '')
+opts.Add('pin', 'Pairing pin (required for paired_fob)', '')
 opts.Add('opt', 'Optimization level', '2')
 opts.Add(BoolVariable('debug', 'Debug build', False))
 opts.Add(BoolVariable('test', 'Test build (enables test commands)', False))
@@ -39,7 +40,7 @@ if 'all' in COMMAND_LINE_TARGETS or role in ['car', 'paired_fob']:
         print("Usage: scons platform=platform1 role=car id=12345")
         Exit(1)
 
-if platform in ["stm32", "tm4c"] and ui != '':
+if platform in ["stm32", "tm4c"] and ui is not None:
     print("Error: ui option given for non-x86 platform")
     Exit(1)
 
@@ -113,7 +114,7 @@ for platform in AVAILABLE_PLATFORMS:
     for role in AVAILABLE_ROLES:
         e = app_env.Clone()
         e['role'] = role
-        e['name'] = f"{role}_{e['id']}" if e['id'] else role
+        e['name'] = f"{role}_{e['id']}" if role in ['car', 'paired_fob'] else role
         e['build_dir'] = f"hardware/{platform}/build/{e['name']}"
 
         e.Append(CPPPATH=[f'#/{e["build_dir"]}'])   # secrets.h
