@@ -67,6 +67,7 @@ app_env.Append(CPPPATH=[
 ])
 
 import sys
+import subprocess
 
 def gen_secrets_action(target, source, env):
     secrets_h = str(target[0])
@@ -99,6 +100,8 @@ def gen_secrets_action(target, source, env):
             '--header-file', secrets_h,
             # No --paired flag for unpaired fob
         ]
+
+    subprocess.run(cmd, check=True)
 
 Export('gen_secrets_action')
 

@@ -6,13 +6,13 @@ driver_env = env.Clone()
 # Override any previous optimization flag
 # Relies on compiler observing the "last flag wins" rule
 driver_env.Append(CPPFLAGS=[
-    '-03'
+    '-O3'
 ])
 
-driver_sources = Glob('libraries/tivaware/driverlib/*.c')
+driver_sources = Glob('#hardware/libraries/tivaware/driverlib/*.c')
 
 tm4c_drivers = driver_env.StaticLibrary(
-    target='/tm4c_hal',
+    target='tm4c_hal',
     source=driver_sources
 )
 

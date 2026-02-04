@@ -19,7 +19,6 @@ stm32_env.Append(CPPFLAGS=
     '-ffunction-sections',
     '-fdata-sections',
     '-Wall',
-    '-c'
 ])
 
 # STM32-specific defines

@@ -6,13 +6,13 @@ driver_env = env.Clone()
 # Override any previous optimization flag
 # Relies on compiler observing the "last flag wins" rule
 driver_env.Append(CPPFLAGS=[
-    '-03'
+    '-O3'
 ])
 
-driver_sources = Glob('drivers/*.c')
+driver_sources = Glob('#hardware/stm32/Drivers/STM32F4xx_HAL_Driver/Src/*.c')
 
 stm32_drivers = driver_env.StaticLibrary(
-    target='/stm32_hal',
+    target='stm32_drivers',
     source=driver_sources
 )
 

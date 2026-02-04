@@ -1,0 +1,32 @@
+Import('env')
+
+# Clone the environment so we don't affect other builds
+local_env = env.Clone()
+
+# List all your driver source files
+driver_sources = [
+    'stm32f4xx_hal_uart.c',
+    'stm32f4xx_hal_rcc.c',
+    'stm32f4xx_hal_rcc_ex.c',
+    'stm32f4xx_hal_flash.c',
+    'stm32f4xx_hal_flash_ex.c',
+    'stm32f4xx_hal_flash_ramfunc.c',
+    'stm32f4xx_hal_gpio.c',
+    'stm32f4xx_hal_dma_ex.c',
+    'stm32f4xx_hal_dma.c',
+    'stm32f4xx_hal_pwr.c',
+    'stm32f4xx_hal_pwr_ex.c',
+    'stm32f4xx_hal_cortex.c',
+    'stm32f4xx_hal.c',
+    'stm32f4xx_hal_exti.c'
+]
+
+# Convert to full paths (# means project root in SCons)
+sources = [f'Drivers/STM32F4xx_HAL_Driver/Src/{src}' for src in driver_sources]
+
+# Build the static library
+# This creates libplatform1_drivers.a
+stm32_drivers = local_env.StaticLibrary('stm32_drivers', sources)
+
+# Return it (even though we're not using it yet, good practice)
+Return('stm32_drivers')

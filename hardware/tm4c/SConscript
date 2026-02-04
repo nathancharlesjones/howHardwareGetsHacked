@@ -17,7 +17,6 @@ tm4c_env.Append(CPPFLAGS=
     '-ffunction-sections',
     '-fdata-sections',
     '-Wall',
-    '-c',
     '-std=c99',
     '-pedantic'
 ])
@@ -87,10 +86,12 @@ libm_path = subprocess.check_output(
     ['arm-none-eabi-gcc'] + tm4c_env['arch_flags'] + ['-print-file-name=libm.a']
 ).decode().strip()
 
+'''
 print(f"Using libraries:")
 print(f"  libgcc: {libgcc_path}")
 print(f"  libc:   {libc_path}")
 print(f"  libm:   {libm_path}")
+'''
 
 # Explicit library files
 libs = [
