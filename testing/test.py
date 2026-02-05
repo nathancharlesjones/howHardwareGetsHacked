@@ -321,10 +321,8 @@ class TestCustomConfigurations:
 
     def test_mismatched_fob_cannot_unlock_car(self, deploy):
         """A fob paired to a different car ID should not unlock this car."""
-        # Car with ID 1
-        car = deploy(RoleConfig("car", id="2"))
-        # Fob paired to car ID 2 (mismatched!)
-        wrong_fob = deploy(RoleConfig("paired_fob", id="1", pin="654321"))
+        # Car with ID 1 & Fob paired to car ID 2 (mismatched!)
+        car, wrong_fob = deploy(RoleConfig("car", id="2"), RoleConfig("paired_fob", id="1", pin="654321"))
 
         # Wrong fob tries to unlock
         resp = proto.cmd_btn_press(wrong_fob)

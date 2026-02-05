@@ -102,9 +102,6 @@ class SimulationEnvironment:
             self.board_vsp.stop()
             self.board_vsp.close()
 
-        # Give threads a moment to fully shut down
-        time.sleep(0.1)
-
         return False
     
     def _launch_device(self, binary: Path, board_port: Optional[str]) -> DeployedDevice:
