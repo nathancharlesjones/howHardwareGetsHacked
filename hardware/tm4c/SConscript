@@ -34,13 +34,12 @@ tm4c_env.Append(CPPPATH=[
 ])
 
 # TM4C sources
-sources = Glob('#hardware/libraries/tivaware/driverlib/*.c')
-sources.extend([
+sources = [
     'source/tm4c.c',
     'source/uart_tm4c.c',
     'source/syscalls.c',
     'libraries/tivaware/startup_tm4c123gh6pm_baremetal.c'
-])
+]
 
 tm4c_env.Append(LINKFLAGS= [
     '-T', 'hardware/tm4c/libraries/tivaware/firmware.ld',
@@ -54,6 +53,13 @@ secrets_h = tm4c_env.Command(
     target='secrets.h',
     source=['#secrets/car_secrets.json'],
     action=gen_secrets_action
+)
+
+driver_objects = SConscript(
+    'libraries/tivaware/SConscript',
+    variant_dir='drivers',
+    duplicate=0,
+    exports={'env': stm32_env}
 )
 
 # Build application with our architecture-specific environment
@@ -94,7 +100,7 @@ libs = [
     libgcc_path, # GCC runtime
 ]
 
-app = tm4c_env.Program(f'{tm4c_env["name"]}.bin', app_objects + sources + libs)
+app = tm4c_env.Program(f'{tm4c_env["name"]}.bin', sources + app_objects + driver_objects + libs)
 tm4c_env.Depends(app, secrets_h)
 
 Return('app')

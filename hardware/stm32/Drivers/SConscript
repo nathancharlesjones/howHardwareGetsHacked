@@ -1,19 +1,26 @@
 Import('env')
 
 # Clone a clean environment specifically for drivers
-driver_env = env.Clone()
+local_env = env.Clone()
 
-# Override any previous optimization flag
-# Relies on compiler observing the "last flag wins" rule
-driver_env.Append(CPPFLAGS=[
-    '-O3'
-])
+sources = [
+    'STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c',
+    'STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c',
+    'STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.c',
+    'STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash.c',
+    'STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ex.c',
+    'STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ramfunc.c',
+    'STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c',
+    'STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma_ex.c',
+    'STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c',
+    'STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr.c',
+    'STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr_ex.c',
+    'STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c',
+    'STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c',
+    'STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_exti.c'
+]
 
-driver_sources = Glob('#hardware/stm32/Drivers/STM32F4xx_HAL_Driver/Src/*.c')
+# Build objects only (not a program)
+objects = local_env.Object(sources)
 
-stm32_drivers = driver_env.StaticLibrary(
-    target='stm32_drivers',
-    source=driver_sources
-)
-
-Return('stm32_drivers')
+Return('objects')

@@ -57,7 +57,7 @@ def flash(platform, serial_number, file_path):
 
     # Construct the OpenOCD command
     cmd = [
-        "/usr/local/bin/openocd",
+        "openocd",
         "-f", board_config,
         "-c", f"adapter serial {serial_number}",
         "-c", "init",
@@ -106,7 +106,7 @@ def debug(platform, serial_number, gdb_port=3333, telnet_port=4444):
 
     # Construct the OpenOCD command
     cmd = [
-        "/usr/local/bin/openocd",
+        "openocd",
         "-f", board_config,
         "-c", f"adapter serial {serial_number}",
         "-c", f"gdb_port {gdb_port}",

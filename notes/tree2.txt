@@ -1,0 +1,52 @@
+./
+├── application/
+│   ├── include/
+│   │   ├── dataFormats.h
+│   │   └── messages.h
+│   ├── source/
+│   │   ├── car.c
+│   │   ├── fob.c
+│   │   └── messages.c
+│   └── SConscript
+├── hardware/
+│   ├── include/
+│   │   ├── platform.h
+│   │   └── uart.h
+│   ├── stm32/Core/Src/main.c
+│   │   ├── Makefile
+│   │   ├── SConscript
+│   ├── tm4c/
+│   │   ├── source/
+│   │   │   ├── syscalls.c
+│   │   │   ├── tm4c.c
+│   │   │   └── uart_tm4c.c
+│   │   ├── Makefile
+│   │   └── SConscript
+│   └── x86/
+│       ├── include/uart_x86.h
+│       ├── source/
+│       │   ├── uart_x86.c
+│       │   ├── x86.c
+│       ├── ui/ui.h
+│       └── SConscript
+├── secrets/
+│   ├── car_secrets.json
+│   ├── global_secrets.txt
+│   └── secrets.mk
+├── testing/
+│   ├── conftest.py
+│   ├── protocol.py
+│   └── test.py
+├── tools/
+│   ├── car_gen_secret.py
+│   ├── devices.py
+│   ├── enable_tool*
+│   ├── fob_gen_secret.py
+│   ├── list.py*
+│   ├── monitor.py*
+│   ├── openocd.py*
+│   ├── packaging.py
+│   └── simulate.py*
+├── LICENSE
+├── Makefile
+└── SConstruct

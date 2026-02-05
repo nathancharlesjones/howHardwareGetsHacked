@@ -35,6 +35,7 @@ if GetOption('help'):
 
 # Validate inputs
 single_build_mode = (len(COMMAND_LINE_TARGETS) == 0)
+clean_mode = GetOption('clean')
 plat = app_env.get('platform')
 role = app_env.get('role')
 car_id = app_env.get('id')
@@ -50,12 +51,6 @@ if single_build_mode:
     if not car_id and role in ['car', 'paired_fob']:
         print("Error: 'id' parameter is required when building 'car' or 'paired_fob'")
         print("Usage: scons platform=platform1 role=car id=12345")
-        print("    or scons stm32 id=12345 pin=123456")
-        Exit(1)
-
-    if not pin and role == 'paired_fob':
-        print("Error: 'pin' parameter is required when building 'paired_fob'")
-        print("Usage: scons platform=platform1 role=paired_fob id=12345 pin=123456")
         print("    or scons stm32 id=12345 pin=123456")
         Exit(1)
     
@@ -75,12 +70,6 @@ else:
         print("    or scons stm32 id=12345 pin=123456")
         Exit(1)
 
-    if not pin:
-        print("Error: 'pin' parameter is required when building 'paired_fob'")
-        print("Usage: scons platform=platform1 role=paired_fob id=12345 pin=123456")
-        print("    or scons stm32 id=12345 pin=123456")
-        Exit(1)
-
 if car_id:
     if not car_id.isdigit():
         print("Error: 'id' must be numeric")
@@ -90,13 +79,20 @@ if car_id:
         print("Error: 'id' must fit within a 32-bit unsigned integer [0, 4'294'967'295]")
         Exit(1)
 
-if pin:
-    if not pin.isdigit():
-        print("Error: 'pin' must be numeric")
+if not clean_mode:  # Validate pin
+    if not pin and not single_build_mode or (single_build_mode and role == 'paired_fob'):
+        print("Error: 'pin' parameter is required when building 'paired_fob'")
+        print("Usage: scons platform=platform1 role=paired_fob id=12345 pin=123456")
+        print("    or scons stm32 id=12345 pin=123456")
         Exit(1)
-    if len(pin) != 6:
-        print("Error: 'pin' must be exactly 6 digits")
-        Exit(1)
+
+    if pin:
+        if not pin.isdigit():
+            print("Error: 'pin' must be numeric")
+            Exit(1)
+        if len(pin) != 6:
+            print("Error: 'pin' must be exactly 6 digits")
+            Exit(1)
 
 if not app_env['opt'].isdigit() or app_env['opt'] not in ['0', '1', '2', '3', 's']:
     print("Error: 'opt' must be one of: 0, 1, 2, 3, s")

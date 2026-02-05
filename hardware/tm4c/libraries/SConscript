@@ -1,19 +1,11 @@
 Import('env')
 
 # Clone a clean environment specifically for drivers
-driver_env = env.Clone()
+local_env = env.Clone()
 
-# Override any previous optimization flag
-# Relies on compiler observing the "last flag wins" rule
-driver_env.Append(CPPFLAGS=[
-    '-O3'
-])
+sources = Glob('#hardware/libraries/tivaware/driverlib/*.c')
 
-driver_sources = Glob('#hardware/libraries/tivaware/driverlib/*.c')
+# Build objects only (not a program)
+objects = local_env.Object(sources)
 
-tm4c_drivers = driver_env.StaticLibrary(
-    target='tm4c_hal',
-    source=driver_sources
-)
-
-Return('tm4c_drivers')
+Return('objects')
