@@ -55,18 +55,35 @@ class DeployedDevice:
 
     def close(self):
         """Clean up device resources: serial port, process, and virtual serial ports."""
+        # Close serial port first to unblock any pending reads/writes
         self.serial.close()
+
+        # Terminate process and wait for it to die
         if self._pid:
             try:
+                # Try graceful termination first
                 os.kill(self._pid, signal.SIGTERM)
-                time.sleep(0.05)
-                os.kill(self._pid, signal.SIGKILL)
-            except OSError:
+
+                # Wait for up to 0.5 seconds for graceful shutdown
+                for _ in range(10):
+                    try:
+                        pid, status = os.waitpid(self._pid, os.WNOHANG)
+                        if pid != 0:  # Process exited
+                            break
+                    except ChildProcessError:  # Already reaped
+                        break
+                    time.sleep(0.05)
+                else:
+                    # Process didn't die gracefully, force kill
+                    try:
+                        os.kill(self._pid, signal.SIGKILL)
+                        os.waitpid(self._pid, 0)  # Block until it dies
+                    except (OSError, ChildProcessError):
+                        pass
+            except (OSError, ChildProcessError):
                 pass
-            try:
-                os.waitpid(self._pid, os.WNOHANG)
-            except OSError:
-                pass
+
+        # Now that process is dead, clean up VSP
         if self._vsp:
             self._vsp.stop()
             self._vsp.close()

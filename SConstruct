@@ -80,7 +80,7 @@ if car_id:
         Exit(1)
 
 if not clean_mode:  # Validate pin
-    if not pin and not single_build_mode or (single_build_mode and role == 'paired_fob'):
+    if not pin and (not single_build_mode or (single_build_mode and role == 'paired_fob')):
         print("Error: 'pin' parameter is required when building 'paired_fob'")
         print("Usage: scons platform=platform1 role=paired_fob id=12345 pin=123456")
         print("    or scons stm32 id=12345 pin=123456")

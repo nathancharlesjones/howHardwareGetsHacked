@@ -31,34 +31,30 @@ from dataclasses import dataclass
 from virtualserialports import VirtualSerialPorts
 
 from devices import DeployedDevice
+from typing import Union
 
 
 DEFAULT_BAUD = 115200
 DEFAULT_TIMEOUT = 1.0
 
 
-@dataclass
-class SimulationDevices:
-    """The devices available in a simulation environment."""
-    primary: DeployedDevice
-    secondary: Optional[DeployedDevice] = None
-
-
 class SimulationEnvironment:
     """
     Context manager for a simulation environment with one or two x86 devices.
-    
-    Usage:
-        with SimulationEnvironment(binary1, binary2) as env:
-            car = env.primary
-            fob = env.secondary
+
+    Usage (two devices):
+        with SimulationEnvironment(binary1, binary2) as (dev1, dev2):
+            # test code
+
+    Usage (one device):
+        with SimulationEnvironment(binary1) as dev1:
             # test code
     """
-    
+
     def __init__(self, binary1: Path, binary2: Optional[Path] = None):
         """
         Initialize the environment with one or two binaries.
-        
+
         Args:
             binary1: Path to first executable
             binary2: Path to second executable (optional)
@@ -66,14 +62,15 @@ class SimulationEnvironment:
         self.binary1 = Path(binary1)
         self.binary2 = Path(binary2) if binary2 else None
         self.board_vsp: Optional[VirtualSerialPorts] = None
-        self.devices: Optional[SimulationDevices] = None
+        self.dev1: Optional[DeployedDevice] = None
+        self.dev2: Optional[DeployedDevice] = None
     
-    def __enter__(self) -> SimulationDevices:
+    def __enter__(self) -> Union[DeployedDevice, tuple[DeployedDevice, DeployedDevice]]:
         """
         Enter the simulation environment: launch binaries and wire them together.
-        
+
         Returns:
-            SimulationDevices containing primary and optional secondary device
+            DeployedDevice if only binary1 provided, else tuple of two DeployedDevices
         """
         # Create board connection if we have two devices
         if self.binary2:
@@ -83,29 +80,31 @@ class SimulationEnvironment:
             board_ports = self.board_vsp.ports
         else:
             board_ports = [None, None]
-        
+
         # Deploy primary device
-        dev1 = self._launch_device(self.binary1, board_ports[0])
-        
+        self.dev1 = self._launch_device(self.binary1, board_ports[0])
+
         # Deploy secondary device if provided
-        dev2 = None
         if self.binary2:
-            dev2 = self._launch_device(self.binary2, board_ports[1])
-        
-        self.devices = SimulationDevices(primary=dev1, secondary=dev2)
-        return self.devices
+            self.dev2 = self._launch_device(self.binary2, board_ports[1])
+            return self.dev1, self.dev2
+        else:
+            return self.dev1
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Clean up all resources."""
-        if self.devices:
-            self.devices.primary.close()
-            if self.devices.secondary:
-                self.devices.secondary.close()
-        
+        if self.dev1:
+            self.dev1.close()
+        if self.dev2:
+            self.dev2.close()
+
         if self.board_vsp:
             self.board_vsp.stop()
             self.board_vsp.close()
-        
+
+        # Give threads a moment to fully shut down
+        time.sleep(0.1)
+
         return False
     
     def _launch_device(self, binary: Path, board_port: Optional[str]) -> DeployedDevice:
@@ -192,14 +191,18 @@ def main():
         sys.exit(1)
     
     try:
-        with SimulationEnvironment(binary1, binary2) as env:
+        with SimulationEnvironment(binary1, binary2) as result:
             # Print port information for the user
             print(f"Simulation running:")
-            print(f"  Device 1 host port: {env.primary.serial.port}")
-            if env.secondary:
-                print(f"  Device 2 host port: {env.secondary.serial.port}")
+            if isinstance(result, tuple):
+                dev1, dev2 = result
+                print(f"  Device 1 host port: {dev1.serial.port}")
+                print(f"  Device 2 host port: {dev2.serial.port}")
+            else:
+                dev1 = result
+                print(f"  Device 1 host port: {dev1.serial.port}")
             print("\nPress Ctrl-C to stop.\n")
-            
+
             # Block until user interrupts
             while True:
                 time.sleep(1)
