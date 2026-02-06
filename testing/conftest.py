@@ -144,24 +144,61 @@ def deploy(hardware_config):
             cfg1: RoleConfig,
             cfg2: Optional[RoleConfig] = None
         ) -> Union[DeployedDevice, tuple[DeployedDevice, DeployedDevice]]:
-            """Deploy to hardware: build, flash, open ports."""
+            """Deploy to hardware: build, attach serial, flash, verify startup."""
+            from list import find_port_by_serial_number
+            from openocd import flash as openocd_flash
 
             # Deploy first device
             binary1 = build_binary(cfg1, hardware_config.board)
-            port1 = flash_and_open_port(hardware_config.board, hardware_config.identifiers[0], binary1)
+
+            # Find and open serial port BEFORE flashing
+            port1 = find_port_by_serial_number(hardware_config.identifiers[0])
+            if not port1:
+                raise RuntimeError(f"Could not find port for probe {hardware_config.identifiers[0]}")
             ser1 = serial.Serial(port1, DEFAULT_BAUD, timeout=DEFAULT_TIMEOUT)
-            time.sleep(0.1)
             ser1.reset_input_buffer()
+
+            # Flash device (causes reset and boot)
+            result = openocd_flash(hardware_config.board, hardware_config.identifiers[0], str(binary1))
+            if result != 0:
+                ser1.close()
+                raise RuntimeError("Flash failed for first device")
+
+            # Wait for and verify "OK: started"
+            time.sleep(0.2)
+            startup = ser1.readline().decode('ascii', errors='replace').strip()
+            print(repr(startup))
+            print([hex(ord(c)) for c in startup[:5]])
+            if not startup.lstrip('\x00').startswith("OK"):
+                ser1.close()
+                raise RuntimeError(f"First device didn't start properly, got: '{startup}'")
+
             dev1 = DeployedDevice(ser1)
             deployed_devices.append(dev1)
 
             # Deploy second device if requested
             if cfg2:
                 binary2 = build_binary(cfg2, hardware_config.board)
-                port2 = flash_and_open_port(hardware_config.board, hardware_config.identifiers[1], binary2)
+
+                # Find and open serial port BEFORE flashing
+                port2 = find_port_by_serial_number(hardware_config.identifiers[1])
+                if not port2:
+                    raise RuntimeError(f"Could not find port for probe {hardware_config.identifiers[1]}")
                 ser2 = serial.Serial(port2, DEFAULT_BAUD, timeout=DEFAULT_TIMEOUT)
-                time.sleep(0.1)
-                ser2.reset_input_buffer()
+
+                # Flash device (causes reset and boot)
+                result = openocd_flash(hardware_config.board, hardware_config.identifiers[1], str(binary2))
+                if result != 0:
+                    ser2.close()
+                    raise RuntimeError("Flash failed for second device")
+
+                # Wait for and verify "OK: started"
+                time.sleep(0.2)
+                startup = ser2.readline().decode('ascii', errors='replace').strip()
+                if not startup.startswith("OK"):
+                    ser2.close()
+                    raise RuntimeError(f"Second device didn't start properly, got: '{startup}'")
+
                 dev2 = DeployedDevice(ser2)
                 deployed_devices.append(dev2)
                 return dev1, dev2
@@ -240,40 +277,6 @@ def build_binary(cfg: RoleConfig, platform: str) -> Path:
         raise RuntimeError(f"Built binary not found at {binary_path}")
 
     return binary_path
-
-
-def flash_and_open_port(board: str, serial_number: str, binary: Path) -> str:
-    """
-    Flash a binary to hardware and return the serial port for communication.
-
-    Args:
-        board: Board type ("stm32" or "tm4c")
-        serial_number: Serial number of the debug probe
-        binary: Path to the firmware binary
-
-    Returns:
-        Serial port path (e.g., "/dev/ttyACM0")
-    """
-    from openocd import flash as openocd_flash
-    from list import find_port_by_serial_number
-
-    # Flash using OpenOCD
-    result = openocd_flash(board, serial_number, str(binary))
-    if result != 0:
-        raise RuntimeError(f"Flash failed with code {result}")
-
-    # Find the serial port using the shared utility
-    port = find_port_by_serial_number(serial_number)
-    if port:
-        return port
-
-    # If not found, provide helpful error
-    from serial.tools.list_ports import comports
-    ports = comports()
-    raise RuntimeError(
-        f"Could not find serial port for probe '{serial_number}'.\n"
-        f"Available ports: {[(p.device, p.serial_number) for p in ports]}"
-    )
 
 
 # ============================================================================

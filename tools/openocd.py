@@ -69,8 +69,19 @@ def flash(platform, serial_number, file_path):
     print(f"Flashing {platform} device {serial_number} with {file_path}")
     print(f"Command: {' '.join(cmd)}")
 
-    result = subprocess.run(cmd)
-    return result.returncode
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    # OpenOCD's return code is unreliable (can be non-zero on success due to warnings)
+    # Check for verification success in the output instead
+    combined_output = result.stdout + result.stderr
+
+    if "** Verified OK **" in combined_output:
+        return 0  # Success
+    else:
+        # Print output to help debug the failure
+        print("Flash failed - OpenOCD output:")
+        print(combined_output)
+        return 1  # Failure
 
 
 def debug(platform, serial_number, gdb_port=3333, telnet_port=4444):
