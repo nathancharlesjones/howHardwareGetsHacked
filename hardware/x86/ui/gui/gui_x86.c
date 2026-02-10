@@ -291,7 +291,8 @@ bool gui_update(void)
     /* Build GUI */
     mu_begin(ctx);
     
-    if (mu_begin_window(ctx, "Controls", mu_rect(10, 10, 380, 280))) {
+    if (mu_begin_window_ex(ctx, "Controls", mu_rect(10, 10, 380, 280), MU_OPT_NOTITLE)) {
+    //if (mu_begin_window(ctx, "Controls", mu_rect(10, 10, 380, 280))) {
         mu_layout_row(ctx, 2, (int[]){ 100, -1 }, 0);
         
         /* LED display */
