@@ -167,8 +167,6 @@ def deploy(hardware_config):
             # Wait for and verify "OK: started"
             time.sleep(0.2)
             startup = ser1.readline().decode('ascii', errors='replace').strip()
-            print(repr(startup))
-            print([hex(ord(c)) for c in startup[:5]])
             if not startup.lstrip('\x00').startswith("OK"):
                 ser1.close()
                 raise RuntimeError(f"First device didn't start properly, got: '{startup}'")

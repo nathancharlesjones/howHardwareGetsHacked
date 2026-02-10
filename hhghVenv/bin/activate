@@ -38,7 +38,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV=/home/nathancharlesjones/Documents/Work/DigiKey/2026/articles/howHardwareGetsHacked_Part2/code/hhghVenv
+VIRTUAL_ENV=/home/nathancharlesjones/Documents/Work/DigiKey/2026/articles/howHardwareGetsHacked_Part3/code/hhghVenv
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

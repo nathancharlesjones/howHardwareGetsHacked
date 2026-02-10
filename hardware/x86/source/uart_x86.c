@@ -104,7 +104,7 @@ static int open_serial_port(const char* path)
         return -1;
     }
     
-    printf("Opened serial port: %s (fd=%d)\n", path, fd);
+    //printf("Opened serial port: %s (fd=%d)\n", path, fd);
     return fd;
 }
 

@@ -3,9 +3,9 @@
 
 #include "platform.h"
 
-void __attribute__((weak)) initThread(int argc, char ** argv);
-void __attribute__((weak)) closeThread(void);
-void __attribute__((weak)) setLED(led_color_t color);
-bool __attribute__((weak)) buttonPressed(void);
+void initThread(int argc, char ** argv);
+void closeThread(void);
+void setLED(led_color_t color);
+bool buttonPressed(void);
 
 #endif // UI_H
