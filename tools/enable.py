@@ -25,20 +25,20 @@ def enable(fob_serial, package_name):
         # Connect to fob serial
         fob_ser = serial.Serial(port=fob_serial, baudrate=115200, timeout=5)
 
-        # Send enable command to fob
-        fob_ser.write(b"enable\n")
-
         # Open and read binary data from package file
         with open(f"application/packages/{package_name}", "rb") as fhandle:
-            message = fhandle.read()
+            data = fhandle.read()
 
         # Send package to fob
+        message = b"enable " + data + b"\n"
+        print(f"Sending {message}")
         fob_ser.write(message)
 
-        received_bytes = fob_ser.read(7)
+        received_bytes = fob_ser.readline()
         enable_success = received_bytes.decode('utf-8').strip()
+        print(f"Received: {enable_success}")
 
-        if enable_success == "Enabled":
+        if enable_success == "OK":
             print(f"{enable_success}")
         else:
             print("Failed to enable feature")

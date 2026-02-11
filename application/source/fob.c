@@ -366,7 +366,9 @@ void enableFeature(FLASH_DATA *fob_state_ram, const uint8_t *data, size_t len)
 
   if (len < sizeof(ENABLE_PACKET))
   {
-    sendError("invalid packet");
+    char msg[64] = {0};
+    sprintf(msg, "invalid packet; expected len of 12, got len of %ld", len);
+    sendError(msg);
     return;
   }
 

@@ -1,9 +1,13 @@
+#!/usr/bin/python3 -u
+
 """
 Feature packaging utilities.
 
 This module provides the core logic for creating feature packages.
 Used by both tests (import directly) and CLI (via project.py).
 """
+
+import argparse
 
 def create_feature_package(car_id: bytes, feature_number: int) -> bytes:
     """
@@ -40,5 +44,27 @@ def save_feature_package(filepath: str, car_id: bytes, feature_number: int) -> N
         feature_number: Feature number (1-3)
     """
     package_data = create_feature_package(car_id, feature_number)
+    if filepath is None:
+        filepath = f"application/packages/{car_id}_{feature_number}"
     with open(filepath, 'wb') as f:
         f.write(package_data)
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--id", help="Car ID the feature is being built for", type=str, required=True,
+    )
+    parser.add_argument(
+        "--num", help="Feature number to be packaged", type=int, required=True,
+    )
+    parser.add_argument(
+        "--out", help="File path and name, if not default", type=str, default=None
+    )
+
+    args = parser.parse_args()
+
+    save_feature_package(args.out, args.id, args.num)
+
+
+if __name__ == "__main__":
+    main()

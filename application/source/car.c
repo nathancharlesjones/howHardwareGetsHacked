@@ -180,16 +180,9 @@ void unlockCar(void)
   uint8_t buffer[256];
   message.buffer = buffer;
 
-  /*
-  char msg[64];
-  strcpy(msg, "Inside unlockCar, before msg receive\n");
-  uart_write(HOST_UART, msg, strlen(msg));
-  */
-
   // Receive unlock message
   receive_board_message_by_type(&message, UNLOCK_MAGIC);
-  //strcpy(msg, "After msg receive\n");
-  //uart_write(HOST_UART, msg, strlen(msg));
+
   // Ensure nul termination
   message.buffer[7] = '\0';
 
@@ -216,11 +209,13 @@ void unlockCar(void)
 
 #ifndef TEST_BUILD
   // In production mode: send unlock flag and feature flags
-  uint8_t flag_buffer[UNLOCK_SIZE];
+  uint8_t flag_buffer[UNLOCK_SIZE] = {0};
   
   // Send unlock flag
   loadFlag(flag_buffer, UNLOCK);
   uart_write(HOST_UART, flag_buffer, UNLOCK_SIZE);
+  char * newlines = "\n\r";
+  uart_write(HOST_UART, (uint8_t*)newlines, 2);
 
   // Send feature flags
   for (int i = 0; i < feature_info->num_active; i++)
@@ -230,6 +225,7 @@ void unlockCar(void)
       {
           loadFlag(flag_buffer, (flag_t)featureNum);
           uart_write(HOST_UART, flag_buffer, FEATURE_SIZE);
+          uart_write(HOST_UART, (uint8_t*)newlines, 2);
       }
   }
 #endif

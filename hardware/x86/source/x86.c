@@ -118,7 +118,7 @@ void initHardware_fob(int argc, char ** argv)
 
 void loadFlag(uint8_t* dest, flag_t flag)
 {
-    static const char* flags[] = {
+    static const char flags[][64] = {
         [UNLOCK] = UNLOCK_FLAG,
         [FEATURE1] = FEATURE1_FLAG,
         [FEATURE2] = FEATURE2_FLAG,
