@@ -26,18 +26,18 @@ def enable(fob_serial, package_name):
         fob_ser = serial.Serial(port=fob_serial, baudrate=115200, timeout=5)
 
         # Open and read binary data from package file
-        with open(f"application/packages/{package_name}", "rb") as fhandle:
-            data = fhandle.read()
+        with open(package_name, "rb") as fhandle:
+            data = fhandle.read().hex()
 
         # Send package to fob
-        message = b"enable " + data + b"\n"
-        print(f"Sending {message}")
-        fob_ser.write(message)
+        message = f"enable {data}\n"
+        print(f'Sending {bytes(message, "utf-8")}')
+        fob_ser.write(bytes(message, "utf-8"))
 
         received_bytes = fob_ser.readline()
         enable_success = received_bytes.decode('utf-8').strip()
-        print(f"Received: {enable_success}")
-
+        print(f'Received {enable_success}')
+        
         if enable_success == "OK":
             print(f"{enable_success}")
         else:
@@ -49,7 +49,7 @@ def enable(fob_serial, package_name):
         print(f"An unexpected error occurred: {e}")
 
     finally:
-        # 4. Close the port
+        # Close the port
         if 'ser' in locals() and ser.is_open:
             ser.close()
             print("Serial port closed.")
@@ -64,15 +64,15 @@ def enable(fob_serial, package_name):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--fob-serial", help="Serial port for the fob", type=str, required=True,
+        "--port", help="Serial port for the fob", type=str, required=True,
     )
     parser.add_argument(
-        "--package-name", help="Name of the package file", type=str, required=True,
+        "--path", help="Filepath for the package file", type=str, required=True,
     )
 
     args = parser.parse_args()
 
-    enable(args.fob_serial, args.package_name)
+    enable(args.port, args.path)
 
 
 if __name__ == "__main__":
