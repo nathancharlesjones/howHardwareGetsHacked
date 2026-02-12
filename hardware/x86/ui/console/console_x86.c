@@ -1,7 +1,7 @@
 #include <stdbool.h>            // For true/false
 #include <pthread.h>            // For pthread_t, pthread_create
 #include <stdio.h>              // For getchar
-#include <linux/limits.h>       // For PATH_MAX
+#include <limits.h>             // For PATH_MAX
 #include <stdlib.h>             // For exit
 #include <libgen.h>             // For dirname
 #include <unistd.h>             // For getcwd, access, execv

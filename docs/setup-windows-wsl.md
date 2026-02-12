@@ -59,7 +59,30 @@ If the quick install doesn't work:
    sudo apt upgrade -y
    ```
 
-## Step 3: Install USB/IP for USB Device Passthrough
+## Step 3: Install USB Device Drivers (Windows Side)
+
+### ST-Link Drivers (for STM32 boards)
+
+If you're using STM32 boards with ST-Link debuggers:
+
+1. Download and install **STM32 ST-LINK Utility** from STMicroelectronics:
+   - [https://www.st.com/en/development-tools/stsw-link004.html](https://www.st.com/en/development-tools/stsw-link004.html)
+   - This installs the WinUSB drivers needed for ST-Link
+
+**Alternative:** Install just the drivers without the utility:
+   - Download from [https://www.st.com/en/development-tools/stsw-link009.html](https://www.st.com/en/development-tools/stsw-link009.html)
+
+### TM4C123 Drivers (for TI Tiva C Launchpad)
+
+If you're using TI TM4C123 boards (EK-TM4C123GXL):
+
+1. Download and install **Stellaris ICDI Drivers**:
+   - Included in [TI's Tiva C Series Software](https://www.ti.com/tool/SW-TM4C)
+   - Or install standalone ICDI drivers from Device Manager → Update Driver → Browse for the Stellaris ICDI
+
+**Note:** The TM4C123 appears as two devices: a debugger (ICDI) and a virtual COM port. Both need drivers.
+
+## Step 4: Install USB/IP for USB Device Passthrough
 
 ### On Windows Side
 
@@ -80,7 +103,7 @@ If the quick install doesn't work:
    sudo update-alternatives --install /usr/local/bin/usbip usbip /usr/lib/linux-tools/*-generic/usbip 20
    ```
 
-## Step 4: Install Development Tools
+## Step 5: Install Development Tools
 
 ### Inside WSL (Ubuntu)
 
@@ -96,9 +119,11 @@ sudo apt install -y \
 # ARM cross-compiler toolchain
 sudo apt install -y gcc-arm-none-eabi
 
-# OpenOCD (for programming/debugging STM32)
-# Note: Project includes pyocd in venv, but openocd is useful as alternative
+# OpenOCD (for programming/debugging STM32 and TM4C)
 sudo apt install -y openocd
+
+# X11 terminal emulator (required for x86 console simulator)
+sudo apt install -y xterm
 
 # Serial port tools (optional - useful for manual debugging)
 sudo apt install -y \
@@ -107,9 +132,9 @@ sudo apt install -y \
     picocom
 ```
 
-**Note:** Python dependencies (SCons, pytest, pyserial, pyocd, etc.) are already provided in the project's virtual environment (`hhghVenv`). No need to install them separately!
+**Note:** Python dependencies will be installed from `requirements.txt` into your virtual environment in a later step.
 
-## Step 5: Configure USB Device Access
+## Step 6: Configure USB Device Access
 
 ### Attach USB Devices to WSL
 
@@ -156,7 +181,7 @@ For easier USB device management, use [wsl-usb-gui](https://gitlab.com/alelec/ws
 2. Run `wsl-usb-gui.exe` on Windows
 3. Click devices to attach/detach from WSL
 
-## Step 6: Set Up Serial Port Permissions
+## Step 7: Set Up Serial Port Permissions
 
 ```bash
 # Add your user to dialout group (for serial port access)
@@ -166,7 +191,7 @@ sudo usermod -a -G dialout $USER
 newgrp dialout
 ```
 
-## Step 7: Clone and Set Up Your Project
+## Step 8: Clone and Set Up Your Project
 
 ```bash
 # Navigate to your project (WSL can access Windows files)
@@ -176,17 +201,25 @@ cd ~
 git clone <your-repo-url>
 cd your-project
 
+# Create a Python virtual environment
+python3 -m venv hhghVenv
+
 # Activate the virtual environment (IMPORTANT!)
 source hhghVenv/bin/activate
 
 # Your prompt should now show (hhghVenv) prefix
-# This gives you access to SCons, pytest, pyserial, pyocd, etc.
+
+# Install Python dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# This installs: SCons, pytest, pyserial, PyVirtualSerialPorts, gdbgui
 
 # Build
-scons car_id=1
+scons platform=stm32 role=car id=1
 
 # Flash device (with USB attached)
-python tools/openocd.py --serial STLINKSERIAL --binary build/car/car_1.elf
+python tools/openocd.py --serial STLINKSERIAL --binary build/stm32/car_1/STM32.elf
 
 # Run tests
 pytest
@@ -203,7 +236,7 @@ To deactivate when done:
 deactivate
 ```
 
-## Step 8: IDE Setup (Optional but Recommended)
+## Step 9: IDE Setup (Optional but Recommended)
 
 ### Visual Studio Code with WSL Extension
 
@@ -318,14 +351,12 @@ cd /mnt/c/Users/YourName/Documents/
 
 ### What's Included
 
-The project's `hhghVenv` virtual environment includes:
+The project's `requirements.txt` specifies these Python dependencies:
 - **SCons** (build system)
 - **pytest** (testing framework)
 - **pyserial** (serial communication)
-- **pyocd** (Python-based debugger, alternative to OpenOCD)
-- **pylink-square** (J-Link support)
+- **PyVirtualSerialPorts** (virtual serial ports for testing)
 - **gdbgui** (web-based GDB debugger)
-- And many other embedded development tools
 
 ### Recommended Additions (Optional)
 
@@ -362,9 +393,9 @@ source hhghVenv/bin/activate
 
 **During work:**
 ```bash
-scons car_id=1          # Build
-pytest                  # Run tests
-python tools/simulate.py  # Run simulator
+scons platform=stm32 role=car id=1  # Build firmware
+pytest                              # Run tests
+python tools/simulate.py            # Run simulator (optional)
 ```
 
 **End of session:**
@@ -388,7 +419,7 @@ cd() {
 Once setup is complete:
 1. Review the main project README
 2. Activate virtual environment: `source hhghVenv/bin/activate`
-3. Build a test firmware: `scons car_id=1`
+3. Build a test firmware: `scons platform=stm32 role=car id=1`
 4. Flash to hardware with USB attached
 5. Run test suite: `pytest`
 

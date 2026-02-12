@@ -39,7 +39,6 @@ def test_imports():
         ('pytest', 'pytest - testing framework'),
         ('SCons', 'SCons - build system'),
         ('pathlib', 'pathlib - path handling (built-in)'),
-        ('pyocd', 'pyocd - debugger (alternative to openocd)'),
     ]
 
     all_ok = True
@@ -119,6 +118,7 @@ def test_tool_availability():
         ('arm-none-eabi-gcc', '--version', 'ARM GCC cross-compiler'),
         ('openocd', '--version', 'OpenOCD debugger'),
         ('git', '--version', 'Git version control'),
+        ('xterm', '-version', 'xterm (for x86 console simulator)'),
     ]
 
     all_ok = True
@@ -132,15 +132,24 @@ def test_tool_availability():
             )
             if result.returncode == 0:
                 # Get first line of output
-                version = result.stdout.split('\n')[0]
+                version = result.stdout.split('\n')[0] if result.stdout else result.stderr.split('\n')[0]
                 print(f"✅ {description}: {version}")
             else:
-                print(f"⚠️  {description}: Found but returned error")
-                all_ok = False
+                # xterm returns version info via stderr and exits with error code
+                if tool == 'xterm' and result.stderr:
+                    version = result.stderr.split('\n')[0]
+                    print(f"✅ {description}: {version}")
+                else:
+                    print(f"⚠️  {description}: Found but returned error")
+                    all_ok = False
         except FileNotFoundError:
-            print(f"❌ {description}: NOT FOUND in PATH")
-            print(f"   See setup docs for installation instructions")
-            all_ok = False
+            if tool == 'xterm':
+                print(f"⚠️  {description}: NOT FOUND in PATH")
+                print(f"   (Only needed for x86 console simulator - not required for embedded development)")
+            else:
+                print(f"❌ {description}: NOT FOUND in PATH")
+                print(f"   See setup docs for installation instructions")
+                all_ok = False
         except subprocess.TimeoutExpired:
             print(f"⚠️  {description}: Command timed out")
             all_ok = False
@@ -216,6 +225,110 @@ def test_virtual_serial_ports():
         print(f"⚠️  Error testing virtual serial ports: {e}")
         return False
 
+def test_usb_devices():
+    """Test for connected USB development boards."""
+    print_section("USB Development Boards (Hardware Detection)")
+
+    found_devices = []
+
+    try:
+        import serial.tools.list_ports
+        ports = list(serial.tools.list_ports.comports())
+
+        # Look for known devices
+        for port in ports:
+            desc_lower = (port.description or "").lower()
+            mfg_lower = (port.manufacturer or "").lower()
+
+            # ST-Link detection
+            if 'stm' in desc_lower or 'st-link' in desc_lower or 'stmicro' in mfg_lower:
+                found_devices.append(f"STM32/ST-Link: {port.device} ({port.description})")
+
+            # TM4C123 ICDI detection
+            elif 'stellaris' in desc_lower or 'icdi' in desc_lower or 'tm4c' in desc_lower or 'tiva' in desc_lower:
+                found_devices.append(f"TM4C123/ICDI: {port.device} ({port.description})")
+
+        if found_devices:
+            print(f"Found {len(found_devices)} development board(s):")
+            for device in found_devices:
+                print(f"  ✅ {device}")
+        else:
+            print("⚠️  No development boards detected")
+            print("   This is OK if no hardware is connected")
+            print("\nExpected boards:")
+            print("   - STM32 with ST-Link debugger")
+            print("   - TI TM4C123 (EK-TM4C123GXL) with Stellaris ICDI")
+
+        # Platform-specific driver notes
+        if platform.system() == 'Windows':
+            print("\nℹ️  Windows: Ensure ST-Link and Stellaris ICDI drivers are installed")
+            print("   See docs/setup-windows-wsl.md for driver installation")
+        elif platform.system() == 'Darwin':
+            print("\nℹ️  macOS: Boards should work automatically with libusb")
+            print("   Run 'system_profiler SPUSBDataType' to see all USB devices")
+        elif platform.system() == 'Linux':
+            print("\nℹ️  Linux: Ensure user is in 'dialout' group for serial access")
+            print("   Run 'lsusb' to see all USB devices")
+
+        return True
+
+    except Exception as e:
+        print(f"⚠️  Error detecting USB devices: {e}")
+        return True  # Don't fail the test, this is informational
+
+def test_platform_specific():
+    """Test platform-specific requirements."""
+    print_section("Platform-Specific Requirements")
+
+    sys_name = platform.system()
+    all_ok = True
+
+    if sys_name == 'Darwin':  # macOS
+        # Check for XQuartz (needed for xterm)
+        try:
+            result = subprocess.run(
+                ['xterm', '-version'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            # If xterm exists, check if XQuartz is available
+            xquartz_path = Path('/Applications/Utilities/XQuartz.app')
+            if xquartz_path.exists():
+                print("✅ XQuartz is installed (needed for xterm)")
+            else:
+                print("⚠️  XQuartz not found at standard location")
+                print("   Install with: brew install --cask xquartz")
+                print("   (Only needed for x86 console simulator)")
+        except FileNotFoundError:
+            print("ℹ️  xterm not found (XQuartz check skipped)")
+        except Exception as e:
+            print(f"ℹ️  Could not check XQuartz: {e}")
+
+    elif sys_name == 'Linux':
+        # Check if running in WSL
+        try:
+            with open('/proc/version', 'r') as f:
+                version = f.read().lower()
+                if 'microsoft' in version or 'wsl' in version:
+                    print("✅ Running in WSL (Windows Subsystem for Linux)")
+                    print("ℹ️  Remember to attach USB devices with usbipd")
+                    print("   See docs/setup-windows-wsl.md for USB passthrough setup")
+                else:
+                    print("✅ Running native Linux")
+        except FileNotFoundError:
+            print("✅ Running native Linux")
+        except Exception as e:
+            print(f"ℹ️  Could not determine Linux type: {e}")
+
+    elif sys_name == 'Windows':
+        print("⚠️  Running on Windows (not WSL)")
+        print("   This project is designed for WSL2 on Windows")
+        print("   See docs/setup-windows-wsl.md for setup instructions")
+        all_ok = False
+
+    return all_ok
+
 def main():
     """Run all tests."""
     print("""
@@ -233,6 +346,8 @@ def main():
         'External Tools': test_tool_availability(),
         'Build System': test_build_system(),
         'Virtual Serial Ports': test_virtual_serial_ports(),
+        'USB Devices': test_usb_devices(),
+        'Platform-Specific': test_platform_specific(),
     }
 
     # Summary

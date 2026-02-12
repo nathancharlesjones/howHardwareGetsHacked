@@ -50,8 +50,7 @@ brew install --cask gcc-arm-embedded
 brew tap osx-cross/arm
 brew install arm-gcc-bin
 
-# OpenOCD (for programming/debugging STM32)
-# Note: Project includes pyocd in venv, but openocd is useful as alternative
+# OpenOCD (for programming/debugging STM32 and TM4C)
 brew install openocd
 
 # Python (if not already installed)
@@ -60,11 +59,15 @@ brew install python@3.11
 # Git (usually already installed via Xcode CLI tools)
 brew install git
 
+# X11 support and terminal emulator (required for x86 console simulator)
+brew install --cask xquartz
+brew install xterm
+
 # Serial port tools (optional - useful for manual debugging)
 brew install minicom
 ```
 
-**Note:** Python dependencies (SCons, pytest, pyserial, pyocd, etc.) are already provided in the project's virtual environment (`hhghVenv`). No need to install them separately!
+**Note:** Python dependencies will be installed from `requirements.txt` into your virtual environment in a later step.
 
 ## Step 4: Configure USB/Serial Port Access
 
@@ -77,17 +80,32 @@ macOS requires permission to access USB devices.
 3. Click the lock icon to make changes
 4. Add **Terminal.app** (or your IDE like VSCode, PyCharm)
 
-### Install USB Driver for ST-Link (if needed)
+### Install USB Drivers
 
-Modern macOS usually recognizes ST-Link automatically, but if not:
+#### ST-Link (for STM32 boards)
+
+Modern macOS usually recognizes ST-Link automatically via built-in drivers, but you may need libusb:
 
 ```bash
 # Check if ST-Link is detected
 system_profiler SPUSBDataType | grep -A 10 STM
 
-# If not detected, install driver
+# Install libusb for USB device support
 brew install libusb
 ```
+
+#### TM4C123 (for TI Tiva C Launchpad)
+
+The TI TM4C123 (EK-TM4C123GXL) should work automatically on macOS:
+
+```bash
+# Check if TM4C123 ICDI is detected
+system_profiler SPUSBDataType | grep -i "stellaris\|icdi\|tm4c"
+```
+
+If not detected, ensure libusb is installed (see above). The TM4C123 appears as two devices:
+- **Stellaris ICDI** - debugger interface
+- **Serial port** - appears as `/dev/cu.usbmodem*`
 
 ## Step 5: Clone and Set Up Your Project
 
@@ -99,17 +117,25 @@ cd ~/Documents  # or wherever you prefer
 git clone <your-repo-url>
 cd your-project
 
+# Create a Python virtual environment
+python3 -m venv hhghVenv
+
 # Activate the virtual environment (IMPORTANT!)
 source hhghVenv/bin/activate
 
 # Your prompt should now show (hhghVenv) prefix
-# This gives you access to SCons, pytest, pyserial, pyocd, etc.
+
+# Install Python dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# This installs: SCons, pytest, pyserial, PyVirtualSerialPorts, gdbgui
 
 # Build
-scons car_id=1
+scons platform=stm32 role=car id=1
 
 # Flash device (with USB attached)
-python tools/openocd.py --serial STLINKSERIAL --binary build/car/car_1.elf
+python tools/openocd.py --serial STLINKSERIAL --binary build/stm32/car_1/STM32.elf
 
 # Run tests
 pytest
@@ -278,14 +304,12 @@ Consider using case-sensitive APFS for development (advanced users only).
 
 ### What's Included
 
-The project's `hhghVenv` virtual environment includes:
+The project's `requirements.txt` specifies these Python dependencies:
 - **SCons** (build system)
 - **pytest** (testing framework)
 - **pyserial** (serial communication)
-- **pyocd** (Python-based debugger, alternative to OpenOCD)
-- **pylink-square** (J-Link support)
+- **PyVirtualSerialPorts** (virtual serial ports for testing)
 - **gdbgui** (web-based GDB debugger)
-- And many other embedded development tools
 
 ### Recommended Additions (Optional)
 
@@ -322,9 +346,9 @@ source hhghVenv/bin/activate
 
 **During work:**
 ```bash
-scons car_id=1          # Build
-pytest                  # Run tests
-python tools/simulate.py  # Run simulator
+scons platform=stm32 role=car id=1  # Build firmware
+pytest                              # Run tests
+python tools/simulate.py            # Run simulator (optional)
 ```
 
 **End of session:**
@@ -370,10 +394,10 @@ VS Code will automatically use the venv for all Python operations.
 source hhghVenv/bin/activate
 
 # Build for specific car
-scons car_id=1
+scons platform=stm32 role=car id=1
 
 # Build for specific fob
-scons fob_id=1
+scons platform=stm32 role=paired_fob id=1 pin=123456
 
 # Clean build
 scons -c
@@ -413,7 +437,7 @@ python tools/openocd.py --serial <serial-number> --binary build/car/car_1.elf
 Once setup is complete:
 1. Review the main project README
 2. Activate virtual environment: `source hhghVenv/bin/activate`
-3. Build a test firmware: `scons car_id=1`
+3. Build a test firmware: `scons platform=stm32 role=car id=1`
 4. Flash to hardware
 5. Run test suite: `pytest`
 
