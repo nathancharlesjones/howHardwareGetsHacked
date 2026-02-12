@@ -2,6 +2,33 @@ __pycache__
 **/build/
 application/packages
 
+# SCons build database
+.sconsign.dblite
+
+# Python virtual environments
+hhghVenv/
+venv/
+.venv/
+env/
+ENV/
+
+# Python bytecode and cache
+*.pyc
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Binary files
+*.bin
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
 # Prerequisites
 *.d
 
