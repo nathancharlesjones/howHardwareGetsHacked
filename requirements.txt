@@ -1,0 +1,16 @@
+# Python dependencies for the eCTF hardware hacking project
+
+# Serial communication
+pyserial==3.5
+
+# Build system
+SCons==4.10.1
+
+# Testing framework
+pytest==9.0.2
+
+# Virtual serial ports for testing
+PyVirtualSerialPorts==2.0.0
+
+# GDB GUI debugger
+gdbgui==0.15.2.0
