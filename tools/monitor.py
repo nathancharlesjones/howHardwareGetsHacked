@@ -13,8 +13,10 @@ def main():
         sys.exit(1) # Exit if no arguments are provided
 
     try:
-        device = serial.Serial(sys.argv[1], DEFAULT_BAUD)
+        device = serial.Serial(sys.argv[1], DEFAULT_BAUD, timeout=0.05)
+        device.reset_input_buffer()
         print("Monitor program for eCTF devices. Enter 'q' to quit.")
+
         inStr = input(">> ")
         while inStr != 'q':
             # Special handling for: enable <path>
@@ -39,7 +41,25 @@ def main():
                 # Normal text command
                 device.write((inStr+'\n').encode('utf-8'))
 
-            print(device.readline().decode('utf-8').strip())
+            old_timeout = device.timeout
+            device.timeout = 2.0
+            while True:
+                line = device.readline()
+                if not line:  # Timeout with no data means we're done
+                    break
+                try:
+                    print(line.decode('utf-8').strip())
+                except UnicodeDecodeError:
+                    # Try stripping first byte (often 0xFF from UART reset glitch)
+                    if len(line) > 1:
+                        try:
+                            print(line[1:].decode('utf-8').strip())
+                        except UnicodeDecodeError:
+                            print(f"[Binary data: {line.hex()}]")
+                    else:
+                        print(f"[Binary data: {line.hex()}]")
+                device.timeout = old_timeout
+            
             inStr = input(">> ")
     except serial.SerialException as e:
         print(f"Error opening serial port: {e}")
