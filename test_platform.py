@@ -9,6 +9,7 @@ Usage:
 """
 
 import sys
+import os
 import platform
 import subprocess
 import argparse
@@ -66,9 +67,14 @@ def test_serial_ports(ci_mode=False):
         import serial.tools.list_ports
         ports = list(serial.tools.list_ports.comports())
 
-        if ports:
-            print(f"Found {len(ports)} serial port(s):")
-            for port in ports:
+        # Filter to show only ports with actual hardware (not "n/a")
+        hardware_ports = [p for p in ports if p.description and p.description.lower() != 'n/a']
+
+        print(f"Found {len(ports)} total serial port(s)")
+
+        if hardware_ports:
+            print(f"Ports with hardware attached ({len(hardware_ports)}):")
+            for port in hardware_ports:
                 print(f"  - {port.device}")
                 if port.serial_number:
                     print(f"    Serial: {port.serial_number}")
@@ -76,9 +82,9 @@ def test_serial_ports(ci_mode=False):
                     print(f"    Description: {port.description}")
         else:
             if ci_mode:
-                print("✅ No serial ports found (expected in CI environment)")
+                print("✅ No hardware devices found (expected in CI environment)")
             else:
-                print("⚠️  No serial ports found (this is OK if no hardware is connected)")
+                print("⚠️  No hardware devices found (this is OK if no hardware is connected)")
 
         # Test platform-specific naming
         if platform.system() == 'Darwin':  # macOS
@@ -109,7 +115,6 @@ def test_path_handling():
         print(f"Exists: {test_path.exists()}")
 
         # Show path separator
-        import os
         print(f"\nOS path separator: '{os.sep}'")
         print(f"Pathlib handles this automatically ✅")
 
@@ -354,10 +359,10 @@ def main():
     )
     args = parser.parse_args()
 
-    mode_str = " (CI MODE - Hardware tests skipped)" if args.ci_mode else ""
+    mode_str = " (CI Mode - HW tests skipped)" if args.ci_mode else ""
     print(f"""
 ╔══════════════════════════════════════════════════════════════╗
-║         Platform Compatibility Test{mode_str:26}║
+║  Platform Compatibility Test{mode_str:29}    ║
 ║  Tests basic functionality for embedded systems development  ║
 ╚══════════════════════════════════════════════════════════════╝
 """)

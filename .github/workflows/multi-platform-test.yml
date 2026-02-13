@@ -65,16 +65,52 @@ jobs:
         sudo apt-get install -y python3 python3-pip gcc-arm-none-eabi openocd xterm
         pip3 install -r requirements.txt
 
-    # Run tests (Linux and macOS)
+    # Run platform compatibility tests (Linux and macOS)
     - name: Run platform compatibility tests
       if: runner.os != 'Windows'
       shell: bash
       run: |
         python test_platform.py --ci-mode
 
-    # Run tests in WSL (Windows)
+    # Run platform compatibility tests in WSL (Windows)
     - name: Run platform compatibility tests in WSL (Windows)
       if: runner.os == 'Windows'
       shell: wsl-bash {0}
       run: |
         python3 test_platform.py --ci-mode
+
+    # Test build system with x86 console build (Linux and macOS)
+    - name: Test build system (x86 console)
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        # Build x86 console car and fobs (software-only, no hardware needed)
+        scons platform=x86 role=car id=12345 ui=console
+        scons platform=x86 role=paired_fob id=12345 pin=123456 ui=console
+        scons platform=x86 role=unpaired_fob ui=console
+
+    # Test build system with x86 console build in WSL (Windows)
+    - name: Test build system (x86 console) in WSL (Windows)
+      if: runner.os == 'Windows'
+      shell: wsl-bash {0}
+      run: |
+        # Build x86 console car and fobs (software-only, no hardware needed)
+        scons platform=x86 role=car id=12345 ui=console
+        scons platform=x86 role=paired_fob id=12345 pin=123456 ui=console
+        scons platform=x86 role=unpaired_fob ui=console
+
+    # Run pytest tests with simulation (Linux and macOS)
+    - name: Run pytest tests with simulation
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        # Run all software-only tests using simulation
+        pytest testing/test.py -v
+
+    # Run pytest tests with simulation in WSL (Windows)
+    - name: Run pytest tests with simulation in WSL (Windows)
+      if: runner.os == 'Windows'
+      shell: wsl-bash {0}
+      run: |
+        # Run all software-only tests using simulation
+        pytest testing/test.py -v
