@@ -55,6 +55,9 @@ jobs:
       run: |
         brew install --cask gcc-arm-embedded
         brew install openocd
+        # XQuartz provides X11 support needed for xterm
+        brew install --cask xquartz
+        brew install xterm
 
     # Windows WSL setup - install everything inside WSL
     - name: Install dependencies in WSL (Windows)
