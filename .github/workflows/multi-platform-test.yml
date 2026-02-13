@@ -53,57 +53,7 @@ jobs:
         choco install gcc-arm-embedded -y
         # Note: OpenOCD installation on Windows is more complex
 
-    - name: Verify Python installation
+    - name: Run platform compatibility tests
       shell: bash
       run: |
-        python --version
-        pip list
-
-    - name: Test imports and basic functionality
-      shell: bash
-      run: |
-        python -c "import serial; print('pyserial OK')"
-        python -c "from pathlib import Path; print('pathlib OK')"
-        python -c "import SCons; print('SCons OK')"
-        python -c "import pytest; print('pytest OK')"
-
-    - name: Test tool detection
-      shell: bash
-      run: |
-        arm-none-eabi-gcc --version || echo "ARM GCC not found"
-        openocd --version || echo "OpenOCD not found"
-
-    - name: Test serial port listing
-      shell: bash
-      run: |
-        python tools/list.py || echo "No serial devices found (expected in CI)"
-
-    - name: Build test (software-only)
-      shell: bash
-      run: |
-        # Test that build system initializes correctly
-        scons --help || echo "Build system check"
-
-    # Note: Hardware tests cannot run in CI without physical devices
-    - name: Run software-only unit tests
-      shell: bash
-      run: |
-        # Run only tests that don't require hardware
-        # pytest -m "not hardware" || echo "No non-hardware tests configured"
-        echo "Hardware tests skipped in CI (require physical devices)"
-
-    - name: Platform-specific validation
-      shell: bash
-      run: |
-        echo "Running on ${{ runner.os }}"
-        if [ "${{ runner.os }}" == "Linux" ]; then
-          echo "Testing Linux-specific paths"
-          ls /dev/tty* || echo "No serial devices"
-        elif [ "${{ runner.os }}" == "macOS" ]; then
-          echo "Testing macOS-specific paths"
-          ls /dev/cu.* || echo "No serial devices"
-        elif [ "${{ runner.os }}" == "Windows" ]; then
-          echo "Testing Windows-specific paths"
-          # Windows uses COM ports, not /dev devices
-          echo "Windows serial ports check skipped"
-        fi
+        python test_platform.py --ci-mode

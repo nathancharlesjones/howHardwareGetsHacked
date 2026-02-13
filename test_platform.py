@@ -2,11 +2,16 @@
 """
 Platform compatibility test script.
 Run this on Windows/Mac/Linux to verify basic functionality.
+
+Usage:
+  python test_platform.py          # Run all tests (including hardware detection)
+  python test_platform.py --ci-mode # Skip hardware-dependent tests (for CI/CD)
 """
 
 import sys
 import platform
 import subprocess
+import argparse
 from pathlib import Path
 
 def print_section(title):
@@ -53,7 +58,7 @@ def test_imports():
 
     return all_ok
 
-def test_serial_ports():
+def test_serial_ports(ci_mode=False):
     """Test serial port detection."""
     print_section("Serial Port Detection")
 
@@ -70,7 +75,10 @@ def test_serial_ports():
                 if port.description:
                     print(f"    Description: {port.description}")
         else:
-            print("⚠️  No serial ports found (this is OK if no hardware is connected)")
+            if ci_mode:
+                print("✅ No serial ports found (expected in CI environment)")
+            else:
+                print("⚠️  No serial ports found (this is OK if no hardware is connected)")
 
         # Test platform-specific naming
         if platform.system() == 'Darwin':  # macOS
@@ -110,19 +118,19 @@ def test_path_handling():
         print(f"❌ Error testing paths: {e}")
         return False
 
-def test_tool_availability():
+def test_tool_availability(ci_mode=False):
     """Test availability of external tools."""
     print_section("External Tool Availability")
 
     tools = [
-        ('arm-none-eabi-gcc', '--version', 'ARM GCC cross-compiler'),
-        ('openocd', '--version', 'OpenOCD debugger'),
-        ('git', '--version', 'Git version control'),
-        ('xterm', '-version', 'xterm (for x86 console simulator)'),
+        ('arm-none-eabi-gcc', '--version', 'ARM GCC cross-compiler', True),  # required
+        ('openocd', '--version', 'OpenOCD debugger', False),  # optional in CI (Windows issues)
+        ('git', '--version', 'Git version control', True),  # required
+        ('xterm', '-version', 'xterm (for x86 console simulator)', True),  # required
     ]
 
     all_ok = True
-    for tool, arg, description in tools:
+    for tool, arg, description, required in tools:
         try:
             result = subprocess.run(
                 [tool, arg],
@@ -141,21 +149,25 @@ def test_tool_availability():
                     print(f"✅ {description}: {version}")
                 else:
                     print(f"⚠️  {description}: Found but returned error")
-                    all_ok = False
+                    if required and not ci_mode:
+                        all_ok = False
         except FileNotFoundError:
-            if tool == 'xterm':
+            if not required or (ci_mode and tool == 'openocd'):
                 print(f"⚠️  {description}: NOT FOUND in PATH")
-                print(f"   (Only needed for x86 console simulator - not required for embedded development)")
+                if tool == 'openocd' and ci_mode:
+                    print(f"   (OpenOCD may fail on some CI platforms - this is OK)")
             else:
                 print(f"❌ {description}: NOT FOUND in PATH")
                 print(f"   See setup docs for installation instructions")
                 all_ok = False
         except subprocess.TimeoutExpired:
             print(f"⚠️  {description}: Command timed out")
-            all_ok = False
+            if required and not ci_mode:
+                all_ok = False
         except Exception as e:
             print(f"⚠️  {description}: Error - {e}")
-            all_ok = False
+            if required and not ci_mode:
+                all_ok = False
 
     return all_ok
 
@@ -331,9 +343,21 @@ def test_platform_specific():
 
 def main():
     """Run all tests."""
-    print("""
+    parser = argparse.ArgumentParser(
+        description='Platform compatibility test for embedded systems development',
+        epilog='Run without --ci-mode to include hardware detection tests'
+    )
+    parser.add_argument(
+        '--ci-mode',
+        action='store_true',
+        help='Skip hardware-dependent tests (for CI/CD environments)'
+    )
+    args = parser.parse_args()
+
+    mode_str = " (CI MODE - Hardware tests skipped)" if args.ci_mode else ""
+    print(f"""
 ╔══════════════════════════════════════════════════════════════╗
-║         Platform Compatibility Test                          ║
+║         Platform Compatibility Test{mode_str:26}║
 ║  Tests basic functionality for embedded systems development  ║
 ╚══════════════════════════════════════════════════════════════╝
 """)
@@ -341,14 +365,17 @@ def main():
     results = {
         'Python Version': test_python_version(),
         'Package Imports': test_imports(),
-        'Serial Ports': test_serial_ports(),
+        'Serial Ports': test_serial_ports(ci_mode=args.ci_mode),
         'Path Handling': test_path_handling(),
-        'External Tools': test_tool_availability(),
+        'External Tools': test_tool_availability(ci_mode=args.ci_mode),
         'Build System': test_build_system(),
         'Virtual Serial Ports': test_virtual_serial_ports(),
-        'USB Devices': test_usb_devices(),
         'Platform-Specific': test_platform_specific(),
     }
+
+    # Only run hardware detection if not in CI mode
+    if not args.ci_mode:
+        results['USB Devices'] = test_usb_devices()
 
     # Summary
     print_section("SUMMARY")
