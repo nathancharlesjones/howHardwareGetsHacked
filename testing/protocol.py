@@ -173,8 +173,8 @@ class FlashData:
         """Create a fresh unpaired fob state."""
         return cls(
             paired=False,
-            pair_info=PairPacket(b'\x00'*8, b'\x00'*8, b'\x00'*8),
-            feature_info=FeatureData(b'\x00'*8, 0, [0, 0, 0])
+            pair_info=PairPacket(b'\x00'*11, b'\x00'*8, b'\x00'*7),
+            feature_info=FeatureData(b'\x00'*11, 0, [0, 0, 0])
         )
     
     @classmethod
