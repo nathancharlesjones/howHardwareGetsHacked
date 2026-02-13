@@ -55,5 +55,7 @@ jobs:
 
     - name: Run platform compatibility tests
       shell: bash
+      env:
+        PYTHONIOENCODING: utf-8
       run: |
         python test_platform.py --ci-mode
