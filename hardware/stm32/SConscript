@@ -40,13 +40,26 @@ stm32_env.Append(CPPPATH=[
 sources = Glob('Core/Src/*.c')
 sources.append('startup_stm32f411xe.s')
 
-stm32_env.Append(LINKFLAGS=
-    stm32_env["arch_flags"] + [
-    '-T', 'hardware/stm32/STM32F411XX_FLASH.ld',
-    '-Wl,--gc-sections',
-    f'-Wl,-Map={stm32_env["build_dir"]}/STM32.map,--cref',
-    '-specs=nano.specs'
-])
+import platform
+
+# Platform-specific linker flags (ARM GNU toolchain)
+if platform.system() == 'Darwin':  # macOS
+    # Some macOS ARM toolchains may have linker differences
+    linkflags = stm32_env["arch_flags"] + [
+        '-T', 'hardware/stm32/STM32F411XX_FLASH.ld',
+        '-Wl,-dead_strip',  # macOS equivalent of --gc-sections
+        f'-Wl,-map,{stm32_env["build_dir"]}/STM32.map',
+        '-specs=nano.specs'
+    ]
+else:  # Linux and other Unix-like systems
+    linkflags = stm32_env["arch_flags"] + [
+        '-T', 'hardware/stm32/STM32F411XX_FLASH.ld',
+        '-Wl,--gc-sections',
+        f'-Wl,-Map={stm32_env["build_dir"]}/STM32.map,--cref',
+        '-specs=nano.specs'
+    ]
+
+stm32_env.Append(LINKFLAGS=linkflags)
 
 stm32_env.Append(LIBS=[
     'c',

@@ -128,10 +128,10 @@ def test_tool_availability(ci_mode=False):
     print_section("External Tool Availability")
 
     tools = [
-        ('arm-none-eabi-gcc', '--version', 'ARM GCC cross-compiler', True),  # required
-        ('openocd', '--version', 'OpenOCD debugger', False),  # optional in CI (Windows issues)
-        ('git', '--version', 'Git version control', True),  # required
-        ('xterm', '-version', 'xterm (for x86 console simulator)', True),  # required
+        ('arm-none-eabi-gcc', '--version', 'ARM GCC cross-compiler', True),
+        ('openocd', '--version', 'OpenOCD debugger', True),
+        ('git', '--version', 'Git version control', True),
+        ('xterm', '-version', 'xterm (for x86 console simulator)', True),
     ]
 
     all_ok = True
@@ -154,24 +154,19 @@ def test_tool_availability(ci_mode=False):
                     print(f"✅ {description}: {version}")
                 else:
                     print(f"⚠️  {description}: Found but returned error")
-                    if required and not ci_mode:
+                    if required:
                         all_ok = False
         except FileNotFoundError:
-            if not required or (ci_mode and tool == 'openocd'):
-                print(f"⚠️  {description}: NOT FOUND in PATH")
-                if tool == 'openocd' and ci_mode:
-                    print(f"   (OpenOCD may fail on some CI platforms - this is OK)")
-            else:
-                print(f"❌ {description}: NOT FOUND in PATH")
-                print(f"   See setup docs for installation instructions")
-                all_ok = False
+            print(f"❌ {description}: NOT FOUND in PATH")
+            print(f"   See setup docs for installation instructions")
+            all_ok = False
         except subprocess.TimeoutExpired:
             print(f"⚠️  {description}: Command timed out")
-            if required and not ci_mode:
+            if required:
                 all_ok = False
         except Exception as e:
             print(f"⚠️  {description}: Error - {e}")
-            if required and not ci_mode:
+            if required:
                 all_ok = False
 
     return all_ok

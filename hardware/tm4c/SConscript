@@ -41,13 +41,26 @@ sources = [
     'libraries/tivaware/startup_tm4c123gh6pm_baremetal.c'
 ]
 
-tm4c_env.Append(LINKFLAGS= [
-    '-T', 'hardware/tm4c/libraries/tivaware/firmware.ld',
-    '--entry', 'Firmware_Startup',
-    '--gc-sections',
-    f"-Map={tm4c_env['build_dir']}/TM4C.map"
+import platform
 
-])
+# Platform-specific linker flags (using ld directly)
+if platform.system() == 'Darwin':  # macOS
+    # Some macOS ARM toolchains may have linker differences
+    linkflags = [
+        '-T', 'hardware/tm4c/libraries/tivaware/firmware.ld',
+        '--entry', 'Firmware_Startup',
+        '-dead_strip',  # macOS ld equivalent of --gc-sections
+        f"-map={tm4c_env['build_dir']}/TM4C.map"
+    ]
+else:  # Linux and other Unix-like systems
+    linkflags = [
+        '-T', 'hardware/tm4c/libraries/tivaware/firmware.ld',
+        '--entry', 'Firmware_Startup',
+        '--gc-sections',
+        f"-Map={tm4c_env['build_dir']}/TM4C.map"
+    ]
+
+tm4c_env.Append(LINKFLAGS=linkflags)
 
 secrets_h = tm4c_env.Command(
     target='secrets.h',

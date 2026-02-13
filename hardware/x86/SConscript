@@ -18,10 +18,21 @@ ui = x86_env.get('ui')
 if ui:
     sources.append(f"ui/{ui}/{ui}_x86.c")
 
-x86_env.Append(LINKFLAGS = [
-    '-Wl,--gc-sections',
-    f'-Wl,-Map={x86_env["build_dir"]}/x86.map,--cref'
-])
+import platform
+
+# Platform-specific linker flags
+if platform.system() == 'Darwin':  # macOS
+    # macOS uses LLVM ld which has different flags
+    x86_env.Append(LINKFLAGS = [
+        '-Wl,-dead_strip',  # Remove unused code (like --gc-sections)
+        f'-Wl,-map,{x86_env["build_dir"]}/x86.map'  # Generate map file
+    ])
+else:  # Linux and other Unix-like systems
+    # Use GNU ld flags
+    x86_env.Append(LINKFLAGS = [
+        '-Wl,--gc-sections',
+        f'-Wl,-Map={x86_env["build_dir"]}/x86.map,--cref'
+    ])
 
 x86_env.Append(LIBS=[
     'm',
