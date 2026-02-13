@@ -20,13 +20,23 @@ jobs:
       with:
         submodules: recursive
 
+    # Windows WSL setup - do this before other setup
+    - name: Setup WSL (Windows only)
+      if: runner.os == 'Windows'
+      uses: Vampire/setup-wsl@v3
+      with:
+        distribution: Ubuntu-22.04
+
+    # Set up Python (Linux and macOS)
     - name: Set up Python
+      if: runner.os != 'Windows'
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
-    # Install Python dependencies
+    # Install Python dependencies (Linux and macOS)
     - name: Install Python dependencies
+      if: runner.os != 'Windows'
       shell: bash
       run: |
         python -m pip install --upgrade pip
@@ -37,7 +47,7 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-arm-none-eabi openocd
+        sudo apt-get install -y gcc-arm-none-eabi openocd xterm
 
     # macOS-specific setup
     - name: Install ARM toolchain (macOS)
@@ -46,16 +56,25 @@ jobs:
         brew install --cask gcc-arm-embedded
         brew install openocd
 
-    # Windows-specific setup
-    - name: Install ARM toolchain (Windows)
+    # Windows WSL setup - install everything inside WSL
+    - name: Install dependencies in WSL (Windows)
       if: runner.os == 'Windows'
+      shell: wsl-bash {0}
       run: |
-        choco install gcc-arm-embedded -y
-        # Note: OpenOCD installation on Windows is more complex
+        sudo apt-get update
+        sudo apt-get install -y python3 python3-pip gcc-arm-none-eabi openocd xterm
+        pip3 install -r requirements.txt
 
+    # Run tests (Linux and macOS)
     - name: Run platform compatibility tests
+      if: runner.os != 'Windows'
       shell: bash
-      env:
-        PYTHONIOENCODING: utf-8
       run: |
         python test_platform.py --ci-mode
+
+    # Run tests in WSL (Windows)
+    - name: Run platform compatibility tests in WSL (Windows)
+      if: runner.os == 'Windows'
+      shell: wsl-bash {0}
+      run: |
+        python3 test_platform.py --ci-mode
