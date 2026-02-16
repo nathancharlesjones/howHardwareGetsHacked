@@ -1,6 +1,6 @@
 # eCTF Hardware Hacking Demo
 
-> **Companion code for:** "How Hardware Gets Hacked" article series on Maker.io [link to Part 1](https://www.digikey.com/en/maker/blogs/2025/how-hardware-gets-hacked-part-1)
+> **Companion code for:** "How Hardware Gets Hacked" article series on Maker.io ([link to Part 1](https://www.digikey.com/en/maker/blogs/2025/how-hardware-gets-hacked-part-1))
 
 This project demonstrates iterative attacks and defenses for embedded systems using the 2023 MITRE eCTF competition as a foundation. Built from scratch to support multi-platform development (STM32, TM4C, x86), automated testing, and x86 simulation without Docker dependencies.
 
@@ -73,20 +73,24 @@ Each platform implements these functions differently:
 
 The [MITRE eCTF](https://ectf.mitre.org/) is an embedded security competition where teams design secure car key fob systems. The challenge: build a system where paired fobs can unlock cars and enable features, while preventing unauthorized access.
 
+![Overview](docs/images/features.png)
+
 **Key components:**
 - **Car**: Stores secrets, validates unlock requests
 - **Paired Fob**: Pre-configured with car ID and PIN, can unlock car and pair an unpaired fob
 - **Unpaired Fob**: Factory-fresh fob that pairs at runtime
 
-**Security goals:**
-- Prevent code/secret extraction
-- Prevent replay attacks
-- Protect against fault injection
-- Secure pairing protocol
+**Security requirements:**
+1) A car should only unlock and start when the user has an authentic fob that is paired with the car
+2) Revoking an attacker’s physical access to a fob should also revoke their ability to unlock the associated car
+3) Observing the communications between a fob and a car while unlocking should not allow an attacker to unlock the car in the future
+4) Having an unpaired fob should not allow an attacker to unlock a car without a corresponding paired fob and pairing PIN
+5) A car owner should not be able to add new features to a fob that did not get packaged by the manufacturer
+6) Access to a feature packaged for one car should not allow an attacker to enable the same feature on another car
 
 For detailed protocol flows and security architecture, see [`application/README.md`](application/README.md).
 
-## Threat Model
+## Navigating the commits
 
 This repository is organized around progressive security improvements. Each defense corresponds to an attack demonstrated in the article series.
 
@@ -188,7 +192,8 @@ scons -j8 -c all id=12345
     hardware/x86/build/car_12345/firmware \
     hardware/x86/build/paired_fob_12345/firmware
 
-# Press 'b' in fob console window to simulate button press
+# Applications are running "headless" unless "ui=console" was added to build step
+# If it was, you can press 'b' in fob console window that simulate.py opens up to simulate a button press
 
 # Simulation opens virtual serial ports - use monitor.py to interact
 # In another terminal:
@@ -376,7 +381,7 @@ void uart_write(uart_port_t port, const uint8_t *data, size_t len) {
     // Write to UART (HOST_UART or BOARD_UART)
 }
 
-// ... implement all other platform.h functions
+// ... implement all other platform.h and uart.h functions
 ```
 
 ### 3. Integrate with SCons

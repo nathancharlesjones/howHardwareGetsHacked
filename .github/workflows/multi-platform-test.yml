@@ -73,14 +73,14 @@ jobs:
       if: runner.os != 'Windows'
       shell: bash
       run: |
-        python tools/test_platform.py --ci-mode
+        python setup/test_platform.py --ci-mode
 
     # Run platform compatibility tests in WSL (Windows)
     - name: Run platform compatibility tests in WSL (Windows)
       if: runner.os == 'Windows'
       shell: wsl-bash {0}
       run: |
-        python3 tools/test_platform.py --ci-mode
+        python3 setup/test_platform.py --ci-mode
 
     # Test build system with x86 console build (Linux and macOS)
     - name: Test build system (x86 console)
