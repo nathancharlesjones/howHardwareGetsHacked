@@ -6,10 +6,13 @@ This guide will help you set up your Windows machine for embedded development us
 
 - Windows 10 version 2004+ (Build 19041+) or Windows 11
 - Administrator access
+- Internet connection
 
-## Step 1: Install WSL2
+## Installing Environment Tools
 
-### Quick Install (Windows 11 or Windows 10 version 22H2+)
+### Install WSL2
+
+#### Quick Install (Windows 11 or Windows 10 version 22H2+)
 
 Open PowerShell or Command Prompt as Administrator and run:
 
@@ -24,7 +27,7 @@ This will:
 
 Restart your computer when prompted.
 
-### Manual Install (Older Windows 10 versions)
+#### Manual Install (Older Windows 10 versions)
 
 If the quick install doesn't work:
 
@@ -49,7 +52,7 @@ If the quick install doesn't work:
 
 6. Install Ubuntu from Microsoft Store (search "Ubuntu 22.04 LTS")
 
-## Step 2: First-Time WSL Setup
+### First-Time WSL Setup
 
 1. Launch Ubuntu from Start Menu
 2. Create a username and password (doesn't have to match Windows credentials)
@@ -59,53 +62,9 @@ If the quick install doesn't work:
    sudo apt upgrade -y
    ```
 
-## Step 3: Install USB Device Drivers (Windows Side)
+## Installing Development Tools
 
-### ST-Link Drivers (for STM32 boards)
-
-If you're using STM32 boards with ST-Link debuggers:
-
-1. Download and install **STM32 ST-LINK Utility** from STMicroelectronics:
-   - [https://www.st.com/en/development-tools/stsw-link004.html](https://www.st.com/en/development-tools/stsw-link004.html)
-   - This installs the WinUSB drivers needed for ST-Link
-
-**Alternative:** Install just the drivers without the utility:
-   - Download from [https://www.st.com/en/development-tools/stsw-link009.html](https://www.st.com/en/development-tools/stsw-link009.html)
-
-### TM4C123 Drivers (for TI Tiva C Launchpad)
-
-If you're using TI TM4C123 boards (EK-TM4C123GXL):
-
-1. Download and install **Stellaris ICDI Drivers**:
-   - Included in [TI's Tiva C Series Software](https://www.ti.com/tool/SW-TM4C)
-   - Or install standalone ICDI drivers from Device Manager → Update Driver → Browse for the Stellaris ICDI
-
-**Note:** The TM4C123 appears as two devices: a debugger (ICDI) and a virtual COM port. Both need drivers.
-
-## Step 4: Install USB/IP for USB Device Passthrough
-
-### On Windows Side
-
-1. Install usbipd-win (USB/IP daemon for Windows):
-   ```powershell
-   winget install --interactive --exact dorssel.usbipd-win
-   ```
-
-   **Alternative:** Download installer from [https://github.com/dorssel/usbipd-win/releases](https://github.com/dorssel/usbipd-win/releases)
-
-2. Restart your terminal (to refresh PATH)
-
-### On WSL Side
-
-1. Install USB/IP tools and hardware utilities:
-   ```bash
-   sudo apt install linux-tools-generic hwdata
-   sudo update-alternatives --install /usr/local/bin/usbip usbip /usr/lib/linux-tools/*-generic/usbip 20
-   ```
-
-## Step 5: Install Development Tools
-
-### Inside WSL (Ubuntu)
+Inside WSL (Ubuntu):
 
 ```bash
 # Build essentials
@@ -125,16 +84,73 @@ sudo apt install -y openocd
 # X11 terminal emulator (required for x86 console simulator)
 sudo apt install -y xterm
 
-# Serial port tools (optional - useful for manual debugging)
+# GDB for ARM debugging (optional but recommended)
+sudo apt install -y gdb-multiarch
+
+# OPTIONAL: Serial port tools (useful for manual debugging; only need one)
 sudo apt install -y \
     minicom \
     screen \
     picocom
 ```
 
-**Note:** Python dependencies will be installed from `requirements.txt` into your virtual environment in a later step.
+**Note:** Python project dependencies will be installed from `requirements.txt` into your virtual environment in a later step.
 
-## Step 6: Configure USB Device Access
+## Setting Up USB Access to Devices
+
+### Install USB Device Drivers (Windows Side)
+
+#### ST-Link Drivers (for STM32 boards)
+
+If you're using STM32 boards with ST-Link debuggers:
+
+1. Download and install **STM32 ST-LINK Utility** from STMicroelectronics:
+   - [https://www.st.com/en/development-tools/stsw-link004.html](https://www.st.com/en/development-tools/stsw-link004.html)
+   - This installs the WinUSB drivers needed for ST-Link
+
+**Alternative:** Install just the drivers without the utility:
+   - Download from [https://www.st.com/en/development-tools/stsw-link009.html](https://www.st.com/en/development-tools/stsw-link009.html)
+
+#### TM4C123 Drivers (for TI Tiva C Launchpad)
+
+If you're using TI TM4C123 boards (EK-TM4C123GXL):
+
+1. Download and install **Stellaris ICDI Drivers**:
+   - Included in [TI's Tiva C Series Software](https://www.ti.com/tool/SW-TM4C)
+   - Or install standalone ICDI drivers from Device Manager → Update Driver → Browse for the Stellaris ICDI
+
+**Note:** The TM4C123 appears as two devices: a debugger (ICDI) and a virtual COM port. Both need drivers.
+
+### Install USB/IP for USB Device Passthrough
+
+#### On Windows Side
+
+1. Install usbipd-win (USB/IP daemon for Windows):
+   ```powershell
+   winget install --interactive --exact dorssel.usbipd-win
+   ```
+
+   **Alternative:** Download installer from [https://github.com/dorssel/usbipd-win/releases](https://github.com/dorssel/usbipd-win/releases)
+
+2. Restart your terminal (to refresh PATH)
+
+#### On WSL Side
+
+1. Install USB/IP tools and hardware utilities:
+   ```bash
+   sudo apt install linux-tools-generic hwdata
+   sudo update-alternatives --install /usr/local/bin/usbip usbip /usr/lib/linux-tools/*-generic/usbip 20
+   ```
+
+### Configure Serial Port Permissions
+
+```bash
+# Add your user to dialout group (for serial port access)
+sudo usermod -a -G dialout $USER
+
+# Log out and log back in, or run:
+newgrp dialout
+```
 
 ### Attach USB Devices to WSL
 
@@ -173,34 +189,22 @@ Each time you connect a USB device (ST-Link, serial adapter, etc.):
    # Should show serial ports like /dev/ttyACM0
    ```
 
-### Optional: GUI Tool for USB Attachment
-
-For easier USB device management, use [wsl-usb-gui](https://gitlab.com/alelec/wsl-usb-gui):
-
-1. Download from releases page
-2. Run `wsl-usb-gui.exe` on Windows
-3. Click devices to attach/detach from WSL
-
-## Step 7: Set Up Serial Port Permissions
-
-```bash
-# Add your user to dialout group (for serial port access)
-sudo usermod -a -G dialout $USER
-
-# Log out and log back in, or run:
-newgrp dialout
-```
-
-## Step 8: Clone and Set Up Your Project
+## Cloning or Downloading the Project
 
 ```bash
 # Navigate to your project (WSL can access Windows files)
 cd /mnt/c/Users/YourName/Documents/your-project
 # Or clone fresh in WSL filesystem (faster - recommended):
 cd ~
-git clone <your-repo-url>
+git clone https://github.com/nathancharlesjones/howHardwareGetsHacked
 cd your-project
+```
 
+**Note:** Keep your project files in WSL filesystem (`~/projects/`) not Windows filesystem (`/mnt/c/`). WSL filesystem is much faster.
+
+## Setting Up the Virtual Environment
+
+```bash
 # Create a Python virtual environment
 python3 -m venv hhghVenv
 
@@ -211,18 +215,9 @@ source hhghVenv/bin/activate
 
 # Install Python dependencies
 pip install --upgrade pip
-pip install -r requirements.txt
+pip install -r setup/requirements.txt
 
 # This installs: SCons, pytest, pyserial, PyVirtualSerialPorts, gdbgui
-
-# Build
-scons platform=stm32 role=car id=1
-
-# Flash device (with USB attached)
-python tools/openocd.py --serial STLINKSERIAL --binary build/stm32/car_1/STM32.elf
-
-# Run tests
-pytest
 ```
 
 **Important:** Always activate the virtual environment before working:
@@ -236,21 +231,89 @@ To deactivate when done:
 deactivate
 ```
 
-## Step 9: IDE Setup (Optional but Recommended)
+## Confirming Everything Worked
 
-### Visual Studio Code with WSL Extension
+### Run Platform Tests
 
-1. Install [VS Code](https://code.visualstudio.com/) on Windows
-2. Install "Remote - WSL" extension in VS Code
-3. Open your project in WSL:
-   ```bash
-   # Inside WSL, in your project directory
-   code .
-   ```
+```bash
+# Activate venv first
+source hhghVenv/bin/activate
 
-This opens VS Code on Windows but runs all tools (git, python, compilers) inside WSL automatically.
+# Run platform compatibility tests
+./setup/test_platform.py
 
-## Common Issues & Troubleshooting
+# Should show all tools installed and working
+```
+
+### Build and Test
+
+```bash
+# Build x86 console version (no hardware needed)
+scons -j8 x86 id=1337 pin=123456 ui=console test=1
+
+# Begin simulation
+./tools/simulate.py hardware/x86/build/paired_fob_1337/paired_fob_1337 hardware/x86/build/car_1337/car_1337
+
+# Attach to HOST serial ports. In separate terminals:
+./tools/monitor.py {fob port; first port printed by simulate tool}
+./tools/monitor.py {car port; second port printed by simulate tool}
+
+# Run test commands
+## In car monitor window:
+>> isLocked  # Should return "OK: 1" (the car is locked)
+## In fob console window, press 'b'. Car LED should turn green.
+## In car monitor window:
+>> isLocked  # Should return "OK: 0" (the car is now UNlocked)
+
+# Run software tests
+pytest testing/test.py
+```
+
+## Optional: Debugging with GDB
+
+### Using gdb-multiarch
+
+The `gdb-multiarch` tool can debug multiple architectures (ARM, x86, etc.) from a single GDB installation:
+
+```bash
+# Debug ARM firmware
+gdb-multiarch hardware/stm32/build/car_12345/car_12345.bin
+
+# Connect to OpenOCD (running in another terminal)
+(gdb) target remote localhost:3333
+(gdb) monitor reset halt
+(gdb) break main
+(gdb) continue
+```
+
+### Note about arm-none-eabi-gdb
+
+**Important:** The Ubuntu/Debian `gcc-arm-none-eabi` package does **NOT** include `arm-none-eabi-gdb`. Use `gdb-multiarch` instead (installed in the development tools step).
+
+If you downloaded the toolchain directly from ARM's website, it would include `arm-none-eabi-gdb`, which works the same way:
+
+```bash
+# Only if you installed from ARM's website:
+arm-none-eabi-gdb hardware/stm32/build/car_12345/car_12345.bin
+(gdb) target remote localhost:3333
+```
+
+### Using gdbgui (Web-based GUI)
+
+The project includes `gdbgui` in requirements.txt for a web-based debugging interface:
+
+```bash
+# Start OpenOCD in one terminal
+./tools/openocd.py debug stm32 STLINKSERIAL
+
+# In another terminal with venv activated
+gdbgui -g "gdb-multiarch -ex 'target remote localhost:3333'" --args hardware/stm32/build/car_12345/car_12345.bin
+
+# Opens browser at http://127.0.0.1:5000
+# Connect to: localhost:3333
+```
+
+## Troubleshooting
 
 ### USB Device Not Appearing in WSL
 
@@ -287,7 +350,7 @@ wsl --shutdown  # Run in PowerShell
 **Problem:** `Error: unable to find CMSIS-DAP device`
 
 **Solutions:**
-- Ensure USB device is attached to WSL (see Step 5)
+- Ensure USB device is attached to WSL (see USB access section)
 - Check device visibility: `lsusb | grep STM`
 - Add udev rules:
   ```bash
@@ -339,88 +402,3 @@ usbipd detach --busid 1-4
 ```bash
 cd /mnt/c/Users/YourName/Documents/
 ```
-
-## Resources
-
-- [WSL Official Documentation](https://docs.microsoft.com/en-us/windows/wsl/)
-- [usbipd-win GitHub](https://github.com/dorssel/usbipd-win)
-- [WSL USB GUI](https://gitlab.com/alelec/wsl-usb-gui)
-- [VS Code WSL Extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl)
-
-## Python Virtual Environment Notes
-
-### What's Included
-
-The project's `requirements.txt` specifies these Python dependencies:
-- **SCons** (build system)
-- **pytest** (testing framework)
-- **pyserial** (serial communication)
-- **PyVirtualSerialPorts** (virtual serial ports for testing)
-- **gdbgui** (web-based GDB debugger)
-
-### Recommended Additions (Optional)
-
-Consider adding these tools to the venv for improved development experience:
-
-```bash
-source hhghVenv/bin/activate
-
-# Code formatting
-pip install black isort
-
-# Linting
-pip install ruff  # Modern, fast linter (recommended)
-# Or traditional linters:
-pip install pylint flake8
-
-# Type checking
-pip install mypy
-
-# Better Python REPL
-pip install ipython
-
-# If you need HTTP requests
-pip install requests
-```
-
-### Session Workflow
-
-**Start of each work session:**
-```bash
-cd ~/your-project
-source hhghVenv/bin/activate
-```
-
-**During work:**
-```bash
-scons platform=stm32 role=car id=1  # Build firmware
-pytest                              # Run tests
-python tools/simulate.py            # Run simulator (optional)
-```
-
-**End of session:**
-```bash
-deactivate
-```
-
-**Pro tip:** Add to your `~/.bashrc` to auto-activate when entering project:
-```bash
-# Auto-activate venv when entering project directory
-cd() {
-    builtin cd "$@"
-    if [ -f "hhghVenv/bin/activate" ]; then
-        source hhghVenv/bin/activate
-    fi
-}
-```
-
-## Next Steps
-
-Once setup is complete:
-1. Review the main project README
-2. Activate virtual environment: `source hhghVenv/bin/activate`
-3. Build a test firmware: `scons platform=stm32 role=car id=1`
-4. Flash to hardware with USB attached
-5. Run test suite: `pytest`
-
-Need help? Check the troubleshooting section or file an issue.
