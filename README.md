@@ -1,347 +1,538 @@
 # eCTF Hardware Hacking Demo
 
-> **Companion Code** for DigiKey article: [How Hardware Gets Hacked (Part 3)](link-to-article)
+> **Companion code for:** "How Hardware Gets Hacked" article series on Maker.io [link to Part 1](https://www.digikey.com/en/maker/blogs/2025/how-hardware-gets-hacked-part-1)
 
-Embedded security demonstration using car key fob authentication systems across multiple hardware platforms.
+This project demonstrates iterative attacks and defenses for embedded systems using the 2023 MITRE eCTF competition as a foundation. Built from scratch to support multi-platform development (STM32, TM4C, x86), automated testing, and x86 simulation without Docker dependencies.
 
-## System Architecture
-
-```mermaid
-graph TB
-    subgraph "Key Fob"
-        F[Fob Firmware]
-        FH[Host UART]
-        FB[Board UART]
-    end
-
-    subgraph "Car"
-        C[Car Firmware]
-        CH[Host UART]
-        CB[Board UART]
-    end
-
-    subgraph "Test System"
-        T[Test Scripts]
-        M[Monitor Tools]
-    end
-
-    T -->|Commands| FH
-    T -->|Commands| CH
-    FH -.->|Control| F
-    CH -.->|Control| C
-    F <-->|Challenge/Response| FB
-    CB <-->|Challenge/Response| F
-    FB -.->|Serial Link| CB
-
-    style F fill:#e1f5ff
-    style C fill:#ffe1e1
-```
-
-## Hardware Platforms
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  Supported Platforms                                    │
-├─────────────┬──────────────┬──────────────┬─────────────┤
-│   STM32F4   │   TM4C123    │     x86      │   Status    │
-├─────────────┼──────────────┼──────────────┼─────────────┤
-│ ARM Cortex  │ ARM Cortex   │ Simulation   │             │
-│    M4       │      M4      │              │             │
-│             │              │              │             │
-│ ST-Link     │ Stellaris    │ Virtual      │             │
-│ Debugger    │ ICDI         │ Serial       │             │
-│             │              │              │             │
-│ BlackPill   │ EK-TM4C123   │ Linux/Mac/   │             │
-│   Board     │    GXL       │   WSL2       │             │
-└─────────────┴──────────────┴──────────────┴─────────────┘
-```
+**Article Series:**
+- [Part 1: Introduction to the 2023 MITRE eCTF](https://www.digikey.com/en/maker/blogs/2025/how-hardware-gets-hacked-part-1)
+- [Part 2: On-boarding](link)
+- [Part 3: Adopting the Attacker Mindset](link)
 
 ## Project Structure
 
 ```
-code/
-├── application/          # Platform-independent firmware logic
-│   ├── source/
-│   │   ├── car.c        # Car authentication & features
-│   │   ├── fob.c        # Key fob pairing & unlock
-│   │   └── messages.c   # Protocol message handlers
-│   └── include/         # Shared headers
+./
+├── application/          # Platform-independent firmware
+│   ├── source/           # car.c, fob.c, messages.c
+│   ├── include/          # Shared headers
+│   ├── packages/         # Feature package definitions
+│   └── SConscript        # Application build rules
 │
-├── hardware/            # Platform-specific implementations
-│   ├── stm32/          # STM32F4 HAL & startup
-│   ├── tm4c/           # TM4C123 drivers
-│   ├── x86/            # Desktop simulation
-│   └── include/        # Platform abstraction (UART, flash)
+├── hardware/             # Platform-specific implementations
+│   ├── include/          # platform.h and uart.h (abstraction layer)
+│   ├── stm32/            # STM32F4 HAL & drivers
+│   ├── tm4c/             # TM4C123 drivers
+│   └── x86/              # Desktop simulation layer
 │
-├── tools/              # Python utilities
-│   ├── simulate.py     # Virtual environment manager
-│   ├── monitor.py      # Serial monitor
-│   ├── enable.py       # Feature enablement tool
-│   └── *_gen_secret.py # Secret generation
+├── tools/                # Python utilities
+│   ├── simulate.py       # x86 simulation environment
+│   ├── openocd.py        # Flash & debug wrapper
+│   ├── monitor.py        # Serial monitor
+│   ├── list.py           # Device enumeration
+│   ├── package.py        # Package a car feature
+│   └── enable.py         # Feature enablement
 │
-├── testing/            # Pytest test suite
-│   ├── test.py         # Protocol tests
-│   └── conftest.py     # Fixtures
+├── testing/              # Automated test suite
+│   ├── test.py           # Protocol & security tests
+│   ├── conftest.py       # pytest fixtures & device mgmt
+│   └── protocol.py       # Test message helpers
 │
-└── docs/               # Setup guides (Mac, WSL)
+├── setup/                # Platform setup guides
+├── secrets/              # Secret generation & storage
+└── SConstruct            # Build system entry point
 ```
 
-## Authentication Protocol
+### Hardware Abstraction
 
-```mermaid
-sequenceDiagram
-    participant F as Key Fob
-    participant C as Car
+The project uses a clean abstraction layer (`hardware/include/platform.h` and `hardware/include/uart.h`) that allows the same application code to run on multiple platforms:
 
-    Note over F,C: Unlock Sequence
+![Hardware Abstraction](docs/images/hwAbstraction.png)
 
-    F->>C: UNLOCK_REQUEST
-    C->>F: CHALLENGE (nonce)
+```c
+// platform.h defines the non-UART interface
+void initHardware_car(int argc, char **argv);
+void initHardware_fob(int argc, char **argv);
+void setLED(led_color_t color);
+bool buttonPressed(void);
+// ... etc.
 
-    Note over F: Compute response<br/>using shared secret
-
-    F->>C: RESPONSE (encrypted)
-
-    Note over C: Verify response
-
-    alt Valid Response
-        C->>F: ACK + UNLOCK_FLAG
-        Note over C: Unlock car
-    else Invalid Response
-        C->>F: NACK
-        Note over C: Reject
-    end
+// uart.h defines the UART interface
+void uart_init(hw_uart_t uart, int argc, char ** argv);
+uint32_t uart_readline(hw_uart_t uart, uint8_t *buf);
+void uart_writeb(hw_uart_t uart, uint8_t data);
+// ... etc.
 ```
 
-## Build System Flow
+Each platform implements these functions differently:
+- **STM32**: Uses ST HAL library (GPIO, UART, flash APIs)
+- **TM4C**: Uses TivaWare drivers
+- **x86**: Software simulation (ncurses UI, virtual serial ports)
 
-```mermaid
-graph LR
-    A[SConstruct] -->|Parse args| B{Platform?}
-    B -->|stm32| C[hardware/stm32/SConscript]
-    B -->|tm4c| D[hardware/tm4c/SConscript]
-    B -->|x86| E[hardware/x86/SConscript]
+## The 2023 eCTF Challenge
 
-    C --> F[application/SConscript]
-    D --> F
-    E --> F
+The [MITRE eCTF](https://ectf.mitre.org/) is an embedded security competition where teams design secure car key fob systems. The challenge: build a system where paired fobs can unlock cars and enable features, while preventing unauthorized access.
 
-    F -->|Build| G[firmware binary]
+**Key components:**
+- **Car**: Stores secrets, validates unlock requests
+- **Paired Fob**: Pre-configured with car ID and PIN, can unlock car and pair an unpaired fob
+- **Unpaired Fob**: Factory-fresh fob that pairs at runtime
 
-    style A fill:#f9f
-    style G fill:#9f9
-```
+**Security goals:**
+- Prevent code/secret extraction
+- Prevent replay attacks
+- Protect against fault injection
+- Secure pairing protocol
 
-**Build Parameters:**
+For detailed protocol flows and security architecture, see [`application/README.md`](application/README.md).
+
+## Threat Model
+
+This repository is organized around progressive security improvements. Each defense corresponds to an attack demonstrated in the article series.
+
+Sample set of links to be included later, as the other articles are written:
+
+**Development roadmap:**
+
+1. **[Baseline project](commit-link)** - Basic unlock/pairing without security
+2. **[Defending against code readout](commit-link)** - Read protection, debug disable
+3. **[Defending against replay attacks](commit-link)** - Challenge-response with nonces
+4. **[Defending against glitching](commit-link)** - Fault detection and recovery
+5. **[Defending against side channels](commit-link)** - Constant-time crypto
+
+> **Note:** If you're following the articles, start with the baseline commit and progress through each defense as you read about the corresponding attack.
+
+## Usage
+
+### Setup
+
+- **Windows + WSL2**: See [`setup/setup-windows-wsl.md`](setup/setup-windows-wsl.md)
+- **macOS**: See [`setup/setup-mac.md`](setup/setup-mac.md)
+- **Linux**: See [`setup/setup-linux.md`](setup/setup-linux.md)
+
+### Development Workflow
+
+![Development Pipeline](docs/images/pipeline.png)
+
+For a guided introduction to building, flashing, and testing the firmware, see [Part 2: On-boarding](link).
+
+### Building
+
+Use SCons to build firmware for any platform/role combination:
+
 ```bash
-scons platform={stm32|tm4c|x86} role={car|paired_fob|unpaired_fob} id=<CAR_ID> [pin=<PIN>]
+scons -j8 <TARGET> [id=<#>] [pin=<#>]
 ```
 
-## Quick Start
+`TARGET` can be:
+- `platform={stm32|tm4c|x86} role={car|paired_fob|unpaired_fob}` (build a specific role for a specific platform)
+    - `car` requires `id`
+    - `paired_fob` requires `id` and `pin`
+    - `unpaired_fob` requires neither
+- `x86` / `stm32` / `tm4c` (build all roles for a specific platform; requires `id` and `pin`)
+- `all` (build all roles for all platforms; requires `id` and `pin`)
 
-### 1. Setup Environment
+**Output location:** Binaries are placed in `hardware/{platform}/build/{role}_{id}/` (or `hardware/{platform}/build/unpaired_fob` for unpaired fobs)
+
+**Build options:**
+- `debug=1` - Enable debug symbols
+- `test=1` - Enable test commands via HOST_UART
+- `opt=0` - Set optimization level (0-3,s)
+- `ui=console` - Use console UI for x86
+- Feature flags: Supports single words or quoted strings
+    - `unlock_flag=`
+    - `feature1_flag=`
+    - `feature2_flag=`
+    - `feature3_flag=`
+
+Examples:
 
 ```bash
-# Install dependencies (see platform-specific setup below)
-python3 -m venv hhghVenv
-source hhghVenv/bin/activate  # Windows WSL: same command
-pip install -r requirements.txt
+# Builds the firmware for a paired fob with id "1357" and pin "123456" for the STM32
+scons -j8 platform=stm32 role=paired_fob id=1357 pin=123456
 
-# Verify setup
-./test_platform.py
-```
-
-### 2. Build Firmware
-
-```bash
-# Build car firmware for STM32
-scons platform=stm32 role=car id=12345 \
-    unlock_flag="FLAG{unlocked}" \
+# Build all roles for x86 with feature flags (embedded in car firmware)
+scons -j8 x86 id=12345 pin=987654 \
+    unlock_flag="FLAG{car_unlocked}" \
     feature1_flag="FLAG{heated_seats}"
 
-# Build paired fob for x86 simulation
-scons platform=x86 role=paired_fob id=12345 pin=123456
+# Build all targets with test commands
+scons -j8 all id=12345 pin=123456 test=1
+
+# Clean build artifacts (must specify a unique build)
+scons -j8 -c platform=stm32 role=paired_fob id=1357
+scons -j8 -c x86 id=12345
+scons -j8 -c all id=12345
 ```
 
-### 3. Run Simulation
+### Flashing & Running
+
+**For physical hardware (STM32/TM4C):**
+
+```bash
+# Use list.py to find connected devices
+./tools/list.py
+
+# Flash using OpenOCD wrapper
+./tools/openocd.py flash stm32 <SERIAL_NUMBER> <PATH_TO_BIN>
+
+# Monitor device output
+./tools/monitor.py <SERIAL_PORT>
+```
+
+**For x86 simulation:**
+
+```bash
+# Run simulation (launches both car and fob)
+./tools/simulate.py \
+    hardware/x86/build/car_12345/firmware \
+    hardware/x86/build/paired_fob_12345/firmware
+
+# Press 'b' in fob console window to simulate button press
+
+# Simulation opens virtual serial ports - use monitor.py to interact
+# In another terminal:
+./tools/monitor.py /dev/pts/3  # Car's HOST_UART
+./tools/monitor.py /dev/pts/5  # Fob's HOST_UART
+```
+
+**HOST UART Interaction**
+
+```
+Commands are sent as "{cmd}\n" or "{cmd} {args}\n".
+Responses are "OK\n", "OK: {value}\n", or "ERROR: {reason}\n".
+
+Standard Commands (production firmware):
+    Fob:
+        enable <hex_feature_pkg>  - Enable a packaged feature
+        pair <pin>                - Initiate pairing (paired fob sends this)
+```
+
+### Testing & Debugging
+
+The testing framework supports both hardware and simulation:
+
+![Testing Setup](docs/images/testSetup.png)
+
+**Running tests:**
+
+```bash
+# Run full test suite on simulated firmware
+pytest testing/test.py
+
+# Run single test on simulated firmware
+pytest testing/test.py::TestSinglePairedFob::test_unlock_valid_fob
+
+# Run test on real hardware
+pytest testing/test.py --using stm32@<SERIAL_NUMBER_1>,<SERIAL_NUMBER_2>
+```
+
+**Useful pytest flags:**
+- `-v` - Verbose output
+- `-x` - Halt on first failing test
+- `-s` - Don't suppress print output
+
+**Interactive debugging:**
+
+```bash
+# Launch GDB session via OpenOCD
+./tools/openocd.py debug stm32 <SERIAL_NUMBER>
+
+# In another terminal, connect GDB:
+arm-none-eabi-gdb hardware/stm32/build/car_12345/firmware.elf
+(gdb) target remote localhost:3333
+(gdb) monitor reset halt
+(gdb) b main
+(gdb) c
+
+# or
+
+gdbgui -g "gdb-multiarch -ex 'target remote localhost:3333'" --args hardware/stm32/build/paired_fob_2345/paired_fob_2345.bin
+```
+
+**Test commands (with `test=1` build):**
+
+When built with `test=1`, devices accept additional commands for debugging:
+
+```
+Commands are sent as "{cmd}\n" or "{cmd} {args}\n".
+Responses are "OK\n", "OK: {value}\n", or "ERROR: {reason}\n".
+
+Test Commands (TEST_BUILD only):
+    Both:
+        reset                     - Factory reset (clear state, restart)
+    
+    Fob:
+        reload                    - Reload flash data, state persists
+        btnPress                  - Simulate button press, blocks until unlock completes
+        getFlashData              - Get FLASH_DATA as hex
+        setFlashData <hex>        - Set FLASH_DATA from hex (persists to flash)
+        isPaired                  - Returns OK: 1 or OK: 0
+    
+    Car:
+        isLocked                  - Returns OK: 1 or OK: 0
+        getUnlockCount            - Returns OK: <n> (resets on power cycle)
+```
+
+Send commands via `monitor.py` or another terminal of choice (screen, minicom, PuTTY, etc).
+
+## Adding New Tests
+
+Tests are written using pytest and the `DeployedDevice` abstraction (see `testing/conftest.py`).
+
+**Basic test structure:**
 
 ```python
-# Using Python simulation environment
-from tools.simulate import SimulationEnvironment
+class TestNewTest:
+    def new_text(self, fixture):
+        """Test description"""
 
-with SimulationEnvironment("car_x86", "fob_x86") as env:
-    fob = env.primary
-    car = env.secondary
+        # Can use fixture directly if it returns a single device, e.g.
+        # If fixture was "unpaired_fob":
+        assert not proto.is_paired(unpaired_fob), "Fob should be unpaired"
 
-    # Send unlock command
-    fob.send_command("unlock")
-    response = car.read_until("FLAG")
+        # Otherwise, unpack the return value first, e.g.
+        # If fixture was "paired_and_unpaired_fob":
+        paired, unpaired = paired_and_unpaired_fob
+        assert not proto.is_paired(unpaired), "Should start unpaired"
+
+        # Interact with devices using protocol.py as shown above, or
+        data = proto.get_flash_data(paired_fob)
+
+        pkg = create_feature_package(flash.pair_info.car_id, 1)
+        resp = proto.cmd_enable(paired_fob, pkg)
+
+        resp = proto.cmd_btn_press(fob)
+
+        assert proto.is_locked(car), "Car should start locked"
+        assert proto.get_unlock_count(car) == 0, "Unlock count should be 0"
+
+        # See test.py or protocol.py for full list of available commands
 ```
 
-## Platform-Specific Setup
+**Available fixtures:**
+(All devices have id=1337 and pin=123456 by default.)
 
-<details>
-<summary><b>Linux/WSL2</b> (recommended for Windows users)</summary>
+- `paired_fob`
+- `unpaired_fob`
+- `car_and_paired_fob`
+- `paired_and_unpaired_fob`
+- Custom fixtures
+    - Single device: `deploy(RoleConfig("paired_fob", id="1337", pin="123456"))`
+    - Pair of devices: `deploy(
+                            RoleConfig("paired_fob", id="1337", pin="123456"),
+                            RoleConfig("unpaired_fob")
+                        )`
+
+**Adding a new fixture:**
+
+1. Edit `testing/conftest.py`
+2. Define fixture using `deploy()` helper:
+
+```python
+@pytest.fixture
+def new_fixture(deploy):
+    """Custom test setup"""
+    return deploy(RoleConfig("unpaired_fob"))
+    # or
+    return deploy(RoleConfig("paired_fob", id="9999", pin="111111"))
+    # or
+    return deploy(
+            RoleConfig("paired_fob", id="1337", pin="123456"),
+            RoleConfig("unpaired_fob")
+           )
+
+    # Cleanup happens automatically
+```
+
+## Adding a New Platform
+
+To add support for a new microcontroller or simulator:
+
+### 1. Create Hardware Directory Structure
 
 ```bash
-# Install ARM toolchain
-sudo apt install gcc-arm-none-eabi openocd
-
-# Add user to dialout group (for USB devices)
-sudo usermod -a -G dialout $USER
-
-# For WSL: Attach USB devices
-# See docs/setup-windows-wsl.md for usbipd setup
+mkdir -p hardware/newplatform
+cd hardware/newplatform
 ```
-</details>
 
-<details>
-<summary><b>macOS</b></summary>
+### 2. Implement Platform Abstraction (`platform.h` and `uart.h`)
+
+Create implementations for all functions in `hardware/include/platform.h` and `hardware/include/uart.h`:
+
+```c
+// hardware/newplatform/source/newplatform.c
+
+#include "platform.h"
+#include <newplatform_hal.h>  // Your platform's HAL
+
+void initHardware_car(int argc, char **argv) {
+    // Initialize clocks, GPIO, UART, flash
+    // Set up LED as output
+    // Set up button as input with interrupt
+}
+
+void uart_write(uart_port_t port, const uint8_t *data, size_t len) {
+    // Write to UART (HOST_UART or BOARD_UART)
+}
+
+// ... implement all other platform.h functions
+```
+
+### 3. Integrate with SCons
+
+Create `hardware/newplatform/SConscript`:
+
+```python
+Import('app_env', 'gen_secrets_action')
+
+# Clone environment for platform-specific settings
+env = app_env.Clone()
+
+# Replace tools, as needed
+env.Replace(CC='arm-none-eabi-gcc')
+env.Replace(AR='arm-none-eabi-ar')
+env.Replace(AS='arm-none-eabi-as')
+
+# Set defines, compiler flags, and include paths
+env.Append(CPPFLAGS=['-ffunction-sections', ...])
+env.Append(CPPDEFINES=['STM32F411xE', ...])
+env.Append(CPPPATH=[
+    '#/hardware/stm32/Core/Inc',
+    '#/hardware/stm32/Drivers/STM32F4xx_HAL_Driver/Inc',
+    ...
+])
+
+# Set linker flags (check for Mac users)
+import platform
+
+# Platform-specific linker flags (ARM GNU toolchain)
+if platform.system() == 'Darwin':  # macOS
+    # Some macOS ARM toolchains may have linker differences
+    linkflags = ['-Tnewplatform.ld', ...]
+else:  # Linux and other Unix-like systems
+    linkflags = ['-Tnewplatform.ld', ...]
+
+env.Append(LINKFLAGS=linkflags)
+
+# Add platform sources
+platform_sources = Glob('source/*.c')
+
+# Add rule to build 'secrets.h'
+secrets_h = stm32_env.Command(
+    target='secrets.h',
+    source=['#secrets/car_secrets.json'],
+    action=gen_secrets_action
+)
+
+# Get application object files
+app_objects = SConscript(
+    '#/application/SConscript',
+    variant_dir='application',  # Relative to current variant_dir
+    duplicate=0,
+    exports={'env': stm32_env}  # Pass our configured environment
+)
+
+# Get object files for HAL (or replace this as needed to build HAL)
+driver_objects = SConscript(
+    'Drivers/SConscript',
+    variant_dir='drivers',
+    duplicate=0,
+    exports={'env': stm32_env}
+)
+
+# Build firmware
+app = env.Program(f'{env["name"]}.bin', sources + app_objects + driver_objects)
+env.Depends(app, secrets_h)
+
+Return('app')
+```
+
+Add platform to `SConstruct`:
+
+```python
+AVAILABLE_PLATFORMS = ["stm32", "tm4c", "x86", "newplatform"]
+```
+
+### 4. Integrate with `openocd.py`
+
+Add OpenOCD configuration in `tools/openocd.py`:
+
+```python
+BOARD_CONFIG = {
+    # ... existing platforms ...
+    "newplatform": {
+        "config_file": "newplatform_device.cfg",
+        "erase_sector": 0,
+    },
+}
+```
+
+**If OpenOCD doesn't support your platform**, you'll need to create custom flash/debug scripts. See `openocd.py` for the proper interface you'll need to implement.
+
+### 5. Integrate with `conftest.py`
+
+Update `hardware_config` in `conftest.py` to support the new platform:
+
+```python
+# testing/conftest.py
+
+def hardware_config(request) -> Optional[HardwareConfig]:
+    # ...
+    # Validate board type
+    if board not in ["stm32", "tm4c", "newplatform"]:
+```
+
+**If OpenOCD doesn't support your platform**, you'll also need to modify `deploy` to use your custom flash/debug script:
+
+```python
+def deploy(hardware_config):
+    # ...
+    if hardware_config:
+        if hardware_config.board == "newplatform":
+            # Use custom scripts
+            # (Feels like this would result in a lot fo duplication; is there a better way to do this?)
+        else:
+            # Current code that uses openocd.py to flash STM32 and TM4c
+    else:
+        # x86 simulation
+```
+
+**Key considerations:**
+- **Serial ports**: Does your platform expose two UARTs (HOST + BOARD)?
+- **Flash persistence**: How do you emulate EEPROM/flash storage?
+- **Button/LED**: Can you map to GPIO or simulate them?
+- **Debugging**: Does OpenOCD support your device, or do you need a custom solution?
+
+### 6. Test the Integration
 
 ```bash
-# Install dependencies via Homebrew
-brew install arm-none-eabi-gcc openocd libusb
+# List detected devices
+./tools/list.py
 
-# For xterm (x86 console UI)
-brew install --cask xquartz
+# then
+
+# Test each step manually:
+
+## Build for new platform
+scons -j8 newplatform id=1337 pin=123456 test=1
+
+## Flash hardware
+./tools/openocd.py flash newplatform {serial_number} /path/to/bin
+
+## Open monitor.py and interact with device
+./tools/monitor.py {serial port}
+### Enter test commands (isPaired, isLocked, etc)
+
+## Start debug server
+./tools/openocd.py debug newplatform {serial_number}
+
+## and connect with gdbgui
+gdbgui -g "gdb-multiarch -ex 'target remote localhost:3333'" --args /path/to/bin
+
+# or
+
+# Run hardware tests (builds and flashes as part of the tests)
+python tools/openocd.py flash newplatform <SERIAL> hardware/newplatform/build/car_12345/firmware.bin
+pytest testing/test.py --using newplatform@<SERIAL_1>,<SERIAL_2>
 ```
-
-See `docs/setup-mac.md` for detailed instructions.
-</details>
-
-## Tools Usage
-
-### Device Monitor
-```bash
-# Monitor serial output from connected device
-python tools/monitor.py --device /dev/ttyUSB0
-
-# Monitor simulated devices
-python tools/monitor.py --device /dev/pts/3
-```
-
-### Feature Enablement
-```bash
-# Enable a feature on the car
-python tools/enable.py --car-id 12345 --feature 1
-```
-
-### Secret Generation
-```bash
-# Generate shared secrets
-python tools/car_gen_secret.py --id 12345
-python tools/fob_gen_secret.py --id 12345 --pin 123456
-```
-
-## Testing
-
-```bash
-# Run full test suite
-pytest testing/
-
-# Run with verbose output
-pytest -v testing/test.py
-
-# Run specific test
-pytest testing/test.py::test_unlock_valid_fob
-```
-
-## Communication Architecture
-
-```
-┌───────────────────────────────────────────────┐
-│            Host Computer                      │
-│  ┌─────────────────┐  ┌─────────────────┐   │
-│  │  Monitor/Test   │  │  Monitor/Test   │   │
-│  │    Scripts      │  │    Scripts      │   │
-│  └────────┬────────┘  └────────┬────────┘   │
-└───────────┼────────────────────┼─────────────┘
-            │ HOST_UART          │ HOST_UART
-            │ (control)          │ (control)
-         ┌──▼──────────┐      ┌──▼──────────┐
-         │   Key Fob   │      │     Car     │
-         │             │◄────►│             │
-         │  Firmware   │ BOARD│  Firmware   │
-         │             │ UART │             │
-         └─────────────┘ (RF) └─────────────┘
-```
-
-- **HOST_UART**: Command/control interface (115200 baud)
-- **BOARD_UART**: Inter-device communication (115200 baud)
-
-## Device Roles
-
-| Role | Description | Requires ID | Requires PIN |
-|------|-------------|-------------|--------------|
-| `car` | Car controller | Yes | No |
-| `paired_fob` | Pre-paired key fob | Yes | Yes |
-| `unpaired_fob` | Factory fob (pairs at runtime) | No | No |
-
-## Firmware Commands
-
-```
-Fob Commands (via HOST_UART):
-  unlock           - Request car unlock
-  start            - Start car (after unlock)
-  enable <hex>     - Enable feature on car
-  pair <pin>       - Pair unpaired fob (unpaired_fob only)
-
-Car Commands (via HOST_UART):
-  None (car responds to fob requests via BOARD_UART)
-
-Common Responses:
-  OK: <data>       - Success with optional data
-  ERROR: <reason>  - Failure with reason
-```
-
-## Development Workflow
-
-```mermaid
-graph TD
-    A[Write Code] --> B[Build for x86]
-    B --> C{Build OK?}
-    C -->|No| A
-    C -->|Yes| D[Run Simulation Tests]
-    D --> E{Tests Pass?}
-    E -->|No| A
-    E -->|Yes| F[Build for Hardware]
-    F --> G[Flash to Device]
-    G --> H[Hardware Test]
-    H --> I{Works?}
-    I -->|No| J[Debug with OpenOCD/GDB]
-    J --> A
-    I -->|Yes| K[Done]
-
-    style K fill:#9f9
-```
-
-## Troubleshooting
-
-**Build fails with "PLATFORM not set"**
-- Ensure you specify `platform=` and `role=` arguments to scons
-
-**Serial port permission denied**
-- Linux: Add user to dialout group: `sudo usermod -a -G dialout $USER`
-- macOS: Ports should work by default
-
-**x86 simulation can't create virtual serial ports**
-- Install: `pip install PyVirtualSerialPorts`
-- Linux: Ensure `/dev/pts/` is accessible
-
-**OpenOCD can't find device**
-- Check USB connection
-- WSL: Use `usbipd` to attach device (see `docs/setup-windows-wsl.md`)
-- Verify device appears in `lsusb` (Linux) or Device Manager (Windows)
-
-## License
-
-MIT License - Copyright (c) 2023 The MITRE Corporation (base eCTF code)
-
-Educational/demonstration purposes only. Not for production use.
-
----
-
-**For setup instructions, see:**
-- `docs/setup-windows-wsl.md` - Windows WSL2 setup
-- `docs/setup-mac.md` - macOS setup
-- `test_platform.py` - Platform compatibility checker
