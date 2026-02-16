@@ -7,37 +7,39 @@ In the 2023 MITRE eCTF, teams were asked to provide firmware for a simulated car
 - Paired fob (comes "from the manufacturer" ready to unlock an associated car)
 - Unpaired fob
 
-![Build process](docs/images/buildProcess.png)
+![Build process](../docs/images/buildProcess.png)
 
 These devices (along with, possibly, any custom host-side tools), were required to be able to do three things:
 
 ### Unlock a car
-![Unlocking](docs/images/unlockSetup.png)
+![Unlocking](../docs/images/unlockSetup.png)
 
 ### Pair an unpaired fob
-![Pairing](docs/images/pairFobSetup.png)
+![Pairing](../docs/images/pairFobSetup.png)
 
 ### Package and subsequently enable a new feature
-![Packaging](docs/images/packageFeatureSetup.png)
+![Packaging](../docs/images/packageFeatureSetup.png)
 
-![Enabling](docs/images/enableFeatureSetup.png)
+![Enabling](../docs/images/enableFeatureSetup.png)
 
 ## The current firmware
 
 ### Fob
 
-![Flowchart](docs/images/)
+![Flowchart](../docs/images/)
 
 ### Car
 
-![Flowchart](docs/images/)
+![Flowchart](../docs/images/)
 
 ### Unlock sequence diagram
 
-![Flowchart](docs/images/)
+![Flowchart](../docs/images/)
 
 ### Pairing sequence diagram
 
-![Flowchart](docs/images/)
+![Flowchart](../docs/images/)
 
 ### Enabling sequence diagram
+
+![Flowchart](../docs/images/)
