@@ -282,12 +282,6 @@ def build_binary(cfg: RoleConfig, platform: str) -> Path:
 # ============================================================================
 
 @pytest.fixture
-def paired_fob(deploy):
-    """Single paired fob."""
-    return deploy(RoleConfig("paired_fob", id="1337", pin="123456"))
-
-
-@pytest.fixture
 def unpaired_fob(deploy):
     """Single unpaired fob."""
     return deploy(RoleConfig("unpaired_fob"))
@@ -297,7 +291,7 @@ def unpaired_fob(deploy):
 def car_and_paired_fob(deploy):
     """Car and its paired fob."""
     return deploy(
-        RoleConfig("car", id="1"),
+        RoleConfig("car", id="1337"),
         RoleConfig("paired_fob", id="1337", pin="123456")
     )
 

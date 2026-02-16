@@ -16,20 +16,23 @@ from package import create_feature_package
 class TestSinglePairedFob:
     """Tests using only a single paired fob."""
 
-    def test_paired_fob_is_paired(self, paired_fob):
+    def test_paired_fob_is_paired(self, car_and_paired_fob):
         """A paired fob should report that it's paired."""
+        car, paired_fob = car_and_paired_fob
         assert proto.is_paired(paired_fob), "Fob should be paired"
 
-    def test_get_flash_data_for_paired_fob(self, paired_fob):
+    def test_get_flash_data_for_paired_fob(self, car_and_paired_fob):
         """Should be able to read fob's flash data."""
+        car, paired_fob = car_and_paired_fob
         flash = proto.get_flash_data(paired_fob)
         assert flash.paired == 0x01, "Flash data should show paired"
         assert flash.pair_info.car_id != b'\xFF' * 11, "Should have a car ID"
         assert flash.pair_info.password != b'\xFF' * 8, "Should have a password"
         assert flash.pair_info.pin != b'\xFF' * 7, "Should have a pin"
 
-    def test_paired_fob_can_enable_feature_with_valid_id_and_valid_feature_when_there_is_room(self, paired_fob):
+    def test_paired_fob_can_enable_feature_with_valid_id_and_valid_feature_when_there_is_room(self, car_and_paired_fob):
         """Should be able to enable valid features."""
+        car, paired_fob = car_and_paired_fob
 
         # Get flash data; ensure features 0
         flash = proto.get_flash_data(paired_fob)
@@ -49,8 +52,9 @@ class TestSinglePairedFob:
         # After modifying fob state, reset
         proto.cmd_reset(paired_fob)
 
-    def test_paired_fob_can_enable_multiple_valid_features(self, paired_fob):
+    def test_paired_fob_can_enable_multiple_valid_features(self, car_and_paired_fob):
         """Should be able to enable multiple valid features."""
+        car, paired_fob = car_and_paired_fob
 
         # Get flash data; ensure features 0
         flash = proto.get_flash_data(paired_fob)
@@ -84,7 +88,9 @@ class TestSinglePairedFob:
         # After modifying fob state, reset
         proto.cmd_reset(paired_fob)
 
-    def test_paired_fob_rejects_feature_with_mismatched_id(self, paired_fob):
+    def test_paired_fob_rejects_feature_with_mismatched_id(self, car_and_paired_fob):
+        car, paired_fob = car_and_paired_fob
+
         # Get flash data; ensure features 0
         flash = proto.get_flash_data(paired_fob)
         assert flash.feature_info.num_active == 0, f"Newly paired fob has active features ({flash.feature_info.num_active}), but shouldn't"
@@ -103,10 +109,13 @@ class TestSinglePairedFob:
         # After modifying fob state, reset
         proto.cmd_reset(paired_fob)
 
-    def test_paired_fob_rejects_feature_with_invalid_feature_number(self, paired_fob):
+    def test_paired_fob_rejects_feature_with_invalid_feature_number(self, car_and_paired_fob):
+        car, paired_fob = car_and_paired_fob
         pass
 
-    def test_paired_fob_rejects_feature_when_feature_is_already_enabled(self, paired_fob):
+    def test_paired_fob_rejects_feature_when_feature_is_already_enabled(self, car_and_paired_fob):
+        car, paired_fob = car_and_paired_fob
+
         # Get flash data; ensure features 0
         flash = proto.get_flash_data(paired_fob)
         assert flash.feature_info.num_active == 0, f"Newly paired fob has active features ({flash.feature_info.num_active}), but shouldn't"
@@ -266,8 +275,10 @@ class TestCarPairedAndUnpaired:
 class TestStateManagement:
     """Tests for reload and reset functionality."""
 
-    def test_reload_preserves_state(self, paired_fob):
+    def test_reload_preserves_state(self, car_and_paired_fob):
         """Software reload should preserve flash data."""
+        car, paired_fob = car_and_paired_fob
+
         # Get current state
         flash_before = proto.get_flash_data(paired_fob)
 
@@ -280,8 +291,10 @@ class TestStateManagement:
         assert flash_after.paired == flash_before.paired
         assert flash_after.pair_info.car_id == flash_before.pair_info.car_id
 
-    def test_reset_clears_state(self, paired_fob):
+    def test_reset_clears_state(self, car_and_paired_fob):
         """Factory reset should clear all state."""
+        car, paired_fob = car_and_paired_fob
+
         assert proto.is_paired(paired_fob), "Should start paired"
 
         # Factory reset
@@ -291,8 +304,10 @@ class TestStateManagement:
         # Should now be unpaired
         assert not proto.is_paired(paired_fob), "Should be unpaired after reset"
 
-    def test_set_flash_data(self, paired_fob):
+    def test_set_flash_data(self, car_and_paired_fob):
         """Should be able to modify flash data directly."""
+        car, paired_fob = car_and_paired_fob
+        
         # Save original state to restore later
         original_flash = proto.get_flash_data(paired_fob)
 

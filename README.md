@@ -318,7 +318,6 @@ class TestNewTest:
 **Available fixtures:**
 (All devices have id=1337 and pin=123456 by default.)
 
-- `paired_fob`
 - `unpaired_fob`
 - `car_and_paired_fob`
 - `paired_and_unpaired_fob`
