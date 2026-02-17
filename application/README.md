@@ -31,7 +31,7 @@ Running the "package tool" results in a binary feature file.
 
 With a paired fob and computer connected as shown below, sending `enable <BIN>\n` results in the fob enabling that feature. Subsequent unlock attempts with that fob will cause the car to send the associated feature flag to the attached computer.
 
-`<BIN>` represents the contents of the previously-packaged binary feature file, encoded as ASCII hex digits (i.e. `\xA5` [0b10100101] would be sent as ASCII `A` `5` [0b01000001 0b00110101]).
+`<BIN>` represents the contents of the previously-packaged binary feature file, encoded as ASCII hex digits (i.e. `\xA5` [`0b10100101`] would be sent as ASCII `A` `5` [`0b01000001 0b00110101`]).
 
 ![Enabling](../docs/images/enableFeatureSetup.png)
 

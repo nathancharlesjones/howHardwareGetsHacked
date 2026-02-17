@@ -10,7 +10,7 @@
 
 #include "platform.h"
 #include "uart.h"
-#include "uart_x86.h"
+#include "uart_sim.h"
 #include "ui.h"
 
 // Defines

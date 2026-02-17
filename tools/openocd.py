@@ -74,13 +74,12 @@ def flash(platform, serial_number, file_path):
     # OpenOCD's return code is unreliable (can be non-zero on success due to warnings)
     # Check for verification success in the output instead
     combined_output = result.stdout + result.stderr
+    print(combined_output)
 
     if "** Verified OK **" in combined_output:
         return 0  # Success
     else:
         # Print output to help debug the failure
-        print("Flash failed - OpenOCD output:")
-        print(combined_output)
         return 1  # Failure
 
 

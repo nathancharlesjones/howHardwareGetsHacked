@@ -7,7 +7,7 @@ Mode selection:
     --using board@sn1,sn2  -> Hardware mode (both devices on real hardware)
                               board: stm32 or tm4c
                               sn1,sn2: debug probe serial numbers (not serial ports)
-    (no --using)           -> Simulation mode (x86 with virtual serial ports)
+    (no --using)           -> Simulation mode (with virtual serial ports)
 
 Each test declares what roles it needs via the deploy fixture:
 1. Single device:   deploy(RoleConfig("paired_fob", id="1", pin="123456"))
@@ -16,7 +16,7 @@ Each test declares what roles it needs via the deploy fixture:
 The fixture system:
 - Builds firmware using SCons
 - For hardware: flashes devices and opens serial ports
-- For simulation: launches x86 processes with virtual serial ports
+- For simulation: launches simulation processes with virtual serial ports
 - Returns DeployedDevice objects for testing
 - Cleans up resources after test completes
 """
@@ -103,7 +103,8 @@ def hardware_config(request) -> Optional[HardwareConfig]:
 
     # Require exactly 2 identifiers (since tests deploy 1 or 2 devices)
     if len(identifiers) < 2:
-        raise ValueError("Hardware mode requires at least 2 serial numbers: --using board@sn1,sn2")
+        print("WARNING: Only one serial number provided. Tests requiring 2 or more will fail.")
+        #raise ValueError("Hardware mode requires at least 2 serial numbers: --using board@sn1,sn2")
 
     return HardwareConfig(board=board, identifiers=identifiers)
 
@@ -176,6 +177,9 @@ def deploy(hardware_config):
 
             # Deploy second device if requested
             if cfg2:
+                if len(hardware_config.identifiers) < 2:
+                    raise ValueError("Hardware mode requires at least 2 serial numbers: --using board@sn1,sn2")
+                
                 binary2 = build_binary(cfg2, hardware_config.board)
 
                 # Find and open serial port BEFORE flashing
@@ -212,8 +216,8 @@ def deploy(hardware_config):
             """Deploy to simulation: build binaries and create SimulationEnvironment."""
             nonlocal sim_env
 
-            binary1 = build_binary(cfg1, "x86")
-            binary2 = build_binary(cfg2, "x86") if cfg2 else None
+            binary1 = build_binary(cfg1, "sim")
+            binary2 = build_binary(cfg2, "sim") if cfg2 else None
 
             sim_env = SimulationEnvironment(binary1, binary2)
             # SimulationEnvironment now returns DeployedDevice or tuple directly
@@ -241,7 +245,7 @@ def build_binary(cfg: RoleConfig, platform: str) -> Path:
 
     Args:
         cfg: RoleConfig with role, id (optional), and pin (optional)
-        platform: "stm32", "tm4c", or "x86"
+        platform: "stm32", "tm4c", or "sim"
 
     Returns:
         Path to the built binary
@@ -266,7 +270,7 @@ def build_binary(cfg: RoleConfig, platform: str) -> Path:
     binary_dir = PROJECT_ROOT / "hardware" / platform / "build" / name
 
     # Different binary extensions for different platforms
-    if platform == "x86":
+    if platform == "sim":
         binary_path = binary_dir / name
     else:
         binary_path = binary_dir / f"{name}.bin"

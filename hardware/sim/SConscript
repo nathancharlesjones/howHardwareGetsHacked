@@ -1,45 +1,45 @@
 Import('app_env', 'gen_secrets_action')
 
-x86_env = app_env.Clone()
+sim_env = app_env.Clone()
 
-# x86-specific include paths
-x86_env.Append(CPPPATH=[
-    '#/hardware/x86/include',
-    '#/hardware/x86/ui'
+# sim-specific include paths
+sim_env.Append(CPPPATH=[
+    '#/hardware/sim/include',
+    '#/hardware/sim/ui'
 ])
 
-# x86 sources
+# sim sources
 sources = [
-    'source/x86.c',
-    'source/uart_x86.c',
+    'source/sim.c',
+    'source/uart_sim.c',
 ]
 
-ui = x86_env.get('ui')
+ui = sim_env.get('ui')
 if ui:
-    sources.append(f"ui/{ui}/{ui}_x86.c")
+    sources.append(f"ui/{ui}/{ui}_sim.c")
 
 import platform
 
 # Platform-specific linker flags
 if platform.system() == 'Darwin':  # macOS
     # macOS uses LLVM ld which has different flags
-    x86_env.Append(LINKFLAGS = [
+    sim_env.Append(LINKFLAGS = [
         '-Wl,-dead_strip',  # Remove unused code (like --gc-sections)
-        f'-Wl,-map,{x86_env["build_dir"]}/x86.map'  # Generate map file
+        f'-Wl,-map,{sim_env["build_dir"]}/sim.map'  # Generate map file
     ])
 else:  # Linux and other Unix-like systems
     # Use GNU ld flags
-    x86_env.Append(LINKFLAGS = [
+    sim_env.Append(LINKFLAGS = [
         '-Wl,--gc-sections',
-        f'-Wl,-Map={x86_env["build_dir"]}/x86.map,--cref'
+        f'-Wl,-Map={sim_env["build_dir"]}/sim.map,--cref'
     ])
 
-x86_env.Append(LIBS=[
+sim_env.Append(LIBS=[
     'm',
     'pthread'
 ])
 
-secrets_h = x86_env.Command(
+secrets_h = sim_env.Command(
     target='secrets.h',
     source=['#secrets/car_secrets.json'],
     action=gen_secrets_action
@@ -50,10 +50,10 @@ app_objects = SConscript(
     '#/application/SConscript',
     variant_dir='application',  # Relative to current variant_dir
     duplicate=0,
-    exports={'env': x86_env}  # Pass our configured environment
+    exports={'env': sim_env}  # Pass our configured environment
 )
 
-app = x86_env.Program(f'{x86_env["name"]}', app_objects + sources)
-x86_env.Depends(app, secrets_h)
+app = sim_env.Program(f'{sim_env["name"]}', app_objects + sources)
+sim_env.Depends(app, secrets_h)
 
 Return('app')

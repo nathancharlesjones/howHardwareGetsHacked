@@ -1,8 +1,8 @@
 /**
- * @file uart_x86.c
- * @brief x86 simulation UART implementation
+ * @file uart_sim.c
+ * @brief simulation UART implementation
  * 
- * Implements uart.h functions for x86 Linux using POSIX serial ports (termios).
+ * Implements uart.h functions for simulation using POSIX serial ports (termios).
  * Serial port paths are passed via command line arguments:
  *   host=/path/to/host/tty
  *   board=/path/to/board/tty

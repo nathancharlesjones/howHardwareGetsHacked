@@ -1,13 +1,13 @@
 /**
- * @file uart_x86.h
- * @brief x86-specific UART extensions
+ * @file uart_sim.h
+ * @brief Simulation-specific UART extensions
  * 
- * These functions are only available on the x86 simulation platform
+ * These functions are only available on the simulation build
  * and are not part of the standard uart.h interface.
  */
 
-#ifndef UART_X86_H
-#define UART_X86_H
+#ifndef UART_SIM_H
+#define UART_SIM_H
 
 #include <stdbool.h>
 
@@ -39,4 +39,4 @@ const char* uart_get_board_path(void);
  */
 const char* uart_get_host_path(void);
 
-#endif /* UART_X86_H */
+#endif /* UART_SIM_H */

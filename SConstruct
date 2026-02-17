@@ -2,8 +2,7 @@ import os
 import sys
 import subprocess
 
-#AVAILABLE_PLATFORMS = ["stm32", "tm4c", "x86"]
-AVAILABLE_PLATFORMS = ["stm32", "x86"]
+AVAILABLE_PLATFORMS = ["stm32", "sim"]
 AVAILABLE_ROLES = ["car", "paired_fob", "unpaired_fob"]
 AVAILABLE_UI = ["console", "microui"]
 
@@ -13,7 +12,7 @@ opts.Add(EnumVariable('platform', 'Target platform', None,
                       allowed_values=(AVAILABLE_PLATFORMS)))
 opts.Add(EnumVariable('role', 'Device role', None,
                       allowed_values=(AVAILABLE_ROLES)))
-opts.Add(EnumVariable('ui', 'UI type for x86 port', None,
+opts.Add(EnumVariable('ui', 'UI type for simulation', None,
                       allowed_values=(AVAILABLE_UI)))
 opts.Add('id', 'Device ID (required for car and paired_fob)', '')
 opts.Add('pin', 'Pairing pin (required for paired_fob)', '')
@@ -55,7 +54,7 @@ if single_build_mode:
         Exit(1)
     
     if ui and plat in ["stm32", "tm4c"]:
-        print("Error: ui option given for non-x86 platform")
+        print("Error: ui option given for simulation build")
         Exit(1)
 else:
     if role or plat:
@@ -203,8 +202,8 @@ else:
 
             all_targets.append(tgt)
 
-    # Build targets: all, stm32, tm4c, x86
+    # Build targets: all, stm32, tm4c, simulation
     Alias('all', all_targets)
 
-    for platform in ['stm32', 'tm4c', 'x86']:
+    for platform in ['stm32', 'tm4c', 'sim']:
         Alias(platform, [t for t in all_targets if platform in str(t)])
