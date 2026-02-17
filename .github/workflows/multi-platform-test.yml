@@ -82,25 +82,25 @@ jobs:
       run: |
         python3 setup/test_platform.py --ci-mode
 
-    # Test build system with x86 console build (Linux and macOS)
-    - name: Test build system (x86 console)
+    # Test build system with console build (Linux and macOS)
+    - name: Test build system (console)
       if: runner.os != 'Windows'
       shell: bash
       run: |
-        # Build x86 console car and fobs (software-only, no hardware needed)
-        scons platform=x86 role=car id=12345 ui=console
-        scons platform=x86 role=paired_fob id=12345 pin=123456 ui=console
-        scons platform=x86 role=unpaired_fob ui=console
+        # Build console car and fobs (software-only, no hardware needed)
+        scons platform=sim role=car id=12345 ui=console
+        scons platform=sim role=paired_fob id=12345 pin=123456 ui=console
+        scons platform=sim role=unpaired_fob ui=console
 
-    # Test build system with x86 console build in WSL (Windows)
-    - name: Test build system (x86 console) in WSL (Windows)
+    # Test build system with console build in WSL (Windows)
+    - name: Test build system (console) in WSL (Windows)
       if: runner.os == 'Windows'
       shell: wsl-bash {0}
       run: |
-        # Build x86 console car and fobs (software-only, no hardware needed)
-        scons platform=x86 role=car id=12345 ui=console
-        scons platform=x86 role=paired_fob id=12345 pin=123456 ui=console
-        scons platform=x86 role=unpaired_fob ui=console
+        # Build console car and fobs (software-only, no hardware needed)
+        scons platform=sim role=car id=12345 ui=console
+        scons platform=sim role=paired_fob id=12345 pin=123456 ui=console
+        scons platform=sim role=unpaired_fob ui=console
 
     # Run pytest tests with simulation (Linux and macOS)
     - name: Run pytest tests with simulation
