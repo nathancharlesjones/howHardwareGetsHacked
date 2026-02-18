@@ -444,9 +444,6 @@ void attemptUnlock(FLASH_DATA *fob_state_ram)
 
   if (ack_result != ACK_SUCCESS)
   {
-    //char msg[64] = {0};
-    //snprintf(msg, 63, "unlock failed; sent %d bytes for pw %8s",message.message_len, (char*)fob_state_ram->pair_info.password);
-    //sendError(msg);
     sendError("unlock failed");
     return;
   }

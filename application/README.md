@@ -39,20 +39,343 @@ With a paired fob and computer connected as shown below, sending `enable <BIN>\n
 
 ### Fob
 
-![Fob flowchart](../docs/images/fobFlowchart.png)
+Flowcharts made with [Monosketch.io](https://monosketch.io/)
+
+#### Main flowchart
+
+```
+┌───────────┐                                                                                                       
+│           │                                                        processHostCommand()                           
+│           ▼                                                       ┌──────────────────────────────────────────────┐
+│   ┏ ━ ━ ━ ━ ━ ━ ━ ┓ Y                                             │ ┏ ━ ━ ━ ━ ━ ━ ━ ┓  Y  ┌───────────────┐      │
+│      Rec'd HOST    ───────────────────────────────────────────────┼▶ cmd == enable?  ────▶│enableFeature()│───┐  │
+│   ┃   command?    ┃                                               │ ┃               ┃     │               │   │  │
+│    ━ ━ ━ ━ ━ ━ ━ ━                                                │  ━ ━ ━ ━ ━ ━ ━ ━      └───────────────┘   │  │
+│         N │                                                       │       N │                                 │  │
+│           │                                                       │         │                                 │  │
+│           ▼                                                       │         ▼                                 │  │
+│   ┏ ━ ━ ━ ━ ━ ━ ━ ┓  Y  ┏ ━ ━ ━ ━ ━ ━ ━ ┓  Y  ┌───────────────┐   │ ┏ ━ ━ ━ ━ ━ ━ ━ ┓  Y  ┌───────────────┐   │  │
+│        Paired?     ────▶  Btn pressed?   ────▶│attemptUnlock()│   │   cmd == pair?   ────▶│   pairFob()   ├───┤  │
+│   ┃               ┃     ┃               ┃     │               │   │ ┃               ┃     │               │   │  │
+│    ━ ━ ━ ━ ━ ━ ━ ━       ━ ━ ━ ━ ━ ━ ━ ━      └───────────────┘   │  ━ ━ ━ ━ ━ ━ ━ ━      └───────────────┘   │  │
+│         N │                   N │                     │           │       N │                                 │  │
+│           │                     └─────────────────────┤           │         │                                 │  │
+│           ▼                                           │           │         ▼                                 │  │
+│   ┌ ─ ─ ─ ─ ─ ─ ─ ┐  Y  ┌───────────────┐             │           │ ┌───────────────┐                         │  │
+│      Rec'd c on    ────▶│receivePairData│             │           │ │ (other cmds)  ├─────────────────────────┤  │
+│   │  BOARD UART?  │     │      ()       │             │           │ │               │                         │  │
+│    ─ ─ ─ ─ ─ ─ ─ ─      └───────┬───────┘             │           │ └───────────────┘                         │  │
+│         N │                     │                     │           └───────────────────────────────────────────┼──┘
+└───────────┴─────────────────────┴─────────────────────┴───────────────────────────────────────────────────────┘   
+```
+
+#### Flowchart for enableFeature()
+
+```
+┏ ━ ━ ━ ━ ━ ━ ━ ┓ N    
+     paired?     ─────┐
+┃               ┃     │
+ ━ ━ ━ ━ ━ ━ ━ ━      │
+      Y │             │
+        ▼             │
+┏ ━ ━ ━ ━ ━ ━ ━ ┓ N   │
+  rec'd len ==   ─────┤
+┃  enable len?  ┃     │
+ ━ ━ ━ ━ ━ ━ ━ ━      │
+      Y │             │
+        ▼             │
+┏ ━ ━ ━ ━ ━ ━ ━ ┓ N   │
+  car IDs same?  ─────┤
+┃               ┃     │
+ ━ ━ ━ ━ ━ ━ ━ ━      │
+      Y │             │
+        ▼             │
+┏ ━ ━ ━ ━ ━ ━ ━ ┓ N   │
+ Feature num is  ─────┤
+┃     1-3?      ┃     │
+ ━ ━ ━ ━ ━ ━ ━ ━      │
+      Y │             │
+        ▼             │
+┏ ━ ━ ━ ━ ━ ━ ━ ┓ Y   │
+ Feature already ─────┤
+┃    added?     ┃     │
+ ━ ━ ━ ━ ━ ━ ━ ━      │
+      N │             │
+        ▼             │
+┌───────────────┐     │
+│  Add feature  │     │
+│               │     │
+└───────────────┘     │
+        │             │
+        ├─────────────┘
+        │              
+        ▼              
+```
+
+#### Flowchart for pairFob()
+
+```
+┏ ━ ━ ━ ━ ━ ━ ━ ┓ N    
+     paired?     ─────┐
+┃               ┃     │
+ ━ ━ ━ ━ ━ ━ ━ ━      │
+      Y │             │
+        ▼             │
+┏ ━ ━ ━ ━ ━ ━ ━ ┓ N   │
+  rec'd pin len  ─────┤
+┃  == pin len?  ┃     │
+ ━ ━ ━ ━ ━ ━ ━ ━      │
+      Y │             │
+        ▼             │
+┏ ━ ━ ━ ━ ━ ━ ━ ┓ N   │
+  rec'd pin ==   ─────┤
+┃     pin?      ┃     │
+ ━ ━ ━ ━ ━ ━ ━ ━      │
+      Y │             │
+        ▼             │
+┌───────────────┐     │
+│ Send pair pkt │     │
+│               │     │
+└───────────────┘     │
+        │             │
+        ├─────────────┘
+        │              
+        ▼              
+```
+
+#### Flowchart for attemptUnlock()
+
+```
+┌ ─ ─ ─ ─ ─ ─ ─ ┐ N    
+     paired?     ─────┐
+│               │     │
+ ─ ─ ─ ─ ─ ─ ─ ─      │
+      Y │             │
+        ▼             │
+┌───────────────┐     │
+│Send unlock msg│     │
+│               │     │
+└───────────────┘     │
+        │             │
+        ▼             │
+┌ ─ ─ ─ ─ ─ ─ ─ ┐ N   │
+      Rec'd      ─────┤
+│ ACK_SUCCESS?  │     │
+ ─ ─ ─ ─ ─ ─ ─ ─      │
+      Y │             │
+        ▼             │
+┌───────────────┐     │
+│Send start msg │     │
+│               │     │
+└───────────────┘     │
+        │             │
+        ├─────────────┘
+        │              
+        ▼              
+```
+
+#### Flowchart for receivePairData()
+
+```
+│                                                                              
+│  PAIR_STATE_WAIT_MAGIC   ┌ ─ ─ ─ ─ ─ ─ ─ ┐ N                                 
+├─────────────────────────▶   rec'd c ==    ──────────────────────────────────┐
+│                          │  PAIR_MAGIC?  │                                  │
+│                           ─ ─ ─ ─ ─ ─ ─ ─                                   │
+│                                Y │                                          │
+│                                  ▼                                          │
+│                          ┌───────────────┐                                  │
+│                          │    state =    ├──────────────────────────────────┤
+│                          │   WAIT_LEN    │                                  │
+│                          └───────────────┘                                  │
+│                                                                             │
+│  PAIR_STATE_WAIT_LEN     ┌ ─ ─ ─ ─ ─ ─ ─ ┐ N    ┌───────────────┐           │
+├─────────────────────────▶  rec'd len ==   ──────│    state =    ├───────────┤
+│                          │   pair len?   │      │  WAIT_MAGIC   │           │
+│                           ─ ─ ─ ─ ─ ─ ─ ─       └───────────────┘           │
+│                                Y │                                          │
+│                                  ▼                                          │
+│                          ┌───────────────┐                                  │
+│                          │    state =    ├──────────────────────────────────┤
+│                          │   WAIT_DATA   │                                  │
+│                          └───────────────┘                                  │
+│                                                                             │
+│  PAIR_STATE_WAIT_DATA    ┌ ─ ─ ─ ─ ─ ─ ─ ┐ Y    ┌───────────────┐           │
+└─────────────────────────▶   rec'd "len"   ─────▶│Save pair data │           │
+                           │    chars?     │      │               │           │
+                            ─ ─ ─ ─ ─ ─ ─ ─       └───────────────┘           │
+                                 N │                      │                   │
+                                   ▼                      ▼                   │
+                           ┌ ─ ─ ─ ─ ─ ─ ─ ┐ Y    ┌───────────────┐           │
+                            Filled buffer? ──────▶│    state =    ├───────────┤
+                           │               │      │  WAIT_MAGIC   │           │
+                            ─ ─ ─ ─ ─ ─ ─ ─       └───────────────┘           │
+                                 N │                                          │
+                                   ▼                                          │
+                           ┌───────────────┐                                  │
+                           │ Add to buffer │                                  │
+                           │               │                                  │
+                           └───────────────┘                                  │
+                                   │                                          │
+                                   ├──────────────────────────────────────────┘
+                                   ▼                                           
+```
 
 ### Car
 
-![Car flowchart](../docs/images/carFlowchart.png)
+Flowcharts made with [Monosketch.io](https://monosketch.io/)
+
+#### Main flowchart
+
+```
+┌───────────┐                                   
+│           │                                   
+│           ▼                                   
+│   ┏ ━ ━ ━ ━ ━ ━ ━ ┓ Y   ┌───────────────┐     
+│      Rec'd HOST    ────▶│  processHost  │────┐
+│   ┃   command?    ┃     │   Command()   │    │
+│    ━ ━ ━ ━ ━ ━ ━ ━      └───────────────┘    │
+│         N │                                  │
+│           │                                  │
+│           ▼                                  │
+│   ┌ ─ ─ ─ ─ ─ ─ ─ ┐  Y  ┌───────────────┐    │
+│      Rec'd c on    ────▶│  unlockCar()  │    │
+│   │  BOARD UART?  │     │               │    │
+│    ─ ─ ─ ─ ─ ─ ─ ─      └───────┬───────┘    │
+│         N │                     │            │
+└───────────┴─────────────────────┴────────────┘
+```
+
+#### Flowchart for unlockCar()
+
+```
+┌───────────────┐      
+│Receive unlock │      
+│      msg      │      
+└───────────────┘      
+        │              
+        ▼              
+┏ ━ ━ ━ ━ ━ ━ ━ ┓ N    
+  Rec'd len ==   ─────┐
+┃    pw len?    ┃     │
+ ━ ━ ━ ━ ━ ━ ━ ━      │
+      Y │             │
+        ▼             │
+┏ ━ ━ ━ ━ ━ ━ ━ ┓ N   │
+   msg == pw?    ─────┤
+┃               ┃     │
+ ━ ━ ━ ━ ━ ━ ━ ━      │
+      Y │             │
+        ▼             │
+┌───────────────┐     │
+│ Receive start │     │
+│      msg      │     │
+└───────────────┘     │
+        │             │
+        ▼             │
+┏ ━ ━ ━ ━ ━ ━ ━ ┓ N   │
+  car IDs same?  ─────┤
+┃               ┃     │
+ ━ ━ ━ ━ ━ ━ ━ ━      │
+      Y │             │
+        ▼             │
+┌───────────────┐     │
+│  Emit flags   │     │
+│               │     │
+└───────────────┘     │
+        │             │
+        ├─────────────┘
+        │              
+        ▼              
+```
 
 ### Unlock sequence diagram
 
-![Unlock sequence diagram](../docs/images/)
+```mermaid
+sequenceDiagram
+    Paired fob->>Car: UNLOCK MSG
+    alt Fob is authenticated
+        Car->>Paired fob: ACK SUCCESS
+        Paired fob->>Car: START MSG
+        Car->>Host: Flags
+    else Fob is NOT authenticated
+        Car->>Paired fob: ACK FAILURE
+    end
+```
+
+```
+                 Tag Len                                                          
+      (UNLOCK_MAGIC)  │                                                           
+                  │   │                                                           
+                  ▼   ▼                                                           
+               ┌────┬────┬────┬────┬────┬────┬────┬────┐                          
+UNLOCK MSG:    │0x56│0x06│'u' │'n' │'l' │'o' │'c' │'k' │                          
+               └────┴────┴────┴────┴────┴────┴────┴────┘                          
+                                                                                  
+                 Tag Len                                                          
+       (START_MAGIC)  │                                                           
+                  │   │                                                           
+                  ▼   ▼                                                           
+               ┌────┬────┬────────────────────────────┐                           
+START MSG:     │0x57│0x0F│  Feature info (15 bytes)   │                           
+               └────┴────┴─────────────┬──────────────┘                           
+                                       │                                          
+                                       ▼                                          
+     ┌───────────────────┬───────────────────────────┬───────────────────────────┐
+     │ Car ID (11 bytes) │# active features (1 byte) │List of features (3 bytes) │
+     └───────────────────┴───────────────────────────┴───────────────────────────┘
+                                                                                  
+                                                                                  
+                 Tag Len                                                          
+         (ACK_MAGIC)  │                                                           
+                  │   │                                                           
+                  ▼   ▼                                                           
+               ┌────┬────┬────┐                                                   
+ACK MSG:       │0x54│0x01│0x01│ ◀──── ACK_SUCCESS                                 
+               └────┴────┴────┘                                                   
+                                                                                  
+               ┌────┬────┬────┐                                                   
+               │0x54│0x01│0x00│ ◀──── ACK_FAILURE                                 
+               └────┴────┴────┘                                                   
+```
 
 ### Pairing sequence diagram
 
-![Pairing sequence diagram](../docs/images/)
+```mermaid
+sequenceDiagram
+    Host->>Paired fob: "pair <pin>"
+    alt Valid pair command
+        Paired fob->>Unpaired fob: PAIR MSG
+        Paired fob->>Host: "OK"
+    else Invalid pair command
+        Paired fob->>Host: "ERROR: <msg>"
+    end
+```
+
+```
+                  Tag Len                                                          
+         (PAIR_MAGIC)  │                                                           
+                   │   │                                                           
+                   ▼   ▼                                                           
+                ┌────┬────┬──────────────────┬───────────────────┬──────────────┐  
+ PAIR MSG:      │0x55│0x1A│Car ID (11 bytes) │Password (8 bytes) │Pin (7 bytes) │  
+                └────┴────┴──────────────────┴───────────────────┴──────────────┘  
+```
 
 ### Enabling sequence diagram
 
-![Enabling sequence diagram](../docs/images/)
+```mermaid
+sequenceDiagram
+    Host->>Paired fob: "enable <feature packet>"
+    alt Valid enable command
+        Paired fob->>Host: "OK"
+    else Invalid enable command
+        Paired fob->>Host: "ERROR: <msg>"
+    end
+```
+
+```
+                ┌──────────────────┬───────────────────┐                           
+ FEATURE PKT:   │Car ID (11 bytes) │Feature # (1 byte) │                           
+                └──────────────────┴───────────────────┘                           
+```
