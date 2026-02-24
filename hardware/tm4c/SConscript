@@ -1,6 +1,7 @@
 Import('app_env', 'gen_secrets_action')
 
 tm4c_env = app_env.Clone()
+
 tm4c_env.Replace(CC='arm-none-eabi-gcc')
 tm4c_env.Replace(AR='arm-none-eabi-ar')
 tm4c_env.Replace(AS='arm-none-eabi-as')
@@ -48,14 +49,12 @@ if platform.system() == 'Darwin':  # macOS
     # Some macOS ARM toolchains may have linker differences
     linkflags = [
         '-T', 'hardware/tm4c/libraries/tivaware/firmware.ld',
-        '--entry', 'Firmware_Startup',
         '-dead_strip',  # macOS ld equivalent of --gc-sections
         f"-map={tm4c_env['build_dir']}/TM4C.map"
     ]
 else:  # Linux and other Unix-like systems
     linkflags = [
         '-T', 'hardware/tm4c/libraries/tivaware/firmware.ld',
-        '--entry', 'Firmware_Startup',
         '--gc-sections',
         f"-Map={tm4c_env['build_dir']}/TM4C.map"
     ]
@@ -69,10 +68,10 @@ secrets_h = tm4c_env.Command(
 )
 
 driver_objects = SConscript(
-    'libraries/tivaware/SConscript',
+    'libraries/SConscript',
     variant_dir='drivers',
     duplicate=0,
-    exports={'env': stm32_env}
+    exports={'env': tm4c_env}
 )
 
 # Build application with our architecture-specific environment

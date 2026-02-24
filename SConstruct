@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess
 
-AVAILABLE_PLATFORMS = ["stm32", "sim"]
+AVAILABLE_PLATFORMS = ["stm32", "tm4c", "sim"]
 AVAILABLE_ROLES = ["car", "paired_fob", "unpaired_fob"]
 AVAILABLE_UI = ["console", "microui"]
 
@@ -205,5 +205,5 @@ else:
     # Build targets: all, stm32, tm4c, simulation
     Alias('all', all_targets)
 
-    for platform in ['stm32', 'tm4c', 'sim']:
+    for platform in AVAILABLE_PLATFORMS:
         Alias(platform, [t for t in all_targets if platform in str(t)])

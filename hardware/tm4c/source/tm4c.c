@@ -4,6 +4,8 @@
 #include <string.h>
 
 #include "inc/hw_ints.h"
+#include "inc/hw_types.h"
+#include "inc/hw_gpio.h"
 #include "driverlib/pin_map.h"
 
 #include "inc/hw_memmap.h"
@@ -58,22 +60,6 @@ static void initHardware(int argc, char ** argv)
 	// Configure LED pins
 	GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE,
 	    GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3);
-
-	GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1, GPIO_PIN_1); // r
-	GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_3, GPIO_PIN_3); // g
-	GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, GPIO_PIN_2); // b
-	while(1);
-
-	led_color_t color = WHITE;
-	setLED(color);
-	while(1)
-	{
-		if(buttonPressed())
-		{
-			color = (color + 1) & 0b11;
-			setLED(color);
-		}
-	}
 }
 
 void initHardware_car(int argc, char ** argv)
@@ -94,6 +80,11 @@ void initHardware_fob(int argc, char ** argv)
 
 	// Change LED color for fob: white
 	setLED(WHITE);
+
+	// Unlock PF4 for use when reading SW1
+	HWREG(GPIO_PORTF_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
+	HWREG(GPIO_PORTF_BASE + GPIO_O_CR) |= GPIO_PIN_4;
+	HWREG(GPIO_PORTF_BASE + GPIO_O_LOCK) = 0;
 
 	// Setup SW1
 	GPIOPinTypeGPIOInput(GPIO_PORTF_BASE, GPIO_PIN_4);
@@ -178,14 +169,14 @@ bool buttonPressed(void)
 {
 	bool pressed = false;
 	current_sw_state = GPIOPinRead(GPIO_PORTF_BASE, GPIO_PIN_4);
-    if ((current_sw_state != previous_sw_state) && (current_sw_state == 0))
-    {
-      // Debounce switch
-      for (int i = 0; i < 10000; i++)
-        ;
-      debounce_sw_state = GPIOPinRead(GPIO_PORTF_BASE, GPIO_PIN_4);
-      previous_sw_state = current_sw_state;
-      pressed = (debounce_sw_state == current_sw_state);
-    }
-    return pressed;    
+  if ((current_sw_state != previous_sw_state) && (current_sw_state == 0))
+  {
+    // Debounce switch
+    for (int i = 0; i < 10000; i++)
+      ;
+    debounce_sw_state = GPIOPinRead(GPIO_PORTF_BASE, GPIO_PIN_4);
+    pressed = (debounce_sw_state == current_sw_state);
+  }
+  previous_sw_state = current_sw_state;
+  return pressed;    
 }

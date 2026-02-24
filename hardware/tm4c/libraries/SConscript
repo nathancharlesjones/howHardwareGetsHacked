@@ -3,7 +3,7 @@ Import('env')
 # Clone a clean environment specifically for drivers
 local_env = env.Clone()
 
-sources = Glob('#hardware/libraries/tivaware/driverlib/*.c')
+sources = Glob('tivaware/driverlib/*.c')
 
 # Build objects only (not a program)
 objects = local_env.Object(sources)

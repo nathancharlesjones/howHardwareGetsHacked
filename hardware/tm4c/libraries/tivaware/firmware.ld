@@ -15,7 +15,7 @@ MEMORY
 {
     /* Full flash available - no bootloader */
     FLASH    (rx) : ORIGIN = 0x00000000, LENGTH = 0x00040000
-    SRAM    (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00008000
+    RAM    (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00008000
 }
 
 /* Top of stack (used by startup file) */
@@ -59,7 +59,7 @@ SECTIONS
         *(vtable)
         *(.data*)
         _edata = .;
-    } > SRAM
+    } > RAM
 
     .bss :
     {
@@ -70,7 +70,7 @@ SECTIONS
         /* Heap starts here */
         . = ALIGN(8);
         _end = .;
-    } > SRAM
+    } > RAM
 
     /* Stack section reserves space at end of usable RAM */
     .stack (NOLOAD) :
@@ -79,8 +79,8 @@ SECTIONS
         _heap_end = .;          /* Heap limit */
         . += _STACK_SIZE;
         _stack_top = .;         /* Stack pointer starts here */
-    } > SRAM
+    } > RAM
     
     /* Top of physical RAM */
-    _estack = ORIGIN(SRAM) + LENGTH(SRAM);
+    _estack = ORIGIN(RAM) + LENGTH(RAM);
 }

@@ -59,10 +59,6 @@ void uart_init(hw_uart_t uart, int argc, char ** argv) {
     // AMSEL  Analog Mode Select
     GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
 
-    // Configure the UART for 115,200, 8-N-1 operation.
-    UARTConfigSetExpClk(
-        uart_base[HOST_UART], SysCtlClockGet(), 115200,
-        (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE));
     break;
   case BOARD_UART:
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UART1);
@@ -73,15 +69,18 @@ void uart_init(hw_uart_t uart, int argc, char ** argv) {
 
     GPIOPinTypeUART(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1);
 
-    // Configure the UART for 115,200, 8-N-1 operation.
-    UARTConfigSetExpClk(
-        uart_base[BOARD_UART], SysCtlClockGet(), 115200,
-        (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE));
-
-    while (UARTCharsAvail(BOARD_UART)) {
-      UARTCharGet(BOARD_UART);
-    }
     break;
+  }
+
+  // Configure the UART for 115,200, 8-N-1 operation.
+  UARTConfigSetExpClk(
+      uart_base[uart], SysCtlClockGet(), 115200,
+      (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE));
+
+  UARTEnable(uart_base[uart]);
+
+  while (UARTCharsAvail(uart_base[uart])) {
+    UARTCharGet(uart_base[uart]);
   }
 }
 
