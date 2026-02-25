@@ -25,7 +25,8 @@
 #define FEATURE2_LOC (FEATURE_END - 2*FEATURE_SIZE)
 #define FEATURE3_LOC (FEATURE_END - 3*FEATURE_SIZE)
 
-#define FOB_STATE_PTR 0x3FC00
+extern uint8_t _flash_config_start;
+#define FOB_STATE_PTR ((uintptr_t)&_flash_config_start)
 #define FLASH_DATA_SIZE         \
  		(sizeof(FLASH_DATA) % 4 == 0) \
   	 		? sizeof(FLASH_DATA)      \
@@ -127,14 +128,21 @@ void loadFlag(uint8_t* dest, flag_t flag)
  */
 void loadFobState(FLASH_DATA *dest)
 {
-  memcpy(dest, (FLASH_DATA*)FOB_STATE_PTR, sizeof(FLASH_DATA));
+  memcpy(dest, (const void *)FOB_STATE_PTR, sizeof(FLASH_DATA));
 }
 
 bool saveFobState(const FLASH_DATA *flash_data)
 {
-  FlashErase(FOB_STATE_PTR);
-  FlashProgram((uint32_t *)flash_data, FOB_STATE_PTR, FLASH_DATA_SIZE);
-  return true;
+    if (FlashErase(FOB_STATE_PTR) != 0) return false;
+    if (FlashProgram((uint32_t *)flash_data, FOB_STATE_PTR, FLASH_DATA_SIZE) != 0) return false;
+    
+    /*
+    FLASH_DATA verify;
+		memcpy(&verify, (void*)FOB_STATE_PTR, sizeof(FLASH_DATA));
+		if (memcmp(&verify, flash_data, sizeof(FLASH_DATA)) != 0) return false;
+		*/
+
+    return true;
 }
 
 void setLED(led_color_t color)

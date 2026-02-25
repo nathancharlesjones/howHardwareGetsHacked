@@ -14,8 +14,9 @@ _STACK_SIZE = 0x1C00;
 MEMORY
 {
     /* Full flash available - no bootloader */
-    FLASH    (rx) : ORIGIN = 0x00000000, LENGTH = 0x00040000
-    RAM    (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00008000
+    FLASH           (rx)    : ORIGIN = 0x00000000, LENGTH = 0x0003FC00  /* 255 KB */
+    FLASH_CONFIG    (rx)    : ORIGIN = 0x0003FC00, LENGTH = 0x00000400  /* 1 KB */
+    RAM             (rwx)   : ORIGIN = 0x20000000, LENGTH = 0x00008000
 }
 
 /* Top of stack (used by startup file) */
@@ -33,7 +34,6 @@ SECTIONS
     {
         _text = .;
         /* Vector table MUST be first for bare metal */
-        KEEP(*(.isr_vector))
         KEEP(*(.firmware_startup))
         *(.text*)
         *(.rodata*)
@@ -44,6 +44,14 @@ SECTIONS
         
         _etext = .;
     } > FLASH
+
+    /* Reserve space for config data stored in FLASH
+    .flash_config (NOLOAD) :
+    {
+        . = ALIGN(4);
+        KEEP(*(.flash_config))
+        . = ALIGN(4);
+    } > FLASH_CONFIG
     
     /* Discard ARM exception index - not needed for bare metal C code */
     /DISCARD/ :
@@ -84,3 +92,5 @@ SECTIONS
     /* Top of physical RAM */
     _estack = ORIGIN(RAM) + LENGTH(RAM);
 }
+
+_flash_config_start = ORIGIN(FLASH_CONFIG);

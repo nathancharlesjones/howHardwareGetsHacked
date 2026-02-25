@@ -19,12 +19,10 @@ from pathlib import Path
 BOARD_CONFIG = {
     "stm32": {
         "config_file": "board/st_nucleo_f4.cfg",
-        "reset_config": "",
         "erase_sector": 5,
     },
     "tm4c": {
         "config_file": "board/ti_ek-tm4c123gxl.cfg",
-        "reset_config": "-c reset_config none separate",
         "erase_sector": 0,
     },
 }
@@ -56,16 +54,14 @@ def flash(platform, serial_number, file_path):
     config = BOARD_CONFIG[platform]
     board_config = config["config_file"]
     sector = config["erase_sector"]
-    reset_config = config["reset_config"]
 
     # Construct the OpenOCD command
     cmd = [
         "openocd",
         "-f", board_config,
         "-c", f"adapter serial {serial_number}",
-        reset_config,
         "-c", "init",
-        "-c", "reset halt",
+        "-c", "halt",
         "-c", f"flash erase_sector 0 {sector} {sector}",
         "-c", f"program {file_path} verify reset exit",
     ]
