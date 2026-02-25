@@ -103,3 +103,15 @@ int _read(int file, char *ptr, int len)
     // TODO: Implement UART input here if needed
     return 0;
 }
+
+// If DEBUG is defined, TivaWare requires this error handler
+#ifdef DEBUG
+void
+__error__(char *pcFilename, uint32_t ulLine)
+{
+    // Place a breakpoint here to catch errors
+    while(1)
+    {
+    }
+}
+#endif
