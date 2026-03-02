@@ -88,7 +88,7 @@ app_objects = SConscript(
     exports={'env': stm32_env}  # Pass our configured environment
 )
 
-app = stm32_env.Program(f'{stm32_env["name"]}.bin', sources + app_objects + driver_objects)
+app = stm32_env.Program(f'{stm32_env["name"]}.elf', sources + app_objects + driver_objects)
 stm32_env.Depends(app, secrets_h)
 
 Return('app')

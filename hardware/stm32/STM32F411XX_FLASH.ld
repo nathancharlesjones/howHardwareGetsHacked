@@ -75,8 +75,9 @@ _Min_Stack_Size = 0x400; /* required amount of stack */
 MEMORY
 {
 RAM (xrw)       : ORIGIN = 0x20000000, LENGTH = 128K
-FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 128K
-FLASH_DATA (rx) : ORIGIN = 0x08020000, LENGTH = 128K
+FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 256K
+FLASH_DATA (rx) : ORIGIN = 0x08040000, LENGTH = 128K
+FLAGS (rx)      : ORIGIN = 0x08060000, LENGTH = 128K
 }
 
 /* Define output sections */
@@ -209,7 +210,7 @@ SECTIONS
   /* ===========================================================
      REGION FOR FLASH_DATA
      -----------------------------------------------------------
-     We'll reserve Sector 5 (128KB) for FLASH_DATA
+     We'll reserve Sector 6 (128KB) for FLASH_DATA
      =========================================================== */
 
   .flash_data (NOLOAD) :
@@ -218,6 +219,20 @@ SECTIONS
     *(.flash_data)
     . = ALIGN(4);
   } > FLASH_DATA
+
+  /* ===========================================================
+     REGION FOR FLAGS
+     -----------------------------------------------------------
+     Sector 7 (128KB at 0x08060000): stores flag strings at
+     known, fixed addresses so they can be located predictably.
+     =========================================================== */
+
+  .flags :
+  {
+    . = ALIGN(4);
+    KEEP(*(.flags))
+    . = ALIGN(4);
+  } > FLAGS
 
   /* Remove information from the standard libraries */
   /DISCARD/ :

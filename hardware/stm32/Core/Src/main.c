@@ -116,16 +116,32 @@ void initHardware_fob(int argc, char ** argv)
   initHardware(argc, argv);
 }
 
+typedef struct {
+  char unlock[UNLOCK_SIZE];
+  char feature1[FEATURE_SIZE];
+  char feature2[FEATURE_SIZE];
+  char feature3[FEATURE_SIZE];
+} FLAGS_DATA;
+
+static const FLAGS_DATA flags_data __attribute__((section(".flags"))) = {
+  .unlock   = UNLOCK_FLAG,
+  .feature1 = FEATURE1_FLAG,
+  .feature2 = FEATURE2_FLAG,
+  .feature3 = FEATURE3_FLAG,
+};
+
 void loadFlag(uint8_t* dest, flag_t flag)
 {
-  static const char* flags[] = {
-    [UNLOCK] = UNLOCK_FLAG,
-    [FEATURE1] = FEATURE1_FLAG,
-    [FEATURE2] = FEATURE2_FLAG,
-    [FEATURE3] = FEATURE3_FLAG
-  };
-  size_t size = (flag == UNLOCK) ? UNLOCK_SIZE : FEATURE_SIZE;
-  memcpy(dest, flags[flag], size);
+  const char *src;
+  size_t size;
+  switch (flag) {
+    case UNLOCK:   src = flags_data.unlock;   size = UNLOCK_SIZE;  break;
+    case FEATURE1: src = flags_data.feature1; size = FEATURE_SIZE; break;
+    case FEATURE2: src = flags_data.feature2; size = FEATURE_SIZE; break;
+    case FEATURE3: src = flags_data.feature3; size = FEATURE_SIZE; break;
+    default: return;
+  }
+  memcpy(dest, src, size);
 }
 
 void loadFobState(FLASH_DATA *dest)

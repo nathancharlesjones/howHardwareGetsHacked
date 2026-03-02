@@ -112,7 +112,7 @@ libs = [
     libgcc_path, # GCC runtime
 ]
 
-app = tm4c_env.Program(f'{tm4c_env["name"]}.bin', sources + app_objects + driver_objects + libs)
+app = tm4c_env.Program(f'{tm4c_env["name"]}.elf', sources + app_objects + driver_objects + libs)
 tm4c_env.Depends(app, secrets_h)
 
 Return('app')

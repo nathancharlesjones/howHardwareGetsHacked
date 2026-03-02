@@ -154,6 +154,12 @@ def main():
         "file",
         help="Path to the firmware binary file",
     )
+    '''
+    flash_parser.add_argument(
+        "unlock",
+        help="Leave the unlocked after programming",
+    )
+    '''
     flash_parser.set_defaults(func=lambda args: sys.exit(flash(
         args.platform,
         args.serial_number,
