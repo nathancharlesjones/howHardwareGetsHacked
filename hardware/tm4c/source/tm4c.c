@@ -72,7 +72,6 @@ void initHardware_car(int argc, char ** argv)
 	setLED(RED);
 
 	char msg[64];
-	strcpy(msg, "Init complete\n\r");
 	uart_write(HOST_UART, (uint8_t*)msg, strlen(msg));
 }
 

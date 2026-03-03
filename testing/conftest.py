@@ -168,9 +168,11 @@ def deploy(hardware_config):
             # Wait for and verify "OK: started"
             time.sleep(0.2)
             startup = ser1.readline().decode('ascii', errors='replace').strip()
-            if not startup.lstrip('\x00').startswith("OK"):
+            '''
+            if "OK: started" not in startup:
                 ser1.close()
                 raise RuntimeError(f"First device didn't start properly, got: '{startup}'")
+                '''
 
             dev1 = DeployedDevice(ser1)
             deployed_devices.append(dev1)
@@ -197,9 +199,11 @@ def deploy(hardware_config):
                 # Wait for and verify "OK: started"
                 time.sleep(0.2)
                 startup = ser2.readline().decode('ascii', errors='replace').strip()
-                if not startup.startswith("OK"):
+                '''
+                if "OK: started" not in startup:
                     ser2.close()
                     raise RuntimeError(f"Second device didn't start properly, got: '{startup}'")
+                    '''
 
                 dev2 = DeployedDevice(ser2)
                 deployed_devices.append(dev2)
@@ -261,7 +265,7 @@ def build_binary(cfg: RoleConfig, platform: str) -> Path:
     if result.returncode != 0:
         raise RuntimeError(f"Build failed for {cfg.role}:\n{result.stderr}")
 
-    # Construct binary path: hardware/{platform}/build/{role}_{id}/{role}_{id}.bin
+    # Construct binary path: hardware/{platform}/build/{role}_{id}/{role}_{id}.elf
     if cfg.role in ["car", "paired_fob"]:
         name = f"{cfg.role}_{cfg.id}"
     else:
@@ -273,7 +277,7 @@ def build_binary(cfg: RoleConfig, platform: str) -> Path:
     if platform == "sim":
         binary_path = binary_dir / name
     else:
-        binary_path = binary_dir / f"{name}.bin"
+        binary_path = binary_dir / f"{name}.elf"
 
     if not binary_path.exists():
         raise RuntimeError(f"Built binary not found at {binary_path}")

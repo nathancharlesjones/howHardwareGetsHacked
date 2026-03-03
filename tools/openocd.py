@@ -25,7 +25,7 @@ BOARD_CONFIG = {
     },
     "tm4c": {
         "config_file": "board/ti_ek-tm4c123gxl.cfg",
-        "erase_sector": 0,
+        "erase_sector": 255,
         "lock_cmd": "",
         "unlock_cmd": "",
     },
@@ -70,9 +70,16 @@ def flash(platform, serial_number, file_path, lock=1):
         "-c", f"flash erase_sector 0 {sector} {sector}",
         "-c", f"program {file_path} verify",
     ]
-    if lock:
+    if lock and config["lock_cmd"]:
+        # After setting RDP, a POR (power-on reset) is required — not just a
+        # system reset — per the STM32 reference manual. OpenOCD cannot trigger
+        # a POR, so just disconnect cleanly and let the user power cycle.
         cmd += ["-c", config["lock_cmd"]]
-    cmd += ["-c", "reset exit"]
+        print("NOTE: A full power-cycle is needed after locking to reload the option byte.")
+    else:
+        cmd += ["-c", "reset run"]
+
+    cmd += ["-c", "shutdown"]
 
     print(f"Flashing {platform} device {serial_number} with {file_path}")
     print(f"Command: {' '.join(cmd)}")

@@ -50,7 +50,7 @@ def parse_response(line: str) -> Response:
         print(resp)
         return resp
     
-    line = line.strip()
+    line = line.strip().lstrip('\x00')
     
     if line == "":
         resp = Response(success=False, error="timeout")
