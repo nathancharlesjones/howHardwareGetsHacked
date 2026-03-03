@@ -19,16 +19,20 @@ from pathlib import Path
 BOARD_CONFIG = {
     "stm32": {
         "config_file": "board/st_nucleo_f4.cfg",
-        "erase_sector": 5,
+        "erase_sector": 6,
+        "lock_cmd": "stm32f2x lock 0",
+        "unlock_cmd": "stm32f2x unlock 0",
     },
     "tm4c": {
         "config_file": "board/ti_ek-tm4c123gxl.cfg",
         "erase_sector": 0,
+        "lock_cmd": "",
+        "unlock_cmd": "",
     },
 }
 
 
-def flash(platform, serial_number, file_path):
+def flash(platform, serial_number, file_path, lock=1):
     """
     Flash firmware to the specified board.
 
@@ -36,6 +40,7 @@ def flash(platform, serial_number, file_path):
         platform (str): Board platform identifier ('stm32' or 'tm4c')
         serial_number (str): Serial number of the device to target
         file_path (str): Path to the firmware binary file to flash
+        lock (int): Lock the device after flashing (1=lock, 0=skip lock, default: 1)
 
     Returns:
         int: Return code from the OpenOCD process (0 = success)
@@ -63,8 +68,11 @@ def flash(platform, serial_number, file_path):
         "-c", "init",
         "-c", "halt",
         "-c", f"flash erase_sector 0 {sector} {sector}",
-        "-c", f"program {file_path} verify reset exit",
+        "-c", f"program {file_path} verify",
     ]
+    if lock:
+        cmd += ["-c", config["lock_cmd"]]
+    cmd += ["-c", "reset exit"]
 
     print(f"Flashing {platform} device {serial_number} with {file_path}")
     print(f"Command: {' '.join(cmd)}")
@@ -132,6 +140,48 @@ def debug(platform, serial_number, gdb_port=3333, telnet_port=4444):
     return result.returncode
 
 
+def unlock(platform, serial_number):
+    """
+    Unlock a locked device to allow reprogramming.
+
+    For STM32, this removes read protection (RDP) via 'stm32f2x unlock 0', which
+    also triggers a mass erase of flash. After unlocking, the device must be
+    power-cycled or reset before reprogramming.
+
+    Args:
+        platform (str): Board platform identifier ('stm32')
+        serial_number (str): Serial number of the device to target
+
+    Returns:
+        int: Return code from the OpenOCD process (0 = success)
+
+    Raises:
+        ValueError: If platform is not supported
+    """
+    if platform not in BOARD_CONFIG:
+        raise ValueError(f"Unsupported platform: {platform}")
+
+    config = BOARD_CONFIG[platform]
+    board_config = config["config_file"]
+
+    cmd = [
+        "openocd",
+        "-f", board_config,
+        "-c", f"adapter serial {serial_number}",
+        "-c", "init",
+        "-c", "halt",
+    ] + ["-c", config["unlock_cmd"]] + ["-c", "reset exit"]
+
+    print(f"Unlocking {platform} device {serial_number}")
+    print(f"Command: {' '.join(cmd)}")
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    combined_output = result.stdout + result.stderr
+    print(combined_output)
+
+    return result.returncode
+
+
 def main():
     """Parse command-line arguments and execute the appropriate subcommand."""
     parser = argparse.ArgumentParser(
@@ -154,16 +204,18 @@ def main():
         "file",
         help="Path to the firmware binary file",
     )
-    '''
     flash_parser.add_argument(
-        "unlock",
-        help="Leave the unlocked after programming",
+        "--lock",
+        type=int,
+        default=1,
+        choices=[0, 1],
+        help="Lock the device after flashing (default: 1)",
     )
-    '''
     flash_parser.set_defaults(func=lambda args: sys.exit(flash(
         args.platform,
         args.serial_number,
         args.file,
+        args.lock,
     )))
 
     # Debug subcommand
@@ -194,6 +246,22 @@ def main():
         args.serial_number,
         args.gdb_port,
         args.telnet_port,
+    )))
+
+    # Unlock subcommand
+    unlock_parser = subparsers.add_parser("unlock", help="Unlock a locked device to allow reprogramming")
+    unlock_parser.add_argument(
+        "platform",
+        choices=["stm32"],
+        help="Board platform identifier",
+    )
+    unlock_parser.add_argument(
+        "serial_number",
+        help="Serial number of the device",
+    )
+    unlock_parser.set_defaults(func=lambda args: sys.exit(unlock(
+        args.platform,
+        args.serial_number,
     )))
 
     args = parser.parse_args()

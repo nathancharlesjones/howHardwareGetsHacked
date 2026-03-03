@@ -27,6 +27,7 @@
 
 extern uint8_t _flash_config_start;
 #define FOB_STATE_PTR ((uintptr_t)&_flash_config_start)
+
 #define FLASH_DATA_SIZE         \
  		(sizeof(FLASH_DATA) % 4 == 0) \
   	 		? sizeof(FLASH_DATA)      \
@@ -128,7 +129,7 @@ void loadFlag(uint8_t* dest, flag_t flag)
  */
 void loadFobState(FLASH_DATA *dest)
 {
-  memcpy(dest, (const void *)FOB_STATE_PTR, sizeof(FLASH_DATA));
+  memcpy(dest, (uint8_t*)FOB_STATE_PTR, sizeof(FLASH_DATA));
 }
 
 bool saveFobState(const FLASH_DATA *flash_data)

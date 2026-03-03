@@ -173,7 +173,7 @@ bool saveFobState(const FLASH_DATA *src)
   FLASH_EraseInitTypeDef erase =
   {
       .TypeErase    = FLASH_TYPEERASE_SECTORS,
-      .Sector       = FLASH_SECTOR_5,
+      .Sector       = FLASH_SECTOR_6,
       .NbSectors    = 1,
       .VoltageRange = FLASH_VOLTAGE_RANGE_3,
   };
