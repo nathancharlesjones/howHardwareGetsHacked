@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #include "secrets.h"
 #include "messages.h"
@@ -110,7 +111,7 @@ int main(int argc, char **argv)
           cmdIndex = 0;
         }
       }
-      else if (cmdIndex < MAX_CMD_LEN - 1)
+      else if ( (cmdIndex < MAX_CMD_LEN - 1) && isalpha(c) )
       {
         cmdBuffer[cmdIndex++] = c;
       }

@@ -66,7 +66,7 @@ def flash(platform, serial_number, file_path, lock=1):
         "-f", board_config,
         "-c", f"adapter serial {serial_number}",
         "-c", "init",
-        "-c", "halt",
+        "-c", "reset halt",
         "-c", f"flash erase_sector 0 {sector} {sector}",
         "-c", f"program {file_path} verify",
     ]
@@ -76,10 +76,8 @@ def flash(platform, serial_number, file_path, lock=1):
         # a POR, so just disconnect cleanly and let the user power cycle.
         cmd += ["-c", config["lock_cmd"]]
         print("NOTE: A full power-cycle is needed after locking to reload the option byte.")
-    else:
-        cmd += ["-c", "reset run"]
-
-    cmd += ["-c", "shutdown"]
+    
+    cmd += ["-c", "reset run", "-c", "shutdown"]
 
     print(f"Flashing {platform} device {serial_number} with {file_path}")
     print(f"Command: {' '.join(cmd)}")
