@@ -100,7 +100,6 @@ if not app_env['opt'].isdigit() or app_env['opt'] not in ['0', '1', '2', '3', 's
 required_files = [
     'tools/car_gen_secret.py',
     'tools/fob_gen_secret.py',
-    'secrets/car_secrets.json',
 ]
 
 for f in required_files:
@@ -139,7 +138,6 @@ def gen_secrets_action(target, source, env):
             sys.executable,
             'tools/car_gen_secret.py',
             '--car-id', env['id'],
-            '--secret-file', 'secrets/car_secrets.json',
             '--header-file', secrets_h,
         ]
     elif env['role'] == 'paired_fob':
@@ -148,7 +146,6 @@ def gen_secrets_action(target, source, env):
             'tools/fob_gen_secret.py',
             '--car-id', env['id'],
             '--pair-pin', env['pin'],
-            '--secret-file', 'secrets/car_secrets.json',
             '--header-file', secrets_h,
             '--paired'
         ]
@@ -158,7 +155,6 @@ def gen_secrets_action(target, source, env):
             'tools/fob_gen_secret.py',
             '--car-id', '0',
             '--pair-pin', '000000',
-            '--secret-file', 'secrets/car_secrets.json',
             '--header-file', secrets_h,
             # No --paired flag for unpaired fob
         ]

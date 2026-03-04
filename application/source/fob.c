@@ -111,7 +111,7 @@ int main(int argc, char **argv)
           cmdIndex = 0;
         }
       }
-      else if ( (cmdIndex < MAX_CMD_LEN - 1) && isalpha(c) )
+      else if ( (cmdIndex < MAX_CMD_LEN - 1) && (isalnum(c) || ' ' == c) )
       {
         cmdBuffer[cmdIndex++] = c;
       }
@@ -368,7 +368,7 @@ void enableFeature(FLASH_DATA *fob_state_ram, const uint8_t *data, size_t len)
   if (len < sizeof(ENABLE_PACKET))
   {
     char msg[64] = {0};
-    sprintf(msg, "invalid packet; expected len of 12, got len of %d", len);
+    sprintf(msg, "invalid packet; expected len of 12, got len of %zu", len);
     sendError(msg);
     return;
   }

@@ -86,7 +86,7 @@ int main(int argc, char **argv)
           cmdIndex = 0;
         }
       }
-      else if ( (cmdIndex < MAX_CMD_LEN - 1) && isalpha(c) )
+      else if ( (cmdIndex < MAX_CMD_LEN - 1) && (isalnum(c) || ' ' == c) )
       {
         cmdBuffer[cmdIndex++] = c;
       }

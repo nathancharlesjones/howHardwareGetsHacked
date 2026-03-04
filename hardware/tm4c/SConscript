@@ -63,7 +63,7 @@ tm4c_env.Append(LINKFLAGS=linkflags)
 
 secrets_h = tm4c_env.Command(
     target='secrets.h',
-    source=['#secrets/car_secrets.json'],
+    source=[],
     action=gen_secrets_action
 )
 
