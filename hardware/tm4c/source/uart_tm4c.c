@@ -58,6 +58,7 @@ void uart_init(hw_uart_t uart, int argc, char ** argv) {
     // DEN    Digital Enable
     // AMSEL  Analog Mode Select
     GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+    GPIOPadConfigSet(GPIO_PORTA_BASE, GPIO_PIN_0, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
 
     break;
   case BOARD_UART:
@@ -68,6 +69,7 @@ void uart_init(hw_uart_t uart, int argc, char ** argv) {
     GPIOPinConfigure(GPIO_PB1_U1TX);
 
     GPIOPinTypeUART(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+    GPIOPadConfigSet(GPIO_PORTB_BASE, GPIO_PIN_0, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
 
     break;
   }
