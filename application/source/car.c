@@ -177,8 +177,8 @@ void sendError(const char *reason)
  */
 void unlockCar(void)
 {
-  sendOK("Inside unlock car\n");
-  
+  //sendOK("Inside unlock car\n");
+
   MESSAGE_PACKET message;
   uint8_t buffer[256];
   message.buffer = buffer;
