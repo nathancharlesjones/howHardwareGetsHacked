@@ -46,23 +46,6 @@ static void initHardware(int argc, char ** argv)
 	               SYSCTL_OSC_MAIN |
 	               SYSCTL_XTAL_16MHZ);
 
-/*
-#ifndef DEBUG
-	// Disable JTAG/SWD as early as possible to minimize the attack window.
-	// PC0=TCK/SWCLK, PC1=TMS/SWDIO, PC2=TDI, PC3=TDO/SWO are hardware-locked
-	// at reset; the commit register must be opened before they can be reconfigured.
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
-	while (!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOC));
-
-	HWREG(GPIO_PORTC_BASE + GPIO_O_LOCK)  = GPIO_LOCK_KEY;
-	HWREG(GPIO_PORTC_BASE + GPIO_O_CR)   |= GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3;
-	HWREG(GPIO_PORTC_BASE + GPIO_O_LOCK)  = 0;  // re-lock commit register
-
-	GPIOPinTypeGPIOInput(GPIO_PORTC_BASE,
-	                     GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3);
-#endif
-*/
-
 	// Ensure EEPROM peripheral is enabled
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_EEPROM0);
 	EEPROMInit();

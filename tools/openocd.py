@@ -81,7 +81,6 @@ def flash(platform, serial_number, file_path):
         "openocd",
         "-f", board_config,
         "-c", f"adapter serial {serial_number}",
-        #"-c", "reset_config srst_only connect_assert_srst",
         "-c", "init",
         "-c", "reset halt",
         "-c", f"flash erase_sector 0 {sector} {sector}",
