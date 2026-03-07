@@ -20,19 +20,36 @@ BOARD_CONFIG = {
     "stm32": {
         "config_file": "board/st_nucleo_f4.cfg",
         "erase_sector": 6,
-        "lock_cmd": "stm32f2x lock 0",
-        "unlock_cmd": "stm32f2x unlock 0",
+        # STM32 option bytes take effect only after a full power-on reset (POR),
+        # not a system reset, per the STM32 reference manual. OpenOCD cannot
+        # trigger a POR, so the user must power-cycle the board after locking.
+        "post_lock_msg": "A full power cycle",
+        "post_unlock_msg": "Nothing",
+        "lock_cmds": ["stm32f2x lock 0"],
+        "unlock_cmds": ["stm32f2x unlock 0"],
     },
     "tm4c": {
         "config_file": "board/ti_ek-tm4c123gxl.cfg",
         "erase_sector": 255,
-        "lock_cmd": "",
-        "unlock_cmd": "",
+        "post_lock_msg": "A hardware reset",
+        # TM4C unlocking requires the ICDI debug controller to be addressed
+        # directly — OpenOCD cannot do this. Use tools/icdi_unlock.py instead,
+        # which will remind the user about any post-unlock steps.
+        "post_unlock_msg": "",
+        "lock_cmds": [
+            # 1. Clear WRBUF and COMT bits in FMD (0x400FD004) to start fresh
+            "mmw 0x400fd004 0x0 0x3",
+            # 2. Write lock pattern to FMA (0x400FD000)
+            "mww 0x400fd000 0x75100000",
+            # 3. Write KEY and set COMT bit in FMC (0x400FD008) to commit
+            "mww 0x400fd008 0xa4420008",
+        ],
+        "unlock_cmds": [],
     },
 }
 
 
-def flash(platform, serial_number, file_path, lock=1):
+def flash(platform, serial_number, file_path):
     """
     Flash firmware to the specified board.
 
@@ -40,7 +57,6 @@ def flash(platform, serial_number, file_path, lock=1):
         platform (str): Board platform identifier ('stm32' or 'tm4c')
         serial_number (str): Serial number of the device to target
         file_path (str): Path to the firmware binary file to flash
-        lock (int): Lock the device after flashing (1=lock, 0=skip lock, default: 1)
 
     Returns:
         int: Return code from the OpenOCD process (0 = success)
@@ -65,19 +81,14 @@ def flash(platform, serial_number, file_path, lock=1):
         "openocd",
         "-f", board_config,
         "-c", f"adapter serial {serial_number}",
+        #"-c", "reset_config srst_only connect_assert_srst",
         "-c", "init",
         "-c", "reset halt",
         "-c", f"flash erase_sector 0 {sector} {sector}",
         "-c", f"program {file_path} verify",
+        "-c", "reset run",
+        "-c", "shutdown",
     ]
-    if lock and config["lock_cmd"]:
-        # After setting RDP, a POR (power-on reset) is required — not just a
-        # system reset — per the STM32 reference manual. OpenOCD cannot trigger
-        # a POR, so just disconnect cleanly and let the user power cycle.
-        cmd += ["-c", config["lock_cmd"]]
-        print("NOTE: A full power-cycle is needed after locking to reload the option byte.")
-    
-    cmd += ["-c", "reset run", "-c", "shutdown"]
 
     print(f"Flashing {platform} device {serial_number} with {file_path}")
     print(f"Command: {' '.join(cmd)}")
@@ -92,8 +103,56 @@ def flash(platform, serial_number, file_path, lock=1):
     if "** Verified OK **" in combined_output:
         return 0  # Success
     else:
-        # Print output to help debug the failure
         return 1  # Failure
+
+
+def lock(platform, serial_number):
+    """
+    Lock a device to enable read protection.
+
+    For STM32, this sets RDP Level 1 via 'stm32f2x lock 0'. The option byte
+    takes effect only after a full power-on reset (POR); a reminder is printed
+    since OpenOCD cannot trigger a POR.
+
+    For TM4C, this writes the lock pattern to the flash memory controller
+    registers and then resets the device automatically.
+
+    Args:
+        platform (str): Board platform identifier ('stm32' or 'tm4c')
+        serial_number (str): Serial number of the device to target
+
+    Returns:
+        int: Return code from the OpenOCD process (0 = success)
+
+    Raises:
+        ValueError: If platform is not supported
+    """
+    if platform not in BOARD_CONFIG:
+        raise ValueError(f"Unsupported platform: {platform}")
+
+    config = BOARD_CONFIG[platform]
+    board_config = config["config_file"]
+
+    cmd = [
+        "openocd",
+        "-f", board_config,
+        "-c", f"adapter serial {serial_number}",
+        "-c", "init",
+        "-c", "halt",
+    ]
+    for lock_cmd in config["lock_cmds"]:
+        cmd += ["-c", lock_cmd]
+    cmd += ["-c", "shutdown"]
+
+    print(f"Locking {platform} device {serial_number}")
+    print(f"Command: {' '.join(cmd)}")
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    combined_output = result.stdout + result.stderr
+    print(combined_output)
+
+    print(f"NOTE: {config['post_lock_msg']} is required for locking to take effect.")
+    return result.returncode
 
 
 def debug(platform, serial_number, gdb_port=3333, telnet_port=4444):
@@ -139,7 +198,6 @@ def debug(platform, serial_number, gdb_port=3333, telnet_port=4444):
     print(f"Starting debug session for {platform} device {serial_number}")
     print(f"GDB port: {gdb_port}, Telnet port: {telnet_port}")
     print(f"Command: {' '.join(cmd)}")
-    print("\n[TODO] gdbgui integration will be added here once file_path parameter is included\n")
 
     result = subprocess.run(cmd)
     return result.returncode
@@ -150,15 +208,19 @@ def unlock(platform, serial_number):
     Unlock a locked device to allow reprogramming.
 
     For STM32, this removes read protection (RDP) via 'stm32f2x unlock 0', which
-    also triggers a mass erase of flash. After unlocking, the device must be
-    power-cycled or reset before reprogramming.
+    also triggers a mass erase of flash. After unlocking, the device is reset
+    automatically. A power-cycle may still be required before reprogramming.
+
+    For TM4C, OpenOCD cannot unlock the device directly. Use tools/icdi_unlock.py
+    instead, which communicates directly with the ICDI debug controller via USB.
 
     Args:
-        platform (str): Board platform identifier ('stm32')
+        platform (str): Board platform identifier ('stm32' or 'tm4c')
         serial_number (str): Serial number of the device to target
 
     Returns:
-        int: Return code from the OpenOCD process (0 = success)
+        int: Return code from the OpenOCD process (0 = success), or 1 if the
+             platform requires an external unlock tool.
 
     Raises:
         ValueError: If platform is not supported
@@ -167,6 +229,12 @@ def unlock(platform, serial_number):
         raise ValueError(f"Unsupported platform: {platform}")
 
     config = BOARD_CONFIG[platform]
+
+    if not config["unlock_cmds"]:
+        print(f"NOTE: {platform} cannot be unlocked via OpenOCD.")
+        print("For TM4C, use tools/icdi_unlock.py instead.")
+        return 1
+
     board_config = config["config_file"]
 
     cmd = [
@@ -175,7 +243,10 @@ def unlock(platform, serial_number):
         "-c", f"adapter serial {serial_number}",
         "-c", "init",
         "-c", "halt",
-    ] + ["-c", config["unlock_cmd"]] + ["-c", "reset exit"]
+    ]
+    for unlock_cmd in config["unlock_cmds"]:
+        cmd += ["-c", unlock_cmd]
+    cmd += ["-c", "reset run", "-c", "shutdown"]
 
     print(f"Unlocking {platform} device {serial_number}")
     print(f"Command: {' '.join(cmd)}")
@@ -183,6 +254,9 @@ def unlock(platform, serial_number):
     result = subprocess.run(cmd, capture_output=True, text=True)
     combined_output = result.stdout + result.stderr
     print(combined_output)
+
+    if config["post_unlock_msg"]:
+        print(f"NOTE: {config['post_unlock_msg']} is required for unlocking to take effect.")
 
     return result.returncode
 
@@ -209,18 +283,26 @@ def main():
         "file",
         help="Path to the firmware binary file",
     )
-    flash_parser.add_argument(
-        "--lock",
-        type=int,
-        default=1,
-        choices=[0, 1],
-        help="Lock the device after flashing (default: 1)",
-    )
     flash_parser.set_defaults(func=lambda args: sys.exit(flash(
         args.platform,
         args.serial_number,
         args.file,
-        args.lock,
+    )))
+
+    # Lock subcommand
+    lock_parser = subparsers.add_parser("lock", help="Enable read protection on a device")
+    lock_parser.add_argument(
+        "platform",
+        choices=["stm32", "tm4c"],
+        help="Board platform identifier",
+    )
+    lock_parser.add_argument(
+        "serial_number",
+        help="Serial number of the device",
+    )
+    lock_parser.set_defaults(func=lambda args: sys.exit(lock(
+        args.platform,
+        args.serial_number,
     )))
 
     # Debug subcommand
@@ -257,8 +339,8 @@ def main():
     unlock_parser = subparsers.add_parser("unlock", help="Unlock a locked device to allow reprogramming")
     unlock_parser.add_argument(
         "platform",
-        choices=["stm32"],
-        help="Board platform identifier",
+        choices=["stm32", "tm4c"],
+        help="Board platform identifier (TM4C: see tools/icdi_unlock.py)",
     )
     unlock_parser.add_argument(
         "serial_number",

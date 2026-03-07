@@ -172,7 +172,8 @@ def send_packet(dev: usb.core.Device, packet: bytes, label: str = "") -> str:
 
 def main():
     parser = argparse.ArgumentParser(description="Send 'debug unlock' to TI ICDI via USB")
-    parser.add_argument("--serial", help="ICDI serial number (e.g. 0E236CE6)")
+    #parser.add_argument("--serial", help="ICDI serial number (e.g. 0E236CE6)")
+    parser.add_argument("serial", help="ICDI serial number (e.g. 0E236CE6)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Open device and send 'version' only — do not send unlock")
     args = parser.parse_args()

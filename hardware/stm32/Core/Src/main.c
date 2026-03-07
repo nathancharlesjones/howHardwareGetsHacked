@@ -92,6 +92,28 @@ static void initHardware(int argc, char ** argv)
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
 
+#ifndef DEBUG
+  // Disable SWD/JTAG as early as possible to minimize the attack window.
+  // GPIO clocks are enabled manually here since MX_GPIO_Init() hasn't run yet.
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  GPIO_InitTypeDef dbg = {0};
+  dbg.Mode = GPIO_MODE_ANALOG;  // analog: Schmitt trigger disabled, pin truly hi-Z
+  dbg.Pull = GPIO_NOPULL;
+
+  // PA13 = SWDIO, PA14 = SWCLK, PA15 = JTDI
+  dbg.Pin = GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
+  HAL_GPIO_Init(GPIOA, &dbg);
+
+  // PB3 = SWO/JTDO, PB4 = NJTRST
+  dbg.Pin = GPIO_PIN_3 | GPIO_PIN_4;
+  HAL_GPIO_Init(GPIOB, &dbg);
+
+  DBGMCU->CR = 0;        // disable debug-halt in Sleep/Stop/Standby
+  CoreDebug->DEMCR = 0; // disable DWT, ITM, and debug monitor
+#endif
+
   /* Configure the system clock */
   SystemClock_Config();
 
