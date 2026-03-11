@@ -10,16 +10,18 @@ Supports both CLI usage and Python imports for integration with other scripts.
 """
 
 import argparse
+import struct
 import subprocess
 import sys
 from pathlib import Path
 
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # Board configuration mapping
 BOARD_CONFIG = {
     "stm32": {
         "config_file": "board/st_nucleo_f4.cfg",
-        "erase_sector": 6,
+        "erase_sector": 6,  # sector 6 = FLASH_DATA (fob state); cleared on each firmware flash
         # STM32 option bytes take effect only after a full power-on reset (POR),
         # not a system reset, per the STM32 reference manual. OpenOCD cannot
         # trigger a POR, so the user must power-cycle the board after locking.
@@ -27,10 +29,14 @@ BOARD_CONFIG = {
         "post_unlock_msg": "Nothing",
         "lock_cmds": ["stm32f2x lock 0"],
         "unlock_cmds": ["stm32f2x unlock 0"],
+        # Flags live in sector 7 (0x08060000); programmed separately from firmware.
+        "flash_flags_cmd": [
+            "flash write_image erase {flags_path} 0x08060000 bin",
+        ],
     },
     "tm4c": {
         "config_file": "board/ti_ek-tm4c123gxl.cfg",
-        "erase_sector": 255,
+        "erase_sector": 255,  # last flash page = fob state; cleared on each firmware flash
         "post_lock_msg": "A hardware reset",
         # TM4C unlocking requires the ICDI debug controller to be addressed
         # directly — OpenOCD cannot do this. Use tools/icdi_unlock.py instead,
@@ -45,6 +51,13 @@ BOARD_CONFIG = {
             "mww 0x400fd008 0xa4420008",
         ],
         "unlock_cmds": [],
+        # Flags live in EEPROM blocks 28-31; written directly via EEPROM controller
+        # registers (never staged in target RAM). {flags_data_tcl} is substituted
+        # with a Tcl list of 64 little-endian 32-bit words read from flags.bin.
+        "flash_flags_cmd": [
+            "set FLAG_DATA {{{flags_data_tcl}}}",
+            f"script {_PROJECT_ROOT / 'hardware' / 'tm4c' / 'eeprom_write.tcl'}",
+        ],
     },
 }
 
@@ -76,7 +89,6 @@ def flash(platform, serial_number, file_path):
     board_config = config["config_file"]
     sector = config["erase_sector"]
 
-    # Construct the OpenOCD command
     cmd = [
         "openocd",
         "-f", board_config,
@@ -85,11 +97,22 @@ def flash(platform, serial_number, file_path):
         "-c", "reset halt",
         "-c", f"flash erase_sector 0 {sector} {sector}",
         "-c", f"program {file_path} verify",
-        "-c", "reset run",
-        "-c", "shutdown",
     ]
 
+    flags_path = file_path.parent / "flags.bin"
+    if flags_path.exists() and "flash_flags_cmd" in config:
+        raw = flags_path.read_bytes()
+        words = struct.unpack(f"<{len(raw) // 4}I", raw)
+        flags_data_tcl = " ".join(f"0x{w:08x}" for w in words)
+        for flags_cmd in config["flash_flags_cmd"]:
+            cmd += ["-c", flags_cmd.format(flags_path=flags_path,
+                                           flags_data_tcl=flags_data_tcl)]
+
+    cmd += ["-c", "reset run", "-c", "shutdown"]
+
     print(f"Flashing {platform} device {serial_number} with {file_path}")
+    if flags_path.exists():
+        print(f"Also programming flags from {flags_path}")
     print(f"Command: {' '.join(cmd)}")
 
     result = subprocess.run(cmd, capture_output=True, text=True)

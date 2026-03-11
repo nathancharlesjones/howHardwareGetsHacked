@@ -19,11 +19,7 @@
 #include "dataFormats.h"
 #include "platform.h"
 
-#define UNLOCK_EEPROM_LOC 0x7C0
-#define FEATURE_END 0x7C0
-#define FEATURE1_LOC (FEATURE_END - FLAG_SIZE)
-#define FEATURE2_LOC (FEATURE_END - 2*FLAG_SIZE)
-#define FEATURE3_LOC (FEATURE_END - 3*FLAG_SIZE)
+#define FEATURE_START 0x700
 
 extern uint8_t _flash_config_start;
 #define FOB_STATE_PTR ((uintptr_t)&_flash_config_start)
@@ -93,25 +89,7 @@ void initHardware_fob(int argc, char ** argv)
 
 void loadFlag(uint8_t* dest, flag_t flag)
 {
-	uint32_t src = 0;
-
-	switch(flag)
-	{
-	case UNLOCK:
-		src = UNLOCK_EEPROM_LOC;
-		break;
-	case FEATURE1:
-		src = FEATURE1_LOC;
-		break;
-	case FEATURE2:
-		src = FEATURE2_LOC;
-		break;
-	case FEATURE3:
-		src = FEATURE3_LOC;
-		break;
-	}
-
-	EEPROMRead((uint32_t *)dest, src, FLAG_SIZE);
+	EEPROMRead((uint32_t *)dest, (FEATURE_START + flag*FLAG_SIZE), FLAG_SIZE);
 }
 
 /**
