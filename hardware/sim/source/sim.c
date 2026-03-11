@@ -13,27 +13,12 @@
 #include "uart_sim.h"
 #include "ui.h"
 
-// Defines
-#ifndef UNLOCK_FLAG
-#   define UNLOCK_FLAG   "default_unlock"
-#endif
-
-#ifndef FEATURE1_FLAG
-#   define FEATURE1_FLAG "default_feature1"
-#endif
-
-#ifndef FEATURE2_FLAG
-#   define FEATURE2_FLAG "default_feature2"
-#endif
-
-#ifndef FEATURE3_FLAG
-#   define FEATURE3_FLAG "default_feature3"
-#endif
-
 const char* FLASH_DATA_FILENAME = "flash_data.bin";
+const char* FLAGS_FILENAME = "flags.bin";
 
 // Private variables
 static char flash_data_file_path[PATH_MAX] = "";
+static char flags_file_path[PATH_MAX] = "";
 
 // Function implementations
 static void signal_handler(int sig)
@@ -44,25 +29,21 @@ static void signal_handler(int sig)
     exit(0);
 }
 
-static void setup_flash_data_file_path(const char* argv0)
+static void setup_data_file_path(char* dest, const char* filename, const char* argv0)
 {
     char exe_path[PATH_MAX];
     char* dir;
-    
-    /* Get the directory containing the executable */
+
     if (realpath(argv0, exe_path) != NULL) {
         dir = dirname(exe_path);
-        //snprintf(flash_data_file_path, PATH_MAX, "%s/%s", dir, FLASH_DATA_FILENAME);
-        snprintf(flash_data_file_path, PATH_MAX-1, "%.*s/%s", (int)(sizeof(flash_data_file_path)
-             - 1 - strlen(FLASH_DATA_FILENAME) - 1), dir, FLASH_DATA_FILENAME);
+        snprintf(dest, PATH_MAX-1, "%.*s/%s",
+                 (int)(PATH_MAX - 1 - strlen(filename) - 1), dir, filename);
     } else {
-        /* Fallback to current directory */
         if (getcwd(exe_path, PATH_MAX) != NULL) {
-            snprintf(flash_data_file_path, PATH_MAX-1, "%.*s/%s", (int)(sizeof(flash_data_file_path)
-                - 1 - strlen(FLASH_DATA_FILENAME) - 1), exe_path, FLASH_DATA_FILENAME);
+            snprintf(dest, PATH_MAX-1, "%.*s/%s",
+                     (int)(PATH_MAX - 1 - strlen(filename) - 1), exe_path, filename);
         } else {
-            /* Last resort */
-            strncpy(flash_data_file_path, FLASH_DATA_FILENAME, PATH_MAX-1);
+            strncpy(dest, filename, PATH_MAX-1);
         }
     }
 }
@@ -70,11 +51,9 @@ static void setup_flash_data_file_path(const char* argv0)
 static void initHardware(int argc, char ** argv)
 {
     /* Set up state file path based on executable location */
-    if (argc > 0 && argv[0] != NULL) {
-        setup_flash_data_file_path(argv[0]);
-    } else {
-        setup_flash_data_file_path("./");
-    }
+    const char* exe = (argc > 0 && argv[0] != NULL) ? argv[0] : "./";
+    setup_data_file_path(flash_data_file_path, FLASH_DATA_FILENAME, exe);
+    setup_data_file_path(flags_file_path, FLAGS_FILENAME, exe);
     
     /* Set up signal handlers for clean shutdown */
     signal(SIGINT, signal_handler);
@@ -118,14 +97,13 @@ void initHardware_fob(int argc, char ** argv)
 
 void loadFlag(uint8_t* dest, flag_t flag)
 {
-    static const char flags[][64] = {
-        [UNLOCK] = UNLOCK_FLAG,
-        [FEATURE1] = FEATURE1_FLAG,
-        [FEATURE2] = FEATURE2_FLAG,
-        [FEATURE3] = FEATURE3_FLAG
-    };
-    size_t size = (UNLOCK == flag) ? UNLOCK_SIZE : FEATURE_SIZE;
-    memcpy(dest, flags[flag], size);
+    FILE* fp = fopen(flags_file_path, "rb");
+    if (!fp) return;
+    fseek(fp, (long)(flag * FLAG_SIZE), SEEK_SET);
+    size_t read = fread(dest, 1, FLAG_SIZE, fp);
+    fclose(fp);
+
+    if(read != sizeof(FLAG_SIZE)) exit(EXIT_FAILURE);
 }
 
 void loadFobState(FLASH_DATA* data)

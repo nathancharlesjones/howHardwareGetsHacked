@@ -4,10 +4,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define UNLOCK_SIZE 64
+#define FLAG_SIZE 64
 
 #define NUM_FEATURES 3
-#define FEATURE_SIZE 64
 
 // Defines a struct for the format of a pairing message
 typedef struct

@@ -6,7 +6,7 @@
 #define FLASH_PAIRED 0x01
 #define FLASH_UNPAIRED 0xFF
 
-typedef enum { UNLOCK, FEATURE1 = 1, FEATURE2 = 2, FEATURE3 = 3 } flag_t;
+typedef enum { FEATURE3 = 0, FEATURE2 = 1, FEATURE1 = 2, UNLOCK = 3 } flag_t;
 typedef enum { OFF, RED, GREEN, WHITE } led_color_t;
 
 void initHardware_car(int argc, char ** argv);

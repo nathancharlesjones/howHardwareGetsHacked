@@ -97,6 +97,24 @@ if not app_env['opt'].isdigit() or app_env['opt'] not in ['0', '1', '2', '3', 's
     print("Error: 'opt' must be one of: 0, 1, 2, 3, s")
     Exit(1)
 
+FLAG_SIZE = 64
+FLAG_DEFAULTS = {
+    'unlock_flag':  'default_unlock',
+    'feature1_flag': 'default_feature1',
+    'feature2_flag': 'default_feature2',
+    'feature3_flag': 'default_feature3',
+}
+
+for key, default in FLAG_DEFAULTS.items():
+    if not app_env[key]:
+        app_env[key] = default
+
+for key in FLAG_DEFAULTS:
+    val = app_env[key]
+    if len(val.encode('utf-8')) > FLAG_SIZE - 1:  # -1 to leave room for null terminator
+        print(f"Error: '{key}' value is too long (max {FLAG_SIZE - 1} bytes, got {len(val.encode('utf-8'))})")
+        Exit(1)
+
 required_files = [
     'tools/car_gen_secret.py',
     'tools/fob_gen_secret.py',
@@ -107,15 +125,11 @@ for f in required_files:
         print(f"Error: required file missing: {f}")
         Exit(1)
 
-# Add feature flag defines if provided
-if app_env['unlock_flag']:
-    app_env.Append(CPPDEFINES=[('UNLOCK_FLAG', f'\\"{app_env["unlock_flag"]}\\"')])
-if app_env['feature1_flag']:
-    app_env.Append(CPPDEFINES=[('FEATURE1_FLAG', f'\\"{app_env["feature1_flag"]}\\"')])
-if app_env['feature2_flag']:
-    app_env.Append(CPPDEFINES=[('FEATURE2_FLAG', f'\\"{app_env["feature2_flag"]}\\"')])
-if app_env['feature3_flag']:
-    app_env.Append(CPPDEFINES=[('FEATURE3_FLAG', f'\\"{app_env["feature3_flag"]}\\"')])
+# Define flag values for sim.c (hardware targets read flags from flash/EEPROM at runtime)
+app_env.Append(CPPDEFINES=[('UNLOCK_FLAG',   f'\\"{app_env["unlock_flag"]}\\"')])
+app_env.Append(CPPDEFINES=[('FEATURE1_FLAG', f'\\"{app_env["feature1_flag"]}\\"')])
+app_env.Append(CPPDEFINES=[('FEATURE2_FLAG', f'\\"{app_env["feature2_flag"]}\\"')])
+app_env.Append(CPPDEFINES=[('FEATURE3_FLAG', f'\\"{app_env["feature3_flag"]}\\"')])
 
 # Common compiler flags
 app_env.Append(CPPFLAGS=[f'-O{app_env["opt"]}', '-Wall'])
@@ -163,6 +177,17 @@ def gen_secrets_action(target, source, env):
 
 Export('gen_secrets_action')
 
+def gen_flags_bin_action(target, source, env):
+    # Binary layout (FLAG_SIZE bytes each): feature3, feature2, feature1, unlock
+    # This order matches the TM4C EEPROM address layout (lowest address first).
+    flag_order = ['feature3_flag', 'feature2_flag', 'feature1_flag', 'unlock_flag']
+    buf = bytearray(len(flag_order) * FLAG_SIZE)
+    for i, key in enumerate(flag_order):
+        val = env[key].encode('utf-8')
+        buf[i * FLAG_SIZE : i * FLAG_SIZE + len(val)] = val
+    with open(str(target[0]), 'wb') as f:
+        f.write(buf)
+
 if single_build_mode:
     app_env['name'] = f"{app_env['role']}_{app_env['id']}" if app_env['role'] in ['car', 'paired_fob'] else app_env['role']
     app_env['build_dir'] = f"hardware/{app_env['platform']}/build/{app_env['name']}"
@@ -175,6 +200,14 @@ if single_build_mode:
         exports={'app_env': app_env}
     )
     Default(app)
+
+    if app_env['role'] == 'car':
+        flags_bin = app_env.Command(
+            f'{app_env["build_dir"]}/flags.bin',
+            [],
+            gen_flags_bin_action
+        )
+        Default(flags_bin)
 
 else:
     # List of all targets, one per platform/role combination
@@ -197,6 +230,14 @@ else:
             )
 
             all_targets.append(tgt)
+
+            if role == 'car':
+                flags_bin = e.Command(
+                    f'{e["build_dir"]}/flags.bin',
+                    [],
+                    gen_flags_bin_action
+                )
+                all_targets.append(flags_bin)
 
     # Build targets: all, stm32, tm4c, simulation
     Alias('all', all_targets)

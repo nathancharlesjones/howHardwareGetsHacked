@@ -37,21 +37,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#ifndef UNLOCK_FLAG
-#   define UNLOCK_FLAG   "default_unlock"
-#endif
-
-#ifndef FEATURE1_FLAG
-#   define FEATURE1_FLAG "default_feature1"
-#endif
-
-#ifndef FEATURE2_FLAG
-#   define FEATURE2_FLAG "default_feature2"
-#endif
-
-#ifndef FEATURE3_FLAG
-#   define FEATURE3_FLAG "default_feature3"
-#endif
+/* Sector 7 (0x08060000): flags programmed externally via openocd.py.
+   Binary layout (FLAG_SIZE bytes each): feature3, feature2, feature1, unlock. */
+#define FLAGS_BASE 0x08060000U
 
 #define FLASH_DATA_BYTES         \
     (sizeof(FLASH_DATA) % 4 == 0) \
@@ -116,32 +104,9 @@ void initHardware_fob(int argc, char ** argv)
   initHardware(argc, argv);
 }
 
-typedef struct {
-  char unlock[UNLOCK_SIZE];
-  char feature1[FEATURE_SIZE];
-  char feature2[FEATURE_SIZE];
-  char feature3[FEATURE_SIZE];
-} FLAGS_DATA;
-
-static const FLAGS_DATA flags_data __attribute__((section(".flags"))) = {
-  .unlock   = UNLOCK_FLAG,
-  .feature1 = FEATURE1_FLAG,
-  .feature2 = FEATURE2_FLAG,
-  .feature3 = FEATURE3_FLAG,
-};
-
 void loadFlag(uint8_t* dest, flag_t flag)
 {
-  const char *src;
-  size_t size;
-  switch (flag) {
-    case UNLOCK:   src = flags_data.unlock;   size = UNLOCK_SIZE;  break;
-    case FEATURE1: src = flags_data.feature1; size = FEATURE_SIZE; break;
-    case FEATURE2: src = flags_data.feature2; size = FEATURE_SIZE; break;
-    case FEATURE3: src = flags_data.feature3; size = FEATURE_SIZE; break;
-    default: return;
-  }
-  memcpy(dest, src, size);
+  memcpy(dest, (const char *)(FLAGS_BASE + flag * FLAG_SIZE), FLAG_SIZE);
 }
 
 void loadFobState(FLASH_DATA *dest)
@@ -193,7 +158,7 @@ bool saveFobState(const FLASH_DATA *src)
 
   // Program new config data
   const uint32_t *words = (const uint32_t *)padded_data;
-  uint32_t addr = flash_sector_start(FLASH_SECTOR_5);
+  uint32_t addr = flash_sector_start(FLASH_SECTOR_6);
 
   for (size_t i = 0; i < FLASH_DATA_WORDS; i++)
   {

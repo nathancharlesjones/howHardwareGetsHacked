@@ -212,11 +212,11 @@ void unlockCar(void)
 
 #ifndef TEST_BUILD
   // In production mode: send unlock flag and feature flags
-  uint8_t flag_buffer[UNLOCK_SIZE] = {0};
-  
+  uint8_t flag_buffer[FLAG_SIZE] = {0};
+
   // Send unlock flag
   loadFlag(flag_buffer, UNLOCK);
-  uart_write(HOST_UART, flag_buffer, UNLOCK_SIZE);
+  uart_write(HOST_UART, flag_buffer, FLAG_SIZE);
   char * newlines = "\n\r";
   uart_write(HOST_UART, (uint8_t*)newlines, 2);
 
@@ -227,7 +227,7 @@ void unlockCar(void)
       if (featureNum >= 1 && featureNum <= NUM_FEATURES)
       {
           loadFlag(flag_buffer, (flag_t)featureNum);
-          uart_write(HOST_UART, flag_buffer, FEATURE_SIZE);
+          uart_write(HOST_UART, flag_buffer, FLAG_SIZE);
           uart_write(HOST_UART, (uint8_t*)newlines, 2);
       }
   }
