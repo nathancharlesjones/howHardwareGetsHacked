@@ -10,7 +10,6 @@ Supports both CLI usage and Python imports for integration with other scripts.
 """
 
 import argparse
-import struct
 import subprocess
 import sys
 from pathlib import Path
@@ -52,11 +51,10 @@ BOARD_CONFIG = {
         ],
         "unlock_cmds": [],
         # Flags live in EEPROM blocks 28-31; written directly via EEPROM controller
-        # registers (never staged in target RAM). {flags_data_tcl} is substituted
-        # with a Tcl list of 64 little-endian 32-bit words read from flags.bin.
+        # registers (never staged in target RAM).
         "flash_flags_cmd": [
-            "set FLAG_DATA {{{flags_data_tcl}}}",
-            f"script {_PROJECT_ROOT / 'hardware' / 'tm4c' / 'eeprom_write.tcl'}",
+            f"script {_PROJECT_ROOT / 'tools' / 'eeprom.tcl'}",
+            "eeprom_write {flags_path} 0x700 256",
         ],
     },
 }
@@ -101,12 +99,8 @@ def flash(platform, serial_number, file_path):
 
     flags_path = file_path.parent / "flags.bin"
     if flags_path.exists() and "flash_flags_cmd" in config:
-        raw = flags_path.read_bytes()
-        words = struct.unpack(f"<{len(raw) // 4}I", raw)
-        flags_data_tcl = " ".join(f"0x{w:08x}" for w in words)
         for flags_cmd in config["flash_flags_cmd"]:
-            cmd += ["-c", flags_cmd.format(flags_path=flags_path,
-                                           flags_data_tcl=flags_data_tcl)]
+            cmd += ["-c", flags_cmd.format(flags_path=flags_path)]
 
     cmd += ["-c", "reset run", "-c", "shutdown"]
 
