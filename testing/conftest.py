@@ -160,7 +160,7 @@ def deploy(hardware_config):
             ser1.reset_input_buffer()
 
             # Flash device (causes reset and boot)
-            result = openocd_flash(hardware_config.board, hardware_config.identifiers[0], str(binary1), lock=0)
+            result = openocd_flash(hardware_config.board, hardware_config.identifiers[0], str(binary1))
             if result != 0:
                 ser1.close()
                 raise RuntimeError("Flash failed for first device")
@@ -191,7 +191,7 @@ def deploy(hardware_config):
                 ser2 = serial.Serial(port2, DEFAULT_BAUD, timeout=DEFAULT_TIMEOUT)
 
                 # Flash device (causes reset and boot)
-                result = openocd_flash(hardware_config.board, hardware_config.identifiers[1], str(binary2), lock=0)
+                result = openocd_flash(hardware_config.board, hardware_config.identifiers[1], str(binary2))
                 if result != 0:
                     ser2.close()
                     raise RuntimeError("Flash failed for second device")
