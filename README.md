@@ -8,6 +8,7 @@ This project demonstrates iterative attacks and defenses for embedded systems us
 - [Part 1: Introduction to the 2023 MITRE eCTF](https://www.digikey.com/en/maker/blogs/2025/how-hardware-gets-hacked-part-1)
 - [Part 2: On-boarding](link)
 - [Part 3: Adopting the Attacker Mindset](link)
+- [Part 4: Memory Protections](link)
 
 ## Project Structure
 
@@ -23,7 +24,7 @@ This project demonstrates iterative attacks and defenses for embedded systems us
 │   ├── include/          # platform.h and uart.h (abstraction layer)
 │   ├── stm32/            # STM32F4 HAL & drivers
 │   ├── tm4c/             # TM4C123 drivers
-│   └── x86/              # Desktop simulation layer
+│   └── sim/              # Desktop simulation layer
 │
 ├── tools/                # Python utilities
 │   ├── simulate.py       # x86 simulation environment
@@ -31,6 +32,7 @@ This project demonstrates iterative attacks and defenses for embedded systems us
 │   ├── monitor.py        # Serial monitor
 │   ├── list.py           # Device enumeration
 │   ├── package.py        # Package a car feature
+│   ├── icdi_unlock.py    # Script to unlock a locked TM4C device
 │   └── enable.py         # Feature enablement
 │
 ├── testing/              # Automated test suite
@@ -67,7 +69,7 @@ void uart_writeb(hw_uart_t uart, uint8_t data);
 Each platform implements these functions differently:
 - **STM32**: Uses ST HAL library (GPIO, UART, flash APIs)
 - **TM4C**: Uses TivaWare drivers
-- **x86**: Software simulation (ncurses UI, virtual serial ports)
+- **Sim**: Software simulation (terminal UI, virtual serial ports)
 
 ## The 2023 eCTF Challenge
 
@@ -94,15 +96,9 @@ For detailed protocol flows and security architecture, see [`application/README.
 
 This repository is organized around progressive security improvements. Each defense corresponds to an attack demonstrated in the article series.
 
-Sample set of links to be included later, as the other articles are written:
+Navigate to the commit in question (below) by appending the commit number to the URL www.github.com/nathancharlesjones/howHardwareGetsHacked/tree/<6-digit commit #>, i.e. www.github.com/nathancharlesjones/howHardwareGetsHacked/tree/d39462a.
 
-**Development roadmap:**
-
-1. **[Baseline project](commit-link)** - Basic unlock/pairing without security
-2. **[Defending against code readout](commit-link)** - Read protection, debug disable
-3. **[Defending against replay attacks](commit-link)** - Challenge-response with nonces
-4. **[Defending against glitching](commit-link)** - Fault detection and recovery
-5. **[Defending against side channels](commit-link)** - Constant-time crypto
+![Attacks and defenses](docs/images/read_debug_port.png)
 
 > **Note:** If you're following the articles, start with the baseline commit and progress through each defense as you read about the corresponding attack.
 
@@ -129,11 +125,11 @@ scons -j8 <TARGET> [id=<#>] [pin=<#>]
 ```
 
 `TARGET` can be:
-- `platform={stm32|tm4c|x86} role={car|paired_fob|unpaired_fob}` (build a specific role for a specific platform)
+- `platform={stm32|tm4c|sim} role={car|paired_fob|unpaired_fob}` (build a specific role for a specific platform)
     - `car` requires `id`
     - `paired_fob` requires `id` and `pin`
     - `unpaired_fob` requires neither
-- `x86` / `stm32` / `tm4c` (build all roles for a specific platform; requires `id` and `pin`)
+- `sim` / `stm32` / `tm4c` (build all roles for a specific platform; requires `id` and `pin`)
 - `all` (build all roles for all platforms; requires `id` and `pin`)
 
 **Output location:** Binaries are placed in `hardware/{platform}/build/{role}_{id}/` (or `hardware/{platform}/build/unpaired_fob` for unpaired fobs)
@@ -142,8 +138,8 @@ scons -j8 <TARGET> [id=<#>] [pin=<#>]
 - `debug=1` - Enable debug symbols
 - `test=1` - Enable test commands via HOST_UART
 - `opt=0` - Set optimization level (0-3,s)
-- `ui=console` - Use console UI for x86
-- Feature flags: Supports single words or quoted strings
+- `ui=console` - Use console UI for simulation
+- Feature flags: Supports single words (`unlock_flag=FLAG{0123456789abcdef`) or strings with escaped spaces (`feature1_flag=Highway\ to\ the\ danger\ zone`).
     - `unlock_flag=`
     - `feature1_flag=`
     - `feature2_flag=`
@@ -156,7 +152,7 @@ Examples:
 scons -j8 platform=stm32 role=paired_fob id=1357 pin=123456
 
 # Build all roles for x86 with feature flags (embedded in car firmware)
-scons -j8 x86 id=12345 pin=987654 \
+scons -j8 sim id=12345 pin=987654 \
     unlock_flag="FLAG{car_unlocked}" \
     feature1_flag="FLAG{heated_seats}"
 
@@ -165,7 +161,7 @@ scons -j8 all id=12345 pin=123456 test=1
 
 # Clean build artifacts (must specify a unique build)
 scons -j8 -c platform=stm32 role=paired_fob id=1357
-scons -j8 -c x86 id=12345
+scons -j8 -c sim id=12345
 scons -j8 -c all id=12345
 ```
 
@@ -184,13 +180,13 @@ scons -j8 -c all id=12345
 ./tools/monitor.py <SERIAL_PORT>
 ```
 
-**For x86 simulation:**
+**For simulation:**
 
 ```bash
 # Run simulation (launches both car and fob)
 ./tools/simulate.py \
-    hardware/x86/build/car_12345/firmware \
-    hardware/x86/build/paired_fob_12345/firmware
+    hardware/sim/build/car_12345/firmware \
+    hardware/sim/build/paired_fob_12345/firmware
 
 # Applications are running "headless" unless "ui=console" was added to build step
 # If it was, you can press 'b' in fob console window that simulate.py opens up to simulate a button press
@@ -468,6 +464,12 @@ BOARD_CONFIG = {
     "newplatform": {
         "config_file": "newplatform_device.cfg",
         "erase_sector": 0,
+        "post_lock_msg": "A full power cycle",  # "NOTE: ___ is required for locking to take effect."
+        "post_unlock_msg": "Nothing",           # "NOTE: ___ is required for unlocking to take effect."
+        "lock_cmds": [""],                      # OpenOCD commands to lock flash/debug port
+                                                # (leave blank if implemented elsewhere)
+        "unlock_cmds": [""],                    # OpenOCD commands to unlock flash/debug port
+        "flash_flags_cmd": [],                  # OpenOCD commands to erase section of memory where flags are stored
     },
 }
 ```
