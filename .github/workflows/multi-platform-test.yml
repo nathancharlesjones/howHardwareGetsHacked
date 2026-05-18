@@ -52,8 +52,11 @@ jobs:
     # macOS-specific setup
     - name: Install ARM toolchain (macOS)
       if: runner.os == 'macOS'
+      uses: carlosperate/arm-none-eabi-gcc-action@v1
+
+    - name: Install other tools (macOS)
+      if: runner.os == 'macOS'
       run: |
-        brew install --cask gcc-arm-embedded
         brew install openocd
         # XQuartz provides X11 support needed for xterm
         brew install --cask xquartz
