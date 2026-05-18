@@ -119,10 +119,14 @@ static void ensure_terminal(int argc, char **argv)
 
         setenv("IN_XTERM", "1", 1);
 
-        char **new_argv = calloc(argc + 5, sizeof(char *));
+        char **new_argv = calloc(argc + 9, sizeof(char *));
         int i = 0;
 
         new_argv[i++] = "xterm";
+        new_argv[i++] = "-fa";
+        new_argv[i++] = "Monospace";
+        new_argv[i++] = "-fs";
+        new_argv[i++] = "14";
         new_argv[i++] = "-T";
         new_argv[i++] = argv[0];
         new_argv[i++] = "-e";

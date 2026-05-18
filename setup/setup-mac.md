@@ -122,9 +122,11 @@ cd your-project
 
 ## Setting Up the Virtual Environment
 
+**Python version:** This project requires Python 3.11. Newer versions (3.12+) may fail to build some dependencies (`gdbgui` → `gevent` → `greenlet`). The `brew install python@3.11` step above installs it, but `python3` in your shell may still point to a different version. Use `python3.11` explicitly when creating the venv.
+
 ```bash
-# Create a Python virtual environment
-python3 -m venv hhghVenv
+# Create a Python virtual environment (explicitly use 3.11)
+python3.11 -m venv hhghVenv
 
 # Activate the virtual environment (IMPORTANT!)
 source hhghVenv/bin/activate

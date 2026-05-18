@@ -226,7 +226,7 @@ void unlockCar(void)
       uint8_t featureNum = feature_info->features[i];
       if (featureNum >= 1 && featureNum <= NUM_FEATURES)
       {
-          loadFlag(flag_buffer, (flag_t)featureNum);
+          loadFlag(flag_buffer, (flag_t)(NUM_FEATURES - featureNum));
           uart_write(HOST_UART, flag_buffer, FLAG_SIZE);
           uart_write(HOST_UART, (uint8_t*)newlines, 2);
       }

@@ -73,7 +73,8 @@ sudo apt install -y \
     git \
     python3 \
     python3-pip \
-    python3-venv
+    python3-venv \
+    python3-dev
 
 # ARM cross-compiler toolchain
 sudo apt install -y gcc-arm-none-eabi
@@ -204,9 +205,17 @@ cd your-project
 
 ## Setting Up the Virtual Environment
 
+**Python version:** Ubuntu 22.04 (installed above) ships Python 3.10, which is compatible with all project dependencies. If you used a different Ubuntu version and `python3 --version` shows 3.12 or newer, some dependencies (`gdbgui` → `gevent` → `greenlet`) may fail to build. In that case, install Python 3.11 via the deadsnakes PPA:
+
+```bash
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install python3.11 python3.11-venv python3.11-dev
+```
+
 ```bash
 # Create a Python virtual environment
-python3 -m venv hhghVenv
+python3.11 -m venv hhghVenv
 
 # Activate the virtual environment (IMPORTANT!)
 source hhghVenv/bin/activate

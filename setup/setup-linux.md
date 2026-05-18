@@ -21,7 +21,8 @@ sudo apt install -y \
     git \
     python3 \
     python3-pip \
-    python3-venv
+    python3-venv \
+    python3-dev
 
 # ARM cross-compiler toolchain
 sudo apt install -y gcc-arm-none-eabi
@@ -177,9 +178,19 @@ cd your-project
 
 ## Setting Up the Virtual Environment
 
+**Python version:** This project requires Python 3.11. Newer versions (3.12+) may fail to build some dependencies (`gdbgui` → `gevent` → `greenlet`). If your system Python is newer, install 3.11 via the deadsnakes PPA:
+
 ```bash
-# Create a Python virtual environment
-python3 -m venv hhghVenv
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install python3.11 python3.11-venv python3.11-dev
+```
+
+Then create the venv with `python3.11` explicitly (see below).
+
+```bash
+# Create a Python virtual environment (use python3.11 if your system Python is newer)
+python3.11 -m venv hhghVenv
 
 # Activate the virtual environment (IMPORTANT!)
 source hhghVenv/bin/activate

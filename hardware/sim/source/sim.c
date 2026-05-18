@@ -103,7 +103,7 @@ void loadFlag(uint8_t* dest, flag_t flag)
     size_t read = fread(dest, 1, FLAG_SIZE, fp);
     fclose(fp);
 
-    if(read != sizeof(FLAG_SIZE)) exit(EXIT_FAILURE);
+    if(read != FLAG_SIZE) exit(EXIT_FAILURE);
 }
 
 void loadFobState(FLASH_DATA* data)

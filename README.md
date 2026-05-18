@@ -6,7 +6,7 @@ This project demonstrates iterative attacks and defenses for embedded systems us
 
 **Article Series:**
 - [Part 1: Introduction to the 2023 MITRE eCTF](https://www.digikey.com/en/maker/blogs/2025/how-hardware-gets-hacked-part-1)
-- [Part 2: On-boarding](link)
+- [Part 2: On-boarding](https://www.digikey.com/en/maker/blogs/2026/how-hardware-gets-hacked-part-2-on-boarding)
 - [Part 3: Adopting the Attacker Mindset](link)
 - [Part 4: Memory Protections](link)
 
@@ -114,7 +114,7 @@ Navigate to the commit in question (below) by appending the commit number to the
 
 ![Development Pipeline](docs/images/pipeline.png)
 
-For a guided introduction to building, flashing, and testing the firmware, see [Part 2: On-boarding](link).
+For a guided introduction to building, flashing, and testing the firmware, see [Part 2: On-boarding](https://www.digikey.com/en/maker/blogs/2026/how-hardware-gets-hacked-part-2-on-boarding).
 
 ### Building
 
@@ -139,7 +139,7 @@ scons -j8 <TARGET> [id=<#>] [pin=<#>]
 - `test=1` - Enable test commands via HOST_UART
 - `opt=0` - Set optimization level (0-3,s)
 - `ui=console` - Use console UI for simulation
-- Feature flags: Supports single words (`unlock_flag=FLAG{0123456789abcdef`) or strings with escaped spaces (`feature1_flag=Highway\ to\ the\ danger\ zone`).
+- Feature flags: Supports single words (`unlock_flag=FLAG{0123456789abcdef}`) or strings with escaped spaces (`feature1_flag=Highway\ to\ the\ danger\ zone`).
     - `unlock_flag=`
     - `feature1_flag=`
     - `feature2_flag=`
