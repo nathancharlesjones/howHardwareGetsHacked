@@ -205,11 +205,8 @@ class TestPairedAndUnpairedFob:
         resp = proto.cmd_pair(paired, "123456")
         assert resp.success, f"Pairing failed: {resp.error}"
 
-        # Give time for the pairing message to be received and processed
-        time.sleep(1)
-
-        # Query unpaired fob to verify it's now paired
-        assert proto.is_paired(unpaired), "Should now be paired"
+        # Poll until unpaired fob has finished saving its new paired state
+        assert proto.wait_until_paired(unpaired, timeout=5), "Should now be paired"
 
         proto.cmd_reset(unpaired)
 

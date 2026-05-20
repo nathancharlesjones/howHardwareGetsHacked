@@ -25,6 +25,7 @@ Test Commands (TEST_BUILD only):
         getUnlockCount            - Returns OK: <n> (resets on power cycle)
 """
 
+import time
 from dataclasses import dataclass
 from typing import Optional
 
@@ -191,7 +192,7 @@ class FlashData:
 # Standard Commands (Production)
 # =============================================================================
 
-def cmd_enable(device, feature_package: bytes, timeout: float = 2.0) -> Response:
+def cmd_enable(device, feature_package: bytes, timeout: float = 5.0) -> Response:
     """
     Enable a packaged feature on the fob.
     
@@ -206,7 +207,7 @@ def cmd_enable(device, feature_package: bytes, timeout: float = 2.0) -> Response
     return parse_response(device.send_recv(f"enable {hex_data}", timeout=timeout))
 
 
-def cmd_pair(device, pin: str) -> Response:
+def cmd_pair(device, pin: str, timeout: float = 2.0) -> Response:
     """
     Initiate pairing from a paired fob.
     
@@ -220,7 +221,7 @@ def cmd_pair(device, pin: str) -> Response:
     Returns:
         Response with success/error
     """
-    return parse_response(device.send_recv(f"pair {pin}"))
+    return parse_response(device.send_recv(f"pair {pin}", timeout=timeout))
 
 
 # =============================================================================
@@ -229,14 +230,14 @@ def cmd_pair(device, pin: str) -> Response:
 
 # --- Both Car and Fob ---
 
-def cmd_reset(device) -> Response:
+def cmd_reset(device, timeout: float = 5.0) -> Response:
     """
     Factory reset - clear all state and restart.
     
     For fob: clears FLASH_DATA (becomes unpaired)
     For car: resets unlock count, re-locks
     """
-    return parse_response(device.send_recv("reset"))
+    return parse_response(device.send_recv("reset", timeout=timeout))
 
 
 # --- Fob Only ---
@@ -267,17 +268,17 @@ def cmd_btn_press(device, timeout: float = 2.0) -> Response:
     return parse_response(device.send_recv("btnPress", timeout=timeout))
 
 
-def cmd_get_flash_data(device) -> Response:
+def cmd_get_flash_data(device, timeout: float = 2.0) -> Response:
     """
     Get fob's FLASH_DATA as hex string.
     
     Returns:
         Response with value=hex string on success
     """
-    return parse_response(device.send_recv("getFlashData"))
+    return parse_response(device.send_recv("getFlashData", timeout=timeout))
 
 
-def cmd_set_flash_data(device, flash_data: FlashData) -> Response:
+def cmd_set_flash_data(device, flash_data: FlashData, timeout: float = 5.0) -> Response:
     """
     Set fob's FLASH_DATA and persist to flash.
     
@@ -289,7 +290,7 @@ def cmd_set_flash_data(device, flash_data: FlashData) -> Response:
         Response with success/error
     """
     hex_data = flash_data.to_hex()
-    return parse_response(device.send_recv(f"setFlashData {hex_data}"))
+    return parse_response(device.send_recv(f"setFlashData {hex_data}", timeout=timeout))
 
 
 def cmd_is_paired(device, timeout: float = 2.0) -> Response:
@@ -302,14 +303,14 @@ def cmd_is_paired(device, timeout: float = 2.0) -> Response:
     return parse_response(device.send_recv("isPaired", timeout=timeout))
 
 
-def get_flash_data(device) -> FlashData:
+def get_flash_data(device, timeout: float = 2.0) -> FlashData:
     """
     Convenience: get and parse FLASH_DATA.
-    
+
     Raises:
         RuntimeError: if command fails
     """
-    resp = cmd_get_flash_data(device)
+    resp = cmd_get_flash_data(device, timeout=timeout)
     if not resp.success:
         raise RuntimeError(f"getFlashData failed: {resp.error}")
     return FlashData.from_hex(resp.value)
@@ -323,19 +324,32 @@ def is_paired(device, timeout: float = 2.0) -> bool:
     return resp.value == "1"
 
 
+def wait_until_paired(device, timeout: float = 5.0, interval: float = 0.25) -> bool:
+    """Poll isPaired until true or timeout expires. Returns True if paired, False if timed out."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            if is_paired(device):
+                return True
+        except RuntimeError:
+            pass  # device busy (e.g. mid-saveFobState); keep polling
+        time.sleep(interval)
+    return False
+
+
 # --- Car Only ---
 
-def cmd_is_locked(device) -> Response:
+def cmd_is_locked(device, timeout: float = 2.0) -> Response:
     """
     Check if car is locked.
     
     Returns:
         Response with value="1" if locked, "0" if unlocked
     """
-    return parse_response(device.send_recv("isLocked"))
+    return parse_response(device.send_recv("isLocked", timeout=timeout))
 
 
-def cmd_get_unlock_count(device) -> Response:
+def cmd_get_unlock_count(device, timeout: float = 2.0) -> Response:
     """
     Get number of successful unlocks since boot.
     
@@ -344,20 +358,20 @@ def cmd_get_unlock_count(device) -> Response:
     Returns:
         Response with value=count as string
     """
-    return parse_response(device.send_recv("getUnlockCount"))
+    return parse_response(device.send_recv("getUnlockCount", timeout=timeout))
 
 
-def is_locked(device) -> bool:
+def is_locked(device, timeout: float = 2.0) -> bool:
     """Convenience: check if car is locked."""
-    resp = cmd_is_locked(device)
+    resp = cmd_is_locked(device, timeout=timeout)
     if not resp.success:
         raise RuntimeError(f"isLocked failed: {resp.error}")
     return resp.value == "1"
 
 
-def get_unlock_count(device) -> int:
+def get_unlock_count(device, timeout: float = 2.0) -> int:
     """Convenience: get unlock count as int."""
-    resp = cmd_get_unlock_count(device)
+    resp = cmd_get_unlock_count(device, timeout=timeout)
     if not resp.success:
         raise RuntimeError(f"getUnlockCount failed: {resp.error}")
     return int(resp.value)
