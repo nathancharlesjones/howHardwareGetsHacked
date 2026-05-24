@@ -119,6 +119,36 @@ void processHostCommand(const char *cmd)
     return;
   }
 
+  // Test command: sendRawBoardMsg <hex>
+  if (strncmp(cmd, "sendBoardMsg ", 13) == 0)
+  {
+    uint8_t raw[MAX_MSG_LEN];
+    int len = hexToBytes(cmd + 13, raw, sizeof(raw));
+    if (len < 2) { sendError("invalid hex"); return; }
+    MESSAGE_PACKET msg;
+    msg.magic = raw[0];
+    msg.message_len = raw[1];
+    msg.buffer = raw + 2;
+
+    send_board_message(&msg);
+    
+    sendOK(NULL);
+    return;
+  }
+
+  // Test command: getBoardMsgLog
+  if (strcmp(cmd, "getBoardMsgLog") == 0)
+  {
+    uint8_t data[sizeofMsgLog()];
+    getMessageLog(data);
+
+    char hex[sizeof(data) * 2 + 1];
+    bytesToHex(data, sizeof(data), hex);
+
+    sendOK(hex);
+    return;
+  }
+
   // Test command: reset (factory reset)
   if (strcmp(cmd, "reset") == 0)
   {

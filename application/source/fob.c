@@ -25,7 +25,7 @@
 #include "platform.h"
 
 /*** Macros ***/
-#define MAX_CMD_LEN 256
+#define MAX_CMD_LEN 64
 
 /*** Structure definitions ***/
 // Defines a struct for the format of an enable message
@@ -193,6 +193,36 @@ void processHostCommand(FLASH_DATA *fob_state_ram, const char *cmd)
     memcpy(fob_state_ram, data, sizeof(FLASH_DATA));
     saveFobState(fob_state_ram);
     sendOK(NULL);
+    return;
+  }
+
+  // Test command: sendRawBoardMsg <hex>
+  if (strncmp(cmd, "sendBoardMsg ", 13) == 0)
+  {
+    uint8_t raw[MAX_MSG_LEN];
+    int len = hexToBytes(cmd + 13, raw, sizeof(raw));
+    if (len < 2) { sendError("invalid hex"); return; }
+    MESSAGE_PACKET msg;
+    msg.magic = raw[0];
+    msg.message_len = raw[1];
+    msg.buffer = raw + 2;
+
+    send_board_message(&msg);
+    
+    sendOK(NULL);
+    return;
+  }
+
+  // Test command: getBoardMsgLog
+  if (strcmp(cmd, "getBoardMsgLog") == 0)
+  {
+    uint8_t data[sizeofMsgLog()];
+    getMessageLog(data);
+
+    char hex[sizeof(data) * 2 + 1];
+    bytesToHex(data, sizeof(data), hex);
+
+    sendOK(hex);
     return;
   }
 
@@ -461,6 +491,20 @@ void attemptUnlock(FLASH_DATA *fob_state_ram)
 
 void receivePairData(FLASH_DATA *fob_state_ram)
 {
+  MESSAGE_PACKET message;
+  uint8_t buffer[255];
+  message.buffer = buffer;
+
+  receive_board_message_by_type(&message, PAIR_MAGIC);
+  
+  memcpy((uint8_t*)&fob_state_ram->pair_info, (uint8_t*)buffer, sizeof(PAIR_PACKET));
+  fob_state_ram->pair_info.car_id[10] = '\0';
+  fob_state_ram->pair_info.password[7] = '\0';
+  fob_state_ram->pair_info.pin[6] = '\0';
+  fob_state_ram->paired = FLASH_PAIRED;
+  strcpy(fob_state_ram->feature_info.car_id, fob_state_ram->pair_info.car_id);
+  saveFobState(fob_state_ram);
+  /*
   static enum {
       PAIR_STATE_WAIT_MAGIC,
       PAIR_STATE_WAIT_LEN,
@@ -524,6 +568,7 @@ void receivePairData(FLASH_DATA *fob_state_ram)
         }
         break;
   }
+  */
 }
 
 /**

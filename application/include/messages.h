@@ -27,6 +27,8 @@
 #define UNLOCK_MAGIC 0x56
 #define START_MAGIC 0x57
 
+#define MAX_MSG_LEN 64
+
 /**
  * @brief Structure for message between boards
  *
@@ -62,5 +64,8 @@ uint32_t receive_board_message(MESSAGE_PACKET *message);
  * @return uint32_t the number of bytes received
  */
 uint32_t receive_board_message_by_type(MESSAGE_PACKET *message, uint8_t type);
+
+size_t sizeofMsgLog(void);
+void getMessageLog(uint8_t* buffer);
 
 #endif
