@@ -17,12 +17,14 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <stddef.h>
 
 #include "secrets.h"
 #include "messages.h"
 #include "dataFormats.h"
 #include "uart.h"
 #include "platform.h"
+#include "host_msg_helpers.h"
 
 /*** Macros ***/
 #define MAX_CMD_LEN 64
@@ -38,8 +40,6 @@ void sendAckFailure(void);
 
 // Command processing
 void processHostCommand(const char *cmd);
-void sendOK(const char *value);
-void sendError(const char *reason);
 
 // Declare password
 const char pass[8] = PASSWORD;
@@ -163,33 +163,6 @@ void processHostCommand(const char *cmd)
 
   // Unknown command
   sendError("unknown command");
-}
-
-/**
- * @brief Send OK response to host
- */
-void sendOK(const char *value)
-{
-  if (value)
-  {
-    char buf[128];
-    snprintf(buf, sizeof(buf), "OK: %s\n", value);
-    uart_write(HOST_UART, (uint8_t *)buf, strlen(buf));
-  }
-  else
-  {
-    uart_write(HOST_UART, (uint8_t *)"OK\n", 3);
-  }
-}
-
-/**
- * @brief Send ERROR response to host
- */
-void sendError(const char *reason)
-{
-  char buf[128];
-  snprintf(buf, sizeof(buf), "ERROR: %s\n", reason);
-  uart_write(HOST_UART, (uint8_t *)buf, strlen(buf));
 }
 
 /**

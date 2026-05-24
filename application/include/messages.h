@@ -16,6 +16,7 @@
 #define BOARD_LINK_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 #include "uart.h"
 
