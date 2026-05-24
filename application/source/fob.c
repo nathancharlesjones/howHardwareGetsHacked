@@ -27,7 +27,7 @@
 #include "host_msg_helpers.h"
 
 /*** Macros ***/
-#define MAX_CMD_LEN 64
+#define MAX_CMD_LEN 128
 
 /*** Structure definitions ***/
 // Defines a struct for the format of an enable message
