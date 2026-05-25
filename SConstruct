@@ -148,6 +148,7 @@ app_env.Append(CPPPATH=[
 
 def gen_secrets_action(target, source, env):
     secrets_h = str(target[0])
+    secrets_json = os.environ.get('TEST_SECRETS_FILE', 'secrets/secrets.json')
 
     if env['role'] == 'car':
         cmd = [
@@ -155,6 +156,7 @@ def gen_secrets_action(target, source, env):
             'tools/car_gen_secret.py',
             '--car-id', env['id'],
             '--header-file', secrets_h,
+            '--secrets-file', secrets_json
         ]
     elif env['role'] == 'paired_fob':
         cmd = [
@@ -163,15 +165,15 @@ def gen_secrets_action(target, source, env):
             '--car-id', env['id'],
             '--pair-pin', env['pin'],
             '--header-file', secrets_h,
+            '--secrets-file', secrets_json,
             '--paired'
         ]
     else:
         cmd = [
             sys.executable,
             'tools/fob_gen_secret.py',
-            '--car-id', '0',
-            '--pair-pin', '000000',
             '--header-file', secrets_h,
+            '--secrets-file', secrets_json
             # No --paired flag for unpaired fob
         ]
 

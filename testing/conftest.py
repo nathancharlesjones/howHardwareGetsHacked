@@ -21,6 +21,7 @@ The fixture system:
 - Cleans up resources after test completes
 """
 
+import os
 import pytest
 import subprocess
 import serial
@@ -60,6 +61,25 @@ class RoleConfig:
     role: str  # "car", "paired_fob", or "unpaired_fob"
     id: Optional[str] = None  # Required for car and paired_fob
     pin: Optional[str] = None  # Required for paired_fob
+
+
+# ============================================================================
+# Session-scoped Secrets File
+# ============================================================================
+
+@pytest.fixture(scope="session", autouse=True)
+def temp_secrets_file(tmp_path_factory):
+    """
+    Redirect secrets.json to a temp file for the test session.
+
+    This prevents test runs from consuming fob IDs in (or corrupting) the
+    project-level secrets/secrets.json that a developer may be using for
+    manual testing. The temp file is deleted automatically when the session ends.
+    """
+    secrets_path = tmp_path_factory.mktemp("secrets") / "secrets.json"
+    os.environ["TEST_SECRETS_FILE"] = str(secrets_path)
+    yield secrets_path
+    os.environ.pop("TEST_SECRETS_FILE", None)
 
 
 # ============================================================================

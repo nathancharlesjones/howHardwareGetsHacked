@@ -10,7 +10,7 @@ FEATURE_DATA_SIZE = 15  # sizeof(FEATURE_DATA): car_id[11] + num_active[1] + fea
 class TestReplayAttacks:
     """Replay a captured unlock sequence."""
 
-    def test_replay_captured_unlock_succeeds(self, deploy):
+    def test_replay_captured_unlock_fails(self, deploy):
         """An attacker who eavesdropped on one unlock can replay it to unlock again."""
         car, fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
 
@@ -52,10 +52,10 @@ class TestReplayAttacks:
             time.sleep(0.05)
 
         # Flip these two assertions when security is implemented
-        assert got_ack_success, "Replayed UNLOCK should be accepted (vulnerability present)"
-        assert not proto.is_locked(car), "Replay attack should unlock car"
+        assert not got_ack_success, "Replayed UNLOCK should NOT be accepted"
+        assert proto.is_locked(car), "Replay attack should NOT unlock car"
 
-    def test_fob_paired_to_different_car_can_still_unlock(self, deploy):
+    def test_fob_paired_to_different_car_cannot_unlock(self, deploy):
         """A fob paired to car A knows the global password. With knowledge of
         car B's ID, it can unlock car B by forging the START message's car_id."""
         # Fob is paired to car 1111; target is car 9999
@@ -68,4 +68,4 @@ class TestReplayAttacks:
         proto.cmd_btn_press(fob_a)
         time.sleep(0.05)
 
-        assert not proto.is_locked(car_b), "Cross-car attack should succeed with global password"
+        assert proto.is_locked(car_b), "Cross-car attack should NOT succeed with global password"

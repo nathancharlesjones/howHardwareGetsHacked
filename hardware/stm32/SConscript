@@ -68,7 +68,7 @@ stm32_env.Append(LIBS=[
 ])
 
 secrets_h = stm32_env.Command(
-    target='secrets.h',
+    target=['secrets.h'],
     source=[],
     action=gen_secrets_action
 )

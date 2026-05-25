@@ -62,7 +62,7 @@ else:  # Linux and other Unix-like systems
 tm4c_env.Append(LINKFLAGS=linkflags)
 
 secrets_h = tm4c_env.Command(
-    target='secrets.h',
+    target=['secrets.h'],
     source=[],
     action=gen_secrets_action
 )
