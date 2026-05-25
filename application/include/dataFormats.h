@@ -24,13 +24,21 @@ typedef struct
   uint8_t features[NUM_FEATURES];
 } FEATURE_DATA;
 
-// Defines a struct for storing the state in flash
+// Defines a struct for storing the fob state in flash
 typedef struct
 __attribute__((aligned(4)))
 {
   uint8_t paired;
+  uint16_t rolling_counter;
   PAIR_PACKET pair_info;
   FEATURE_DATA feature_info;
-} FLASH_DATA;
+} FOB_FLASH_DATA;
+
+// Defines a struct for storing the car state in flash
+typedef struct
+__attribute__((aligned(4)))
+{
+  uint16_t fob_counter_values[256];
+} CAR_FLASH_DATA;
 
 #endif // DATA_FORMATS_H

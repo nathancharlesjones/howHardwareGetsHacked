@@ -28,10 +28,11 @@
 
 /*** Macros ***/
 #define MAX_CMD_LEN 128
+#define WINDOW 32
 
 /*** Function definitions ***/
 // Core functions - unlockCar and startCar
-void unlockCar(void);
+void unlockCar(CAR_FLASH_DATA* car_state_ram);
 void startCar(void);
 
 // Helper functions - sending ack messages
@@ -41,8 +42,9 @@ void sendAckFailure(void);
 // Command processing
 void processHostCommand(const char *cmd);
 
-// Declare password
+// Declare const variables
 const char pass[8] = PASSWORD;
+const uint8_t key[16] = KEY;
 const char car_id[11] = CAR_ID;
 
 // State variables
@@ -58,6 +60,14 @@ static uint32_t unlockCount = 0;
 int main(int argc, char **argv)
 {
   initHardware_car(argc, argv);
+
+  CAR_FLASH_DATA car_state_ram = {0};
+  loadCarState(&car_state_ram);
+  if(FLASH_UNINITIALIZED == *(uint8_t*)(&car_state_ram))
+  {
+    memset(&car_state_ram, 0, sizeof(CAR_FLASH_DATA));
+    saveCarState(&car_state_ram);
+  }
 
   // Reset state on startup
   carLocked = true;
@@ -93,7 +103,7 @@ int main(int argc, char **argv)
     }
 
     // Check for board messages (blocking)
-    if (uart_avail(BOARD_UART)) unlockCar();
+    if (uart_avail(BOARD_UART)) unlockCar(&car_state_ram);
   }
 }
 
@@ -179,7 +189,7 @@ void processHostCommand(const char *cmd)
  *   OK: 3,<feature3_flag_64_bytes>   (if feature 3 enabled)
  *   OK: done
  */
-void unlockCar(void)
+void unlockCar(CAR_FLASH_DATA* car_state_ram)
 {
   //sendOK("Inside unlock car\n");
 

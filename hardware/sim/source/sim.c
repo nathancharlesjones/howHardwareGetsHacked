@@ -66,16 +66,33 @@ static void initHardware(int argc, char ** argv)
     initThread(argc, argv);
 }
 
+static void create_default_car_state(void)
+{
+    CAR_FLASH_DATA default_state;
+    memset(&default_state, 0xFF, sizeof(CAR_FLASH_DATA));
+    
+    saveCarState(&default_state);
+}
+
 void initHardware_car(int argc, char ** argv)
 {
     initHardware(argc, argv);
+
+#ifndef TEST_BUILD
+    /* Create default fob state file if it doesn't exist */
+    if (access(flash_data_file_path, F_OK) != 0)
+#endif
+    {
+        create_default_car_state();
+    }
+
     setLED(RED);
 }
 
 static void create_default_fob_state(void)
 {
-    FLASH_DATA default_state;
-    memset(&default_state, 0xFF, sizeof(FLASH_DATA));
+    FOB_FLASH_DATA default_state;
+    memset(&default_state, 0xFF, sizeof(FOB_FLASH_DATA));
     
     saveFobState(&default_state);
 }
@@ -106,32 +123,40 @@ void loadFlag(uint8_t* dest, flag_t flag)
     if(read != FLAG_SIZE) exit(EXIT_FAILURE);
 }
 
-void loadFobState(FLASH_DATA* data)
+void load_flash(void* dest, size_t size)
 {
     FILE* fp = fopen(flash_data_file_path, "rb");
-    if (!fp) {
-        //return false;
-        return;
-    }
-    
-    size_t read = fread(data, 1, sizeof(FLASH_DATA), fp);
+    if (!fp) exit(EXIT_FAILURE);    
+    size_t read = fread(dest, 1, size, fp);
     fclose(fp);
-    
-    if(read != sizeof(FLASH_DATA)) exit(EXIT_FAILURE);
+    if(read != size) exit(EXIT_FAILURE);
 }
 
-bool saveFobState(const FLASH_DATA* data)
+void save_flash(const void* src, size_t size)
 {
     FILE* fp = fopen(flash_data_file_path, "wb");
-    if (!fp) {
-        return false;
-    }
-    
-    size_t written = fwrite(data, 1, sizeof(FLASH_DATA), fp);
+    if (!fp) exit(EXIT_FAILURE);    
+    size_t written = fwrite(src, 1, size, fp);
     fclose(fp);
-
-    return (sizeof(FLASH_DATA) == written);
+    if(size != written) exit(EXIT_FAILURE);
 }
+
+void loadFobState(FOB_FLASH_DATA *data) {
+    load_flash(data, sizeof(FOB_FLASH_DATA));
+}
+
+void saveFobState(const FOB_FLASH_DATA *data) {
+    save_flash(data, sizeof(FOB_FLASH_DATA));
+}
+
+void loadCarState(CAR_FLASH_DATA *data) {
+    load_flash(data, sizeof(CAR_FLASH_DATA));
+}
+
+void saveCarState(const CAR_FLASH_DATA *data) {
+    save_flash(data, sizeof(CAR_FLASH_DATA));
+}
+
 
 void __attribute__((weak)) initThread(int argc, char ** argv)
 {

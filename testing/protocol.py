@@ -138,15 +138,15 @@ def parse_response(line: str) -> Response:
 # =============================================================================
 
 # From dataFormats.h:
-#   typedef struct {
-#     uint8_t paired;
-#     PAIR_PACKET pair_info;    // car_id[8], password[8], pin[8]
-#     FEATURE_DATA feature_info; // car_id[8], num_active, features[3]
-#   } FLASH_DATA;
-#
-# Total: 1 + 24 + 12 = 37 bytes (but aligned to 4, so likely 40 bytes)
+#   typedef struct __attribute__((aligned(4))) {
+#     uint8_t paired;           // offset 0
+#     // 1 byte padding
+#     uint16_t rolling_counter; // offset 2
+#     PAIR_PACKET pair_info;    // offset 4:  car_id[11], password[8], pin[7]  = 26 bytes
+#     FEATURE_DATA feature_info;// offset 30: car_id[11], num_active, features[3] = 15 bytes
+#   } FOB_FLASH_DATA;           // 45 bytes content, padded to 48
 
-FLASH_DATA_SIZE = 44  # Adjust based on actual sizeof(FLASH_DATA)
+FLASH_DATA_SIZE = 48  # sizeof(FOB_FLASH_DATA)
 
 NUM_FEATURES = 3
 
@@ -195,49 +195,54 @@ class FeatureData:
 @dataclass
 class FlashData:
     paired: int
+    rolling_counter: int
     pair_info: PairPacket
     feature_info: FeatureData
-    
+
     def pack(self) -> bytes:
         """Pack to bytes for setFlashData command."""
-        data = bytes([1 if self.paired else 0]) + \
+        data = bytes([self.paired]) + \
+               b'\x00' + \
+               self.rolling_counter.to_bytes(2, 'little') + \
                self.pair_info.pack() + \
                self.feature_info.pack()
-        # Pad to aligned size
         return data.ljust(FLASH_DATA_SIZE, b'\x00')
-    
+
     @classmethod
     def unpack(cls, data: bytes) -> 'FlashData':
         """Unpack from bytes received from getFlashData."""
         return cls(
             paired=data[0],
-            pair_info=PairPacket.unpack(data[1:27]),
-            feature_info=FeatureData.unpack(data[27:43])
+            rolling_counter=int.from_bytes(data[2:4], 'little'),
+            pair_info=PairPacket.unpack(data[4:30]),
+            feature_info=FeatureData.unpack(data[30:45])
         )
-    
+
     @classmethod
     def from_hex(cls, hex_str: str) -> 'FlashData':
         """Parse from hex string (as returned by getFlashData)."""
         return cls.unpack(bytes.fromhex(hex_str))
-    
+
     def to_hex(self) -> str:
         """Convert to hex string (for setFlashData command)."""
         return self.pack().hex()
-    
+
     @classmethod
     def new_unpaired(cls) -> 'FlashData':
         """Create a fresh unpaired fob state."""
         return cls(
             paired=False,
+            rolling_counter=0,
             pair_info=PairPacket(b'\x00'*11, b'\x00'*8, b'\x00'*7),
             feature_info=FeatureData(b'\x00'*11, 0, [0, 0, 0])
         )
-    
+
     @classmethod
     def new_paired(cls, car_id: bytes, password: bytes, pin: bytes) -> 'FlashData':
         """Create a paired fob state."""
         return cls(
             paired=True,
+            rolling_counter=0,
             pair_info=PairPacket(car_id, password, pin),
             feature_info=FeatureData(car_id, 0, [0, 0, 0])
         )
