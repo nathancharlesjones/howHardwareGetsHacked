@@ -48,14 +48,12 @@ secrets_h = sim_env.Command(
 aes_lib = SConscript(
     '#/libraries/tiny-AES-c/SConscript',
     variant_dir='libraries/tiny-AES-c',
-    duplicate=0,
     exports={'env': sim_env}
 )
 
 aes_cmac_lib = SConscript(
     '#/libraries/tiny-AES-CMAC-c/SConscript',
     variant_dir='libraries/tiny-AES-CMAC-c',
-    duplicate=0,
     exports={'env': sim_env}
 )
 
