@@ -27,5 +27,8 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y gcc-arm-none-eabi openocd xterm
 
-    - name: Run pytest
-      run: pytest testing/test.py -v
+    - name: Run functional tests
+      run: pytest testing/functional_tests.py -v
+
+    - name: Run security tests
+      run: pytest testing/security_tests.py -v
