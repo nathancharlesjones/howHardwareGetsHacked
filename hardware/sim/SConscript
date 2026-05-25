@@ -1,4 +1,4 @@
-Import('app_env', 'gen_secrets_action')
+Import('app_env', 'gen_secrets_action', 'platform_libs')
 
 sim_env = app_env.Clone()
 
@@ -45,17 +45,7 @@ secrets_h = sim_env.Command(
     action=gen_secrets_action
 )
 
-aes_lib = SConscript(
-    '#/libraries/tiny-AES-c/SConscript',
-    variant_dir='libraries/tiny-AES-c',
-    exports={'env': sim_env}
-)
-
-aes_cmac_lib = SConscript(
-    '#/libraries/tiny-AES-CMAC-c/SConscript',
-    variant_dir='libraries/tiny-AES-CMAC-c',
-    exports={'env': sim_env}
-)
+aes_lib, aes_cmac_lib = platform_libs
 
 # Build application with our architecture-specific environment
 app_objects = SConscript(

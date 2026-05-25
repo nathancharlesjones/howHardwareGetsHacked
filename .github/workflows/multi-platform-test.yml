@@ -1,8 +1,8 @@
 name: Multi-Platform Build Test
 
 on:
-  push:
-    branches: [ main, develop ]
+  schedule:
+    - cron: '0 9 * * 1'  # Every Monday 9am UTC
   pull_request:
     branches: [ main ]
 
@@ -33,6 +33,16 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+
+    # Used cached Python dependencies, if available
+    - name: Use cached Python dependencies (if available)
+      if: runner.os != 'Windows'
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('setup/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
 
     # Install Python dependencies (Linux and macOS)
     - name: Install Python dependencies
@@ -105,18 +115,34 @@ jobs:
         scons platform=sim role=paired_fob id=12345 pin=123456 ui=console
         scons platform=sim role=unpaired_fob ui=console
 
-    # Run pytest tests with simulation (Linux and macOS)
-    - name: Run pytest tests with simulation
+    # Run functional tests with simulation (Linux and macOS)
+    - name: Run functional tests with simulation
       if: runner.os != 'Windows'
       shell: bash
       run: |
         # Run all software-only tests using simulation
-        pytest testing/test.py -v
+        pytest testing/functional_tests.py -v
 
-    # Run pytest tests with simulation in WSL (Windows)
-    - name: Run pytest tests with simulation in WSL (Windows)
+    # Run functional tests with simulation in WSL (Windows)
+    - name: Run functional tests with simulation in WSL (Windows)
       if: runner.os == 'Windows'
       shell: wsl-bash {0}
       run: |
         # Run all software-only tests using simulation
-        pytest testing/test.py -v
+        pytest testing/functional_tests.py -v
+
+    # Run security tests with simulation (Linux and macOS)
+    - name: Run security tests with simulation
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        # Run all software-only tests using simulation
+        pytest testing/security_tests.py -v
+
+    # Run security tests with simulation in WSL (Windows)
+    - name: Run security tests with simulation in WSL (Windows)
+      if: runner.os == 'Windows'
+      shell: wsl-bash {0}
+      run: |
+        # Run all software-only tests using simulation
+        pytest testing/security_tests.py -v

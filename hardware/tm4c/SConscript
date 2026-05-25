@@ -1,26 +1,7 @@
-Import('app_env', 'gen_secrets_action')
+Import('app_env', 'gen_secrets_action', 'configure_lib_env', 'platform_libs')
 
 tm4c_env = app_env.Clone()
-
-tm4c_env.Replace(CC='arm-none-eabi-gcc')
-tm4c_env.Replace(AR='arm-none-eabi-ar')
-tm4c_env.Replace(AS='arm-none-eabi-as')
-tm4c_env.Replace(LINK='arm-none-eabi-ld')
-
-tm4c_env['arch_flags']=[
-    '-mcpu=cortex-m4',
-    '-mthumb'
-]
-
-# TM4C-specific flags
-tm4c_env.Append(CPPFLAGS=
-    tm4c_env['arch_flags'] + [
-    '-ffunction-sections',
-    '-fdata-sections',
-    '-Wall',
-    '-std=c99',
-    '-pedantic'
-])
+configure_lib_env('tm4c', tm4c_env)
 
 # TM4C-specific defines
 tm4c_env.Append(CPPDEFINES=[
@@ -74,17 +55,7 @@ driver_objects = SConscript(
     exports={'env': tm4c_env}
 )
 
-aes_lib = SConscript(
-    '#/libraries/tiny-AES-c/SConscript',
-    variant_dir='libraries/tiny-AES-c',
-    exports={'env': tm4c_env}
-)
-
-aes_cmac_lib = SConscript(
-    '#/libraries/tiny-AES-CMAC-c/SConscript',
-    variant_dir='libraries/tiny-AES-CMAC-c',
-    exports={'env': tm4c_env}
-)
+aes_lib, aes_cmac_lib = platform_libs
 
 # Build application with our architecture-specific environment
 app_objects = SConscript(

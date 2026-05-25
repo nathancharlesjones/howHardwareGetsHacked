@@ -1,25 +1,7 @@
-Import('app_env', 'gen_secrets_action')
+Import('app_env', 'gen_secrets_action', 'configure_lib_env', 'platform_libs')
 
 stm32_env = app_env.Clone()
-
-stm32_env.Replace(CC='arm-none-eabi-gcc')
-stm32_env.Replace(AR='arm-none-eabi-ar')
-stm32_env.Replace(AS='arm-none-eabi-as')
-
-stm32_env["arch_flags"]=[
-    '-mcpu=cortex-m4',
-    '-mthumb',
-    '-mfpu=fpv4-sp-d16',
-    '-mfloat-abi=hard'
-]
-
-# STM32-specific flags
-stm32_env.Append(CPPFLAGS=
-    stm32_env["arch_flags"] + [
-    '-ffunction-sections',
-    '-fdata-sections',
-    '-Wall',
-])
+configure_lib_env('stm32', stm32_env)
 
 # STM32-specific defines
 stm32_env.Append(CPPDEFINES=[
@@ -80,17 +62,7 @@ driver_objects = SConscript(
     exports={'env': stm32_env}
 )
 
-aes_lib = SConscript(
-    '#/libraries/tiny-AES-c/SConscript',
-    variant_dir='libraries/tiny-AES-c',
-    exports={'env': stm32_env}
-)
-
-aes_cmac_lib = SConscript(
-    '#/libraries/tiny-AES-CMAC-c/SConscript',
-    variant_dir='libraries/tiny-AES-CMAC-c',
-    exports={'env': stm32_env}
-)
+aes_lib, aes_cmac_lib = platform_libs
 
 # Build application with our architecture-specific environment
 app_objects = SConscript(
