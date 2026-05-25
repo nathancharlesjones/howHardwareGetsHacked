@@ -140,6 +140,7 @@ void processHostCommand(const char *cmd)
   if (strcmp(cmd, "getBoardMsgLog") == 0)
   {
     uint8_t data[sizeofMsgLog()];
+    memset(data, 0, sizeof(data));
     getMessageLog(data);
 
     char hex[sizeof(data) * 2 + 1];
@@ -199,6 +200,22 @@ void unlockCar(void)
       return;
   }
 
+#ifndef TEST_BUILD
+  // In production mode: send unlock flag and feature flags
+  uint8_t flag_buffer[FLAG_SIZE] = {0};
+
+  // Send unlock flag
+  loadFlag(flag_buffer, UNLOCK);
+  uart_write(HOST_UART, flag_buffer, FLAG_SIZE);
+  char * newlines = "\n\r";
+  uart_write(HOST_UART, (uint8_t*)newlines, 2);
+#endif
+
+  // Update state
+  carLocked = false;
+  unlockCount++;
+  setLED(GREEN);
+
   // Password matches - send success ACK
   sendAckSuccess();
 
@@ -214,15 +231,6 @@ void unlockCar(void)
   }
 
 #ifndef TEST_BUILD
-  // In production mode: send unlock flag and feature flags
-  uint8_t flag_buffer[FLAG_SIZE] = {0};
-
-  // Send unlock flag
-  loadFlag(flag_buffer, UNLOCK);
-  uart_write(HOST_UART, flag_buffer, FLAG_SIZE);
-  char * newlines = "\n\r";
-  uart_write(HOST_UART, (uint8_t*)newlines, 2);
-
   // Send feature flags
   for (int i = 0; i < feature_info->num_active; i++)
   {
@@ -235,11 +243,6 @@ void unlockCar(void)
       }
   }
 #endif
-
-  // Update state
-  carLocked = false;
-  unlockCount++;
-  setLED(GREEN);
 }
 
 /**

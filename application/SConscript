@@ -6,7 +6,7 @@ local_env = env.Clone()
 sources = [
     'source/car.c' if env["role"] == "car" else 'source/fob.c',
     'source/messages.c',
-    'source/host_msg_helpers.c'
+    'source/host_msg_helpers.c',
 ]
 
 # Build objects only (not a program)

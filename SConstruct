@@ -140,8 +140,10 @@ if app_env['test']:
 
 # Include paths
 app_env.Append(CPPPATH=[
-    '#/hardware/include',     # platform.h, uart.h
-    '#/application/include',  # messages.h, dataFormats.h
+    '#/hardware/include',         # platform.h, uart.h
+    '#/application/include',      # messages.h, dataFormats.h
+    '#/libraries/tiny-AES-c',     # aes.h
+    '#/libraries/tiny-AES-CMAC-c' # aes_cmac.h
 ])
 
 def gen_secrets_action(target, source, env):

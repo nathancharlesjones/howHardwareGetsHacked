@@ -11,9 +11,9 @@ void sendOK(const char *value)
 {
   if (value)
   {
-    char buf[512];
-    snprintf(buf, sizeof(buf), "OK: %s\n", value);
-    uart_write(HOST_UART, (uint8_t *)buf, strlen(buf));
+    uart_write(HOST_UART, (uint8_t *)"OK: ", 4);
+    uart_write(HOST_UART, (uint8_t *)value, strlen(value));
+    uart_write(HOST_UART, (uint8_t *)"\n", 1);
   }
   else
   {

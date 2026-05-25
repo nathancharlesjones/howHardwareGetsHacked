@@ -11,6 +11,8 @@ Standard Commands (production firmware):
 
 Test Commands (TEST_BUILD only):
     Both:
+        sendBoardMsg              - Transmits a message over a device's board UART
+        getBoardMsgLog            - Returns the last 15 messages sent or received over the board UART
         reset                     - Factory reset (clear state, restart)
     
     Fob:
@@ -29,6 +31,59 @@ import time
 from dataclasses import dataclass
 from typing import Optional
 
+ACK_MAGIC    = 0x54
+PAIR_MAGIC   = 0x55
+UNLOCK_MAGIC = 0x56
+START_MAGIC  = 0x57
+
+MAGIC_NAMES = {
+  0x54: "ACK",
+  0x55: "PAIR",
+  0x56: "UNLOCK",
+  0x57: "START",
+}
+
+ACK_SUCCESS  = 1
+ACK_FAIL     = 0
+
+MAX_LOG_ENTRIES = 15
+LOG_ENTRY_SIZE = 65  # sizeof(bool) + MAX_MSG_LEN = 1 + 64
+
+# =============================================================================
+# Board message Parsing
+# =============================================================================
+
+@dataclass
+class BoardMsgEntry:
+    tx: bool          # True = sent by this device, False = received
+    magic: int
+    message_len: int
+    payload: bytes    # first message_len bytes are valid
+    role: str = None  # "fob" or "car"; unlocks directional labels
+
+    def __str__(self):
+        if self.role == "fob":
+            direction = "Fob --> Car" if self.tx else "Car --> Fob"
+        elif self.role == "car":
+            direction = "Car --> Fob" if self.tx else "Fob --> Car"
+        else:
+            direction = "TX" if self.tx else "RX"
+        magic_name = MAGIC_NAMES.get(self.magic, f"0x{self.magic:02x}")
+        return f"{direction}, {magic_name:>6}, {self.message_len:02x}, {self.payload!r}"
+
+def parse_board_msg_log(hex_str: str, role: str = None) -> list[BoardMsgEntry]:
+      """Parse getBoardMsgLog hex output into a list of log entries."""
+      raw = bytes.fromhex(hex_str)
+      entries = []
+      for i in range(MAX_LOG_ENTRIES):
+          offset = i * LOG_ENTRY_SIZE
+          entry_bytes = raw[offset:offset + LOG_ENTRY_SIZE]
+          tx = bool(entry_bytes[0])
+          magic = entry_bytes[1]
+          message_len = entry_bytes[2]
+          payload = entry_bytes[3:3 + message_len]
+          entries.append(BoardMsgEntry(tx=tx, magic=magic, message_len=message_len, payload=payload, role=role))
+      return entries
 
 # =============================================================================
 # Response Parsing
@@ -229,6 +284,18 @@ def cmd_pair(device, pin: str, timeout: float = 2.0) -> Response:
 # =============================================================================
 
 # --- Both Car and Fob ---
+
+def cmd_send_board_msg(device, magic: int, payload: bytes, timeout: float = 2.0) -> Response:
+    """Inject a raw board message via the sendBoardMsg test command."""
+    raw = bytes([magic, len(payload)]) + payload
+    return parse_response(device.send_recv(f"sendBoardMsg {raw.hex()}", timeout=timeout))
+
+def cmd_get_board_msg_log(device, role: str = None, timeout: float = 2.0) -> list[BoardMsgEntry]:
+    """Get and parse the board message log."""
+    resp = parse_response(device.send_recv("getBoardMsgLog", timeout=timeout))
+    if not resp.success:
+        raise RuntimeError(f"getBoardMsgLog failed: {resp.error}")
+    return parse_board_msg_log(resp.value, role=role)
 
 def cmd_reset(device, timeout: float = 5.0) -> Response:
     """

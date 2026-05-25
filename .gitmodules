@@ -1,3 +1,9 @@
 [submodule "libraries/microui"]
 	path = libraries/microui
 	url = https://github.com/rxi/microui.git
+[submodule "libraries/tiny-AES-c"]
+	path = libraries/tiny-AES-c
+	url = https://github.com/kokke/tiny-AES-c
+[submodule "libraries/tiny-AES-CMAC-c"]
+	path = libraries/tiny-AES-CMAC-c
+	url = https://github.com/elektronika-ba/tiny-AES-CMAC-c
