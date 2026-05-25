@@ -1,6 +1,10 @@
-Import('app_env', 'gen_secrets_action', 'platform_libs')
+Import('app_env', 'gen_secrets_action')
 
 sim_env = app_env.Clone()
+
+sim_env.Append(CPPFLAGS=[
+    '-std=gnu99'
+])
 
 # sim-specific include paths
 sim_env.Append(CPPPATH=[
@@ -45,7 +49,7 @@ secrets_h = sim_env.Command(
     action=gen_secrets_action
 )
 
-aes_lib, aes_cmac_lib = platform_libs
+aes_lib, aes_cmac_lib = app_env['platform_libs']
 
 # Build application with our architecture-specific environment
 app_objects = SConscript(

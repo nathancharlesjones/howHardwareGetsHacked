@@ -132,7 +132,7 @@ app_env.Append(CPPDEFINES=[('FEATURE2_FLAG', f'\\"{app_env["feature2_flag"]}\\"'
 app_env.Append(CPPDEFINES=[('FEATURE3_FLAG', f'\\"{app_env["feature3_flag"]}\\"')])
 
 # Common compiler flags
-app_env.Append(CPPFLAGS=[f'-O{app_env["opt"]}', '-Wall', '-std=c99', '-pedantic'])
+app_env.Append(CPPFLAGS=[f'-O{app_env["opt"]}', '-Wall', '-pedantic'])
 if app_env['debug']:
     app_env.Append(CPPFLAGS=['-g', '-DDEBUG'])
 if app_env['test']:
@@ -146,12 +146,7 @@ app_env.Append(CPPPATH=[
     '#/libraries/tiny-AES-CMAC-c' # aes_cmac.h
 ])
 
-# configure_lib_env sets only the toolchain and essential CPPFLAGS (arch flags +
-# section flags). It is the single source of truth for that information:
-#   - Library builds call it on a fresh clone.
-#   - App builds call it on the build env before invoking the platform SConscript,
-#     so the SConscripts never need to repeat the toolchain setup.
-def configure_lib_env(p, env):
+def configure_env(p, env):
     if p in ['stm32', 'tm4c']:
         env.Replace(CC='arm-none-eabi-gcc')
         env.Replace(AR='arm-none-eabi-ar')
@@ -163,21 +158,21 @@ def configure_lib_env(p, env):
             env['arch_flags'] += ['-mfpu=fpv4-sp-d16', '-mfloat-abi=hard']
         env.Append(CPPFLAGS=env['arch_flags'] + ['-ffunction-sections', '-fdata-sections'])
     # sim: system gcc, no overrides needed
-
-lib_platforms = [plat] if single_build_mode else AVAILABLE_PLATFORMS
-platform_libs = {}
-for p in lib_platforms:
-    lib_env = app_env.Clone()
-    configure_lib_env(p, lib_env)
     lib_dir = f'hardware/{p}/build/libraries'
-    platform_libs[p] = (
-        lib_env.StaticLibrary(
+    env['platform_libs'] = (
+        env.StaticLibrary(
             target=f'{lib_dir}/tiny-AES-c/aes',
-            source=['#/libraries/tiny-AES-c/aes.c']
+            source=[env.Object(
+                target=f'{lib_dir}/tiny-AES-c/aes.o',
+                source='#/libraries/tiny-AES-c/aes.c'
+            )]
         ),
-        lib_env.StaticLibrary(
+        env.StaticLibrary(
             target=f'{lib_dir}/tiny-AES-CMAC-c/aes_cmac',
-            source=['#/libraries/tiny-AES-CMAC-c/aes_cmac.c']
+            source=[env.Object(
+                target=f'{lib_dir}/tiny-AES-CMAC-c/aes_cmac.o',
+                source='#/libraries/tiny-AES-CMAC-c/aes_cmac.c'
+            )]
         )
     )
 
@@ -214,7 +209,7 @@ def gen_secrets_action(target, source, env):
 
     subprocess.run(cmd, check=True)
 
-Export('gen_secrets_action', 'configure_lib_env')
+Export('gen_secrets_action')
 
 def gen_flags_bin_action(target, source, env):
     # Binary layout (FLAG_SIZE bytes each): feature3, feature2, feature1, unlock
@@ -231,12 +226,13 @@ if single_build_mode:
     app_env['name'] = f"{app_env['role']}_{app_env['id']}" if app_env['role'] in ['car', 'paired_fob'] else app_env['role']
     app_env['build_dir'] = f"hardware/{app_env['platform']}/build/{app_env['name']}"
     app_env.Append(CPPPATH=[f'#/{app_env["build_dir"]}'])   # secrets.h
+    configure_env(app_env['platform'], app_env)
 
     app = SConscript(
         f"hardware/{app_env['platform']}/SConscript",
         variant_dir=app_env['build_dir'],
         duplicate=0,
-        exports={'app_env': app_env, 'platform_libs': platform_libs[app_env['platform']]}
+        exports={'app_env': app_env}
     )
     Default(app)
 
@@ -253,8 +249,11 @@ else:
     all_targets = []
 
     for platform in AVAILABLE_PLATFORMS:
+        base_e = app_env.Clone()
+        configure_env(platform, base_e)
+
         for role in AVAILABLE_ROLES:
-            e = app_env.Clone()
+            e = base_e.Clone()
             e['role'] = role
             e['name'] = f"{role}_{e['id']}" if role in ['car', 'paired_fob'] else role
             e['build_dir'] = f"hardware/{platform}/build/{e['name']}"
@@ -265,7 +264,7 @@ else:
                 f'hardware/{platform}/SConscript',
                 variant_dir=e['build_dir'],
                 duplicate=0,
-                exports={'app_env': e, 'platform_libs': platform_libs[platform]}
+                exports={'app_env': e}
             )
 
             all_targets.append(tgt)

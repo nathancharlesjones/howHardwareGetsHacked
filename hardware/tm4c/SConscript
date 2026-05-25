@@ -1,7 +1,10 @@
-Import('app_env', 'gen_secrets_action', 'configure_lib_env', 'platform_libs')
+Import('app_env', 'gen_secrets_action')
 
 tm4c_env = app_env.Clone()
-configure_lib_env('tm4c', tm4c_env)
+
+tm4c_env.Append(CPPFLAGS=[
+    '-std=c99'
+])
 
 # TM4C-specific defines
 tm4c_env.Append(CPPDEFINES=[
@@ -55,7 +58,7 @@ driver_objects = SConscript(
     exports={'env': tm4c_env}
 )
 
-aes_lib, aes_cmac_lib = platform_libs
+aes_lib, aes_cmac_lib = app_env['platform_libs']
 
 # Build application with our architecture-specific environment
 app_objects = SConscript(
