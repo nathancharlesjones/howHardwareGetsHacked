@@ -175,6 +175,10 @@ def configure_env(p, env):
             )]
         )
     )
+    env['platform_common_obj'] = env.Object(
+        target=f'hardware/{p}/build/platform_common.o',
+        source='#/hardware/source/platform_common.c'
+    )
 
 def gen_secrets_action(target, source, env):
     secrets_h = str(target[0])

@@ -37,15 +37,14 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
+/* Sector 6 (0x08040000): persistent flash data for the application
+   Binary layout depeonds on whether this is car or fob firmware */
+#define FLASH_DATA_BASE 0x08040000U
+
 /* Sector 7 (0x08060000): flags programmed externally via openocd.py.
    Binary layout (FLAG_SIZE bytes each): feature3, feature2, feature1, unlock. */
 #define FLAGS_BASE 0x08060000U
-
-#define FLASH_DATA_BYTES         \
-    (sizeof(FLASH_DATA) % 4 == 0) \
-        ? sizeof(FLASH_DATA)      \
-        : sizeof(FLASH_DATA) + (4 - (sizeof(FLASH_DATA) % 4))
-#define FLASH_DATA_WORDS (FLASH_DATA_BYTES / 4)
 
 /* USER CODE END PD */
 
@@ -59,7 +58,7 @@ UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-static FLASH_DATA flash_data __attribute__((section(".flash_data")));
+//static FLASH_DATA flash_data __attribute__((section(".flash_data")));
 
 static UART_HandleTypeDef* const uart_base[2] = { [HOST_UART] = &huart2, [BOARD_UART] = &huart1 };
 /* USER CODE END PV */
@@ -109,9 +108,9 @@ void loadFlag(uint8_t* dest, flag_t flag)
   memcpy(dest, (const char *)(FLAGS_BASE + flag * FLAG_SIZE), FLAG_SIZE);
 }
 
-void loadFobState(FLASH_DATA *dest)
+void load_flash(void *dest, size_t size)
 {
-  memcpy(dest, (uint8_t*)(&flash_data), sizeof(FLASH_DATA));
+  memcpy(dest, (uint8_t*)(FLASH_DATA_BASE), size);
 }
 
 /* -----------------------------------------------------------
@@ -133,7 +132,7 @@ static uint32_t flash_sector_start(uint32_t sector)
 /* -----------------------------------------------------------
    Config Flash Write (Overwrite Whole Sector)
    ----------------------------------------------------------- */
-bool saveFobState(const FLASH_DATA *src)
+void save_flash(const void *src, size_t size)
 {
   FLASH_EraseInitTypeDef erase =
   {
@@ -143,9 +142,12 @@ bool saveFobState(const FLASH_DATA *src)
       .VoltageRange = FLASH_VOLTAGE_RANGE_3,
   };
 
-  uint8_t padded_data[FLASH_DATA_BYTES];
-  memset(padded_data, FLASH_UNPAIRED, sizeof(padded_data));
-  memcpy((FLASH_DATA*)(&padded_data), src, sizeof(FLASH_DATA));
+  size_t flash_data_bytes = (size % 4 == 0) ? size : size + (4 - (size % 4));
+  size_t flash_data_words = flash_data_bytes / 4;
+
+  uint8_t padded_data[flash_data_bytes];
+  memset(padded_data, FLASH_UNINITIALIZED, sizeof(padded_data));
+  memcpy(padded_data, src, size);
 
   uint32_t sector_err = 0;
   HAL_FLASH_Unlock();
@@ -153,25 +155,21 @@ bool saveFobState(const FLASH_DATA *src)
   if (HAL_FLASHEx_Erase(&erase, &sector_err) != HAL_OK)
   {
       HAL_FLASH_Lock();
-      return false;
   }
-
-  // Program new config data
-  const uint32_t *words = (const uint32_t *)padded_data;
-  uint32_t addr = flash_sector_start(FLASH_SECTOR_6);
-
-  for (size_t i = 0; i < FLASH_DATA_WORDS; i++)
+  else
   {
-      if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr, words[i]) != HAL_OK) {
-          HAL_FLASH_Lock();
-          return false;
-      }
-      addr += 4;
+    // Program new config data
+    const uint32_t *words = (const uint32_t *)padded_data;
+    uint32_t addr = flash_sector_start(FLASH_SECTOR_6);
+
+    for (size_t i = 0; i < flash_data_words; i++)
+    {
+        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr, words[i]) != HAL_OK) break;
+        addr += 4;
+    }
+
+    HAL_FLASH_Lock();
   }
-
-  HAL_FLASH_Lock();
-
-  return true;
 }
 
 bool buttonPressed(void)

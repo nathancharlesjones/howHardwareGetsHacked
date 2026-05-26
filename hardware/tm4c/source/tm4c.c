@@ -22,12 +22,7 @@
 #define FEATURE_START 0x700
 
 extern uint8_t _flash_config_start;
-#define FOB_STATE_PTR ((uintptr_t)&_flash_config_start)
-
-#define FLASH_DATA_SIZE         \
- 		(sizeof(FLASH_DATA) % 4 == 0) \
-  	 		? sizeof(FLASH_DATA)      \
-     		: sizeof(FLASH_DATA) + (4 - (sizeof(FLASH_DATA) % 4))
+#define FLASH_DATA_BASE ((uintptr_t)&_flash_config_start)
 
 static uint8_t previous_sw_state = GPIO_PIN_4;
 static uint8_t debounce_sw_state = GPIO_PIN_4;
@@ -97,23 +92,25 @@ void loadFlag(uint8_t* dest, flag_t flag)
  *
  * @param info Pointer to the flash data ram
  */
-void loadFobState(FLASH_DATA *dest)
+void load_flash(void *dest, size_t size)
 {
-  memcpy(dest, (uint8_t*)FOB_STATE_PTR, sizeof(FLASH_DATA));
+  memcpy(dest, (uint8_t*)FLASH_DATA_BASE, size);
 }
 
-bool saveFobState(const FLASH_DATA *flash_data)
+void save_flash(const void *src, size_t size)
 {
-    if (FlashErase(FOB_STATE_PTR) != 0) return false;
-    if (FlashProgram((uint32_t *)flash_data, FOB_STATE_PTR, FLASH_DATA_SIZE) != 0) return false;
+		size_t flash_data_size = (size % 4 == 0) ? size : size + (4 - (size % 4));
+
+    if (FlashErase(FLASH_DATA_BASE) == 0)
+    {
+    	FlashProgram((uint32_t *)src, FLASH_DATA_BASE, flash_data_size);
+    }
     
     /*
     FLASH_DATA verify;
 		memcpy(&verify, (void*)FOB_STATE_PTR, sizeof(FLASH_DATA));
 		if (memcmp(&verify, flash_data, sizeof(FLASH_DATA)) != 0) return false;
 		*/
-
-    return true;
 }
 
 void setLED(led_color_t color)

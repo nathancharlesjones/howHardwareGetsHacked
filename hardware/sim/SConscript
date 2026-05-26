@@ -59,7 +59,7 @@ app_objects = SConscript(
     exports={'env': sim_env}  # Pass our configured environment
 )
 
-app = sim_env.Program(f'{sim_env["name"]}', app_objects + sources + aes_lib + aes_cmac_lib)
+app = sim_env.Program(f'{sim_env["name"]}', app_objects + sources + [app_env['platform_common_obj']] + aes_lib + aes_cmac_lib)
 sim_env.Depends(app, secrets_h)
 
 Return('app')

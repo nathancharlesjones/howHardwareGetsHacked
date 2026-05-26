@@ -141,23 +141,6 @@ void save_flash(const void* src, size_t size)
     if(size != written) exit(EXIT_FAILURE);
 }
 
-void loadFobState(FOB_FLASH_DATA *data) {
-    load_flash(data, sizeof(FOB_FLASH_DATA));
-}
-
-void saveFobState(const FOB_FLASH_DATA *data) {
-    save_flash(data, sizeof(FOB_FLASH_DATA));
-}
-
-void loadCarState(CAR_FLASH_DATA *data) {
-    load_flash(data, sizeof(CAR_FLASH_DATA));
-}
-
-void saveCarState(const CAR_FLASH_DATA *data) {
-    save_flash(data, sizeof(CAR_FLASH_DATA));
-}
-
-
 void __attribute__((weak)) initThread(int argc, char ** argv)
 {
     // Empty

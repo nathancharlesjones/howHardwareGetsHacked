@@ -98,7 +98,7 @@ libs = [
     libgcc_path, # GCC runtime
 ]
 
-app = tm4c_env.Program(f'{tm4c_env["name"]}.elf', sources + app_objects + driver_objects + aes_lib + aes_cmac_lib + libs)
+app = tm4c_env.Program(f'{tm4c_env["name"]}.elf', sources + app_objects + driver_objects + [app_env['platform_common_obj']] + aes_lib + aes_cmac_lib + libs)
 tm4c_env.Depends(app, secrets_h)
 
 Return('app')
