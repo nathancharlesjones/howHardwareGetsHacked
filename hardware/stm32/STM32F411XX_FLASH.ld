@@ -49,24 +49,12 @@
 *****************************************************************************
 */
 
-/* ===========================================================
-   FLASH MEMORY LAYOUT STM32F411 (512 KB total)
-   Sectors:
-     0: 0x08000000 - 0x08003FFF ( 16 KB)
-     1: 0x08004000 - 0x08007FFF ( 16 KB)
-     2: 0x08008000 - 0x0800BFFF ( 16 KB)
-     3: 0x0800C000 - 0x0800FFFF ( 16 KB)
-     4: 0x08010000 - 0x0801FFFF ( 64 KB)
-     5: 0x08020000 - 0x0803FFFF (128 KB)
-     6: 0x08040000 - 0x0805FFFF (128 KB)
-     7: 0x08060000 - 0x0807FFFF (128 KB)
-   =========================================================== */
-
 /* Entry Point */
 ENTRY(Reset_Handler)
 
 /* Highest address of the user mode stack */
 _estack = ORIGIN(RAM) + LENGTH(RAM);    /* end of RAM */
+_sstack = _estack - _Min_Stack_Size;
 /* Generate a link error if heap and stack don't fit into RAM */
 _Min_Heap_Size = 0x200;      /* required amount of heap  */
 _Min_Stack_Size = 0x400; /* required amount of stack */
@@ -74,10 +62,8 @@ _Min_Stack_Size = 0x400; /* required amount of stack */
 /* Specify the memory areas */
 MEMORY
 {
-RAM (xrw)       : ORIGIN = 0x20000000, LENGTH = 128K
-FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 256K
-FLASH_DATA (rx) : ORIGIN = 0x08040000, LENGTH = 128K
-FLAGS (rx)      : ORIGIN = 0x08060000, LENGTH = 128K
+RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 128K
+FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 512K
 }
 
 /* Define output sections */
@@ -207,32 +193,7 @@ SECTIONS
     . = ALIGN(8);
   } >RAM
 
-  /* ===========================================================
-     REGION FOR FLASH_DATA
-     -----------------------------------------------------------
-     We'll reserve Sector 6 (128KB) for FLASH_DATA
-     =========================================================== */
 
-  .flash_data (NOLOAD) :
-  {
-    . = ALIGN(4);
-    *(.flash_data)
-    . = ALIGN(4);
-  } > FLASH_DATA
-
-  /* ===========================================================
-     REGION FOR FLAGS
-     -----------------------------------------------------------
-     Sector 7 (128KB at 0x08060000): stores flag strings at
-     known, fixed addresses so they can be located predictably.
-     =========================================================== */
-
-  .flags :
-  {
-    . = ALIGN(4);
-    KEEP(*(.flags))
-    . = ALIGN(4);
-  } > FLAGS
 
   /* Remove information from the standard libraries */
   /DISCARD/ :

@@ -64,7 +64,7 @@ static UART_HandleTypeDef* const uart_base[2] = { [HOST_UART] = &huart2, [BOARD_
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
-static void SystemClock_Config(void);
+void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
