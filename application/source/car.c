@@ -240,7 +240,8 @@ void unlockCar(CAR_FLASH_DATA* car_state_ram)
   uint16_t last_counter_value = car_state_ram->fob_counter_values[msg_buf.payload.fob_id];
 
   // if outside window { sendAckFailure(); return; }
-  if( (last_counter_value + WINDOW) - msg_buf.payload.counter >= WINDOW )
+  uint16_t dist = (uint16_t)(msg_buf.payload.counter - last_counter_value);
+  if( dist == 0 || dist > WINDOW )
   {
     sendAckFailure();
     return;

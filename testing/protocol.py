@@ -324,7 +324,7 @@ def cmd_reload(device, timeout: float = 2.0) -> Response:
     return parse_response(device.send_recv("reload", timeout=timeout))
 
 
-def cmd_btn_press(device, timeout: float = 2.0) -> Response:
+def cmd_btn_press(device, timeout: float = 5.0) -> Response:
     """
     Simulate button press on fob to initiate unlock sequence.
     
