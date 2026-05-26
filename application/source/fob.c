@@ -41,9 +41,7 @@ typedef struct {
 /*** Function definitions ***/
 // Core functions - all functionality supported by fob
 void pairFob(FOB_FLASH_DATA *fob_state_ram, const char *pin);
-void unlockCar(FOB_FLASH_DATA *fob_state_ram);
 void enableFeature(FOB_FLASH_DATA *fob_state_ram, const uint8_t *data, size_t len);
-void startCar(FOB_FLASH_DATA *fob_state_ram);
 void attemptUnlock(FOB_FLASH_DATA *fob_state_ram);
 void receivePairData(FOB_FLASH_DATA *fob_state_ram);
 
@@ -87,7 +85,6 @@ int main(int argc, char **argv)
   if (FLASH_UNINITIALIZED == fob_state_ram.paired)
   {
     memset(&fob_state_ram, 0, sizeof(FOB_FLASH_DATA));
-    strcpy(fob_state_ram.pair_info.password, PASSWORD);
     strcpy(fob_state_ram.pair_info.pin, PAIR_PIN);
     strcpy(fob_state_ram.pair_info.car_id, CAR_ID);
     strcpy(fob_state_ram.feature_info.car_id, CAR_ID);
@@ -400,11 +397,7 @@ void attemptUnlock(FOB_FLASH_DATA *fob_state_ram)
 
   // Send unlock message with password
   MESSAGE_PACKET message;
-  /*
-  message.message_len = strlen(fob_state_ram->pair_info.password) + 1;
-  message.magic = UNLOCK_MAGIC;
-  message.buffer = (uint8_t *)&fob_state_ram->pair_info.password;
-  */
+
   // msg_buf is used first to store the input to AES-CMAC and the MAC result
   // Once the MAC is computed, msg_buf.payload forms the message
   // Layout of buffer before AES_CMAC_digest:
@@ -415,6 +408,7 @@ void attemptUnlock(FOB_FLASH_DATA *fob_state_ram)
   //     [ UNLOCK_MAGIC | Length | Fob ID | Counter | MAC ]
   //                               \------message------/ (first 8 bytes of MAC only)
   UNLOCK_MSG_BUF msg_buf = {0};
+
   msg_buf.magic = UNLOCK_MAGIC;
   msg_buf.length = sizeof(UNLOCK_PACKET);
   msg_buf.payload.fob_id = my_id;
@@ -457,7 +451,6 @@ void receivePairData(FOB_FLASH_DATA *fob_state_ram)
   
   memcpy((uint8_t*)&fob_state_ram->pair_info, (uint8_t*)buffer, sizeof(PAIR_PACKET));
   fob_state_ram->pair_info.car_id[10] = '\0';
-  fob_state_ram->pair_info.password[7] = '\0';
   fob_state_ram->pair_info.pin[6] = '\0';
   fob_state_ram->paired = FLASH_PAIRED;
   strcpy(fob_state_ram->feature_info.car_id, fob_state_ram->pair_info.car_id);

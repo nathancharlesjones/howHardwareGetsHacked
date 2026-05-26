@@ -39,23 +39,28 @@ class TestReplayAttacks:
         proto.cmd_send_board_msg(fob, proto.UNLOCK_MAGIC, captured_unlock_payload)
         time.sleep(0.05)
 
-        # Check ACK before sending START — models real attacker behavior
-        log = proto.cmd_get_board_msg_log(fob)
-        got_ack_success = any(
-            not e.tx and e.magic == proto.ACK_MAGIC
-            and len(e.payload) > 0 and e.payload[0] == proto.ACK_SUCCESS
-            for e in log
-        )
+        # Check ACK before sending START — models real attacker behavior.
+        # Find the last TX:UNLOCK in the log (the injected replay), then check
+        # whether the entry immediately following it was ACK_SUCCESS.
+        log = proto.cmd_get_board_msg_log(car)
+        got_ack_success = False
+        last_unlock_idx = None
+        for i, e in enumerate(log):
+            if e.tx and e.magic == proto.UNLOCK_MAGIC:
+                last_unlock_idx = i
+        if last_unlock_idx is not None and last_unlock_idx + 1 < len(log):
+            nxt = log[last_unlock_idx + 1]
+            got_ack_success = (not nxt.tx and nxt.magic == proto.ACK_MAGIC
+                               and len(nxt.payload) > 0
+                               and nxt.payload[0] == proto.ACK_SUCCESS)
 
         if got_ack_success:
             proto.cmd_send_board_msg(fob, proto.START_MAGIC, captured_start_payload)
             time.sleep(0.05)
 
         # Flip these two assertions when security is implemented
-        assert got_ack_success, "Replayed UNLOCK should be accepted (until fix is implemented)"
-        assert not proto.is_locked(car), "Replay attack should unlock car (until fix is implemented)"
-        #assert not got_ack_success, "Replayed UNLOCK should NOT be accepted"
-        #assert proto.is_locked(car), "Replay attack should NOT unlock car"
+        assert not got_ack_success, "Replayed UNLOCK should NOT be accepted"
+        assert proto.is_locked(car), "Replay attack should NOT unlock car"
 
     def test_fob_paired_to_different_car_cannot_unlock(self, deploy):
         """A fob paired to car A knows the global password. With knowledge of
@@ -70,4 +75,4 @@ class TestReplayAttacks:
         proto.cmd_btn_press(fob_a)
         time.sleep(0.05)
 
-        assert not proto.is_locked(car_b), "Cross-car attack should succeed with global password (until fix is implemented)"
+        assert proto.is_locked(car_b), "Cross-car attack should NOT succeed"

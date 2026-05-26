@@ -35,7 +35,6 @@
 /*** Function definitions ***/
 // Core functions - unlockCar and startCar
 void unlockCar(CAR_FLASH_DATA* car_state_ram);
-void startCar(void);
 
 /* AES-ECB context used by the CMAC callback; key loaded once in main() */
 static struct AES_ctx cmac_ctx;
@@ -54,7 +53,6 @@ void sendAckFailure(void);
 void processHostCommand(const char *cmd);
 
 // Declare const variables
-const char pass[8] = PASSWORD;
 const uint8_t key[16] = KEY;
 const char car_id[11] = CAR_ID;
 
@@ -251,18 +249,6 @@ void unlockCar(CAR_FLASH_DATA* car_state_ram)
   // car data[fob id] = recv'd counter value
   car_state_ram->fob_counter_values[msg_buf.payload.fob_id] = msg_buf.payload.counter;
   saveCarState(car_state_ram);
-
-/*
-  // Ensure nul termination
-  message.buffer[7] = '\0';
-
-  // Validate password (always compare exactly 8 bytes)
-  if (message.message_len != (strlen(pass) + 1) || strcmp((char*)message.buffer, pass) != 0)
-  {
-      sendAckFailure();
-      return;
-  }
-  */
 
 #ifndef TEST_BUILD
   // In production mode: send unlock flag and feature flags

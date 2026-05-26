@@ -59,7 +59,6 @@ def main():
             fp.write("#define PAIRED 1\n")
             fp.write(f'#define PAIR_PIN "{args.pair_pin}"\n')
             fp.write(f'#define CAR_ID "{args.car_id}"\n')
-            fp.write('#define PASSWORD "unlock"\n')
             fp.write(f'#define FOB_ID {fob_id}\n')
             fp.write('#define KEY {')
             for i in range(15):
@@ -74,7 +73,6 @@ def main():
             fp.write("#define PAIRED 0\n")
             fp.write('#define PAIR_PIN "000000"\n')
             fp.write('#define CAR_ID "000000"\n')
-            fp.write('#define PASSWORD "unlock"\n')
             fp.write(f'#define FOB_ID {fob_id}\n')
             fp.write("#define KEY {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}\n")
             fp.write("\n#endif\n")

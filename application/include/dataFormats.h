@@ -12,7 +12,6 @@
 typedef struct
 {
   char car_id[11];
-  char password[8];
   uint8_t key[16];
   char pin[7];
 } PAIR_PACKET;

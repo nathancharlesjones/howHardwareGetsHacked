@@ -25,7 +25,7 @@ class TestSinglePairedFob:
         flash = proto.get_flash_data(paired_fob)
         assert flash.paired == 0x01, "Flash data should show paired"
         assert flash.pair_info.car_id != b'\xFF' * 11, "Should have a car ID"
-        assert flash.pair_info.password != b'\xFF' * 8, "Should have a password"
+        assert flash.pair_info.key != b'\xFF' * 16, "Should have a key"
         assert flash.pair_info.pin != b'\xFF' * 7, "Should have a pin"
 
     def test_paired_fob_can_enable_feature_with_valid_id_and_valid_feature_when_there_is_room(self, paired_fob):
@@ -141,7 +141,7 @@ class TestSingleUnpairedFob:
         flash = proto.get_flash_data(unpaired_fob)
         assert flash.paired == 0xFF, "Flash data should show unpaired"
         assert flash.pair_info.car_id == b'\xFF' * 11, "Should not have a car ID"
-        assert flash.pair_info.password == b'\xFF' * 8, "Should not have a password"
+        assert flash.pair_info.key == b'\xFF' * 16, "Should not have a key"
         assert flash.pair_info.pin == b'\xFF' * 7, "Should not have a pin"
 
     def test_unpaired_fob_rejects_feature(self, unpaired_fob):        
@@ -303,7 +303,7 @@ class TestStateManagement:
             # Create custom state
             new_flash = proto.FlashData.new_paired(
                 car_id=b'TESTCAR1',
-                password=b'TSTPWD1',
+                key=b'TSTKEY0123456789',
                 pin=b'999999'
             )
 
@@ -313,7 +313,7 @@ class TestStateManagement:
             # Read back and verify
             flash = proto.get_flash_data(paired_fob)
             assert flash.pair_info.car_id == b'TESTCAR1'.ljust(11, b'\x00')[:11]
-            assert flash.pair_info.password == b'TSTPWD1'.ljust(8, b'\x00')[:8]
+            assert flash.pair_info.key == b'TSTKEY0123456789'
         finally:
             # Restore original state so other tests aren't affected
             proto.cmd_set_flash_data(paired_fob, original_flash)

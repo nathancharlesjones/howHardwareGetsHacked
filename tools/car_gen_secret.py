@@ -53,7 +53,6 @@ def main():
         fp.write("#ifndef __CAR_SECRETS__\n")
         fp.write("#define __CAR_SECRETS__\n\n")
         fp.write(f'#define CAR_ID "{args.car_id}"\n\n')
-        fp.write('#define PASSWORD "unlock"\n\n')
         fp.write('#define KEY {')
         for i in range(15):
             fp.write(f'{key_array[i]}, ')
