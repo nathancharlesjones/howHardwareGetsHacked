@@ -25,6 +25,8 @@
 #include "uart.h"
 #include "platform.h"
 #include "host_msg_helpers.h"
+#include "aes_cmac.h"
+#include "aes.h"
 
 /*** Macros ***/
 #define MAX_CMD_LEN 128
@@ -45,12 +47,21 @@ void startCar(FOB_FLASH_DATA *fob_state_ram);
 void attemptUnlock(FOB_FLASH_DATA *fob_state_ram);
 void receivePairData(FOB_FLASH_DATA *fob_state_ram);
 
+/* AES-ECB context used by the CMAC callback; key loaded once in main() */
+static struct AES_ctx cmac_ctx;
+/* AES-CMAC context storing the AES callback pointer */
+static struct AES_CMAC_ctx aes_cmac_ctx;
+
+void aes_cmac_encrypt(uint8_t* data) {
+  AES_ECB_encrypt(&cmac_ctx, data);
+}
+
 // Helper functions
 uint8_t receiveAck(void);
 void processHostCommand(FOB_FLASH_DATA *fob_state_ram, const char *cmd);
 
 // Declare const variables
-const char* my_id = FOB_ID;
+const uint8_t my_id = FOB_ID;
 
 /**
  * @brief Main function for the fob example
@@ -61,6 +72,12 @@ const char* my_id = FOB_ID;
 int main(int argc, char **argv)
 {
   initHardware_fob(argc, argv);
+
+  /* expand the key into AES round keys once; reused for every CMAC call */
+  const uint8_t aes_key[16] = KEY;
+  AES_init_ctx(&cmac_ctx, aes_key);
+  /* provide the CMAC library with AES encryption callback function that will perform the actual AES encryption */
+  AES_CMAC_init_ctx(&aes_cmac_ctx, &aes_cmac_encrypt);
 
   FOB_FLASH_DATA fob_state_ram = {0};
   loadFobState(&fob_state_ram);
@@ -383,9 +400,31 @@ void attemptUnlock(FOB_FLASH_DATA *fob_state_ram)
 
   // Send unlock message with password
   MESSAGE_PACKET message;
+  /*
   message.message_len = strlen(fob_state_ram->pair_info.password) + 1;
   message.magic = UNLOCK_MAGIC;
   message.buffer = (uint8_t *)&fob_state_ram->pair_info.password;
+  */
+  // msg_buf is used first to store the input to AES-CMAC and the MAC result
+  // Once the MAC is computed, msg_buf.payload forms the message
+  // Layout of buffer before AES_CMAC_digest:
+  //          1 byte      1 byte   1 byte   2 bytes   16 bytes
+  //     [ UNLOCK_MAGIC | Length | Fob ID | Counter | Padding ]
+  // Layout of buffer after AES_CMAC_digest:
+  //          1 byte      1 byte   1 byte   2 bytes  16 bytes
+  //     [ UNLOCK_MAGIC | Length | Fob ID | Counter | MAC ]
+  //                               \------message------/ (first 8 bytes of MAC only)
+  UNLOCK_MSG_BUF msg_buf = {0};
+  msg_buf.magic = UNLOCK_MAGIC;
+  msg_buf.length = sizeof(UNLOCK_PACKET);
+  msg_buf.payload.fob_id = my_id;
+  msg_buf.payload.counter = ++fob_state_ram->rolling_counter;
+  saveFobState(fob_state_ram);
+  AES_CMAC_digest(&aes_cmac_ctx, (uint8_t*)&msg_buf, offsetof(UNLOCK_MSG_BUF, payload.mac), msg_buf.payload.mac);
+  message.magic = msg_buf.magic;
+  message.message_len = msg_buf.length;
+  message.buffer = (uint8_t*)&msg_buf.payload;
+
   send_board_message(&message);
 
   // Wait for ACK from car (with timeout)

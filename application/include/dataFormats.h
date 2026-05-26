@@ -13,8 +13,27 @@ typedef struct
 {
   char car_id[11];
   char password[8];
+  uint8_t key[16];
   char pin[7];
 } PAIR_PACKET;
+
+// Defines a struct for the format of an unlock message
+typedef struct __attribute__((packed))
+{
+  uint8_t fob_id;
+  uint16_t counter;
+  uint8_t mac[8];
+} UNLOCK_PACKET;
+
+// Buffer layout for building an unlock message and computing its CMAC.
+// The MAC field in UNLOCK_PACKET is 8 bytes, but AES_CMAC_digest always writes
+// 16 bytes, so mac_overflow holds the upper half that is never transmitted.
+typedef struct __attribute__((packed)) {
+  uint8_t magic;
+  uint8_t length;
+  UNLOCK_PACKET payload;
+  uint8_t mac_overflow[8];
+} UNLOCK_MSG_BUF;
 
 // Defines a struct for the format of start message
 typedef struct

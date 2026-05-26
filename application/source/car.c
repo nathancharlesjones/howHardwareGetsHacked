@@ -25,6 +25,8 @@
 #include "uart.h"
 #include "platform.h"
 #include "host_msg_helpers.h"
+#include "aes_cmac.h"
+#include "aes.h"
 
 /*** Macros ***/
 #define MAX_CMD_LEN 128
@@ -34,6 +36,15 @@
 // Core functions - unlockCar and startCar
 void unlockCar(CAR_FLASH_DATA* car_state_ram);
 void startCar(void);
+
+/* AES-ECB context used by the CMAC callback; key loaded once in main() */
+static struct AES_ctx cmac_ctx;
+/* AES-CMAC context storing the AES callback pointer */
+static struct AES_CMAC_ctx aes_cmac_ctx;
+
+void aes_cmac_encrypt(uint8_t* data) {
+  AES_ECB_encrypt(&cmac_ctx, data);
+}
 
 // Helper functions - sending ack messages
 void sendAckSuccess(void);
@@ -60,6 +71,12 @@ static uint32_t unlockCount = 0;
 int main(int argc, char **argv)
 {
   initHardware_car(argc, argv);
+
+  /* expand the key into AES round keys once; reused for every CMAC call */
+  const uint8_t aes_key[16] = KEY;
+  AES_init_ctx(&cmac_ctx, aes_key);
+  /* provide the CMAC library with AES encryption callback function that will perform the actual AES encryption */
+  AES_CMAC_init_ctx(&aes_cmac_ctx, &aes_cmac_encrypt);
 
   CAR_FLASH_DATA car_state_ram = {0};
   loadCarState(&car_state_ram);
@@ -194,12 +211,48 @@ void unlockCar(CAR_FLASH_DATA* car_state_ram)
   //sendOK("Inside unlock car\n");
 
   MESSAGE_PACKET message;
-  uint8_t buffer[256];
-  message.buffer = buffer;
+  UNLOCK_MSG_BUF msg_buf = {0};
+  message.buffer = (uint8_t*)&msg_buf.payload;
 
   // Receive unlock message
   receive_board_message_by_type(&message, UNLOCK_MAGIC);
+  msg_buf.magic = message.magic;
+  msg_buf.length = message.message_len;
 
+  // Layout of message and msg_buf at this point:
+  // message:
+  //   [ MAGIC | LENGTH | *BUFFER ]
+  //                         |
+  //                         |
+  // msg_buf:                \/
+  //   [ MAGIC | LENGTH | FOB ID | COUNTER (2) | MAC (8 + 8) ]
+
+  // Compute MAC
+  uint8_t computed_mac[16] = {0};
+  AES_CMAC_digest(&aes_cmac_ctx, (uint8_t*)&msg_buf, offsetof(UNLOCK_MSG_BUF, payload.mac), computed_mac);
+
+  // if( computed MAC != received MAC ) { sendAckFailure(); return; }
+  if( memcmp(computed_mac, msg_buf.payload.mac, 8) != 0 )
+  {
+    sendAckFailure();
+    return;
+  }
+
+  // last counter value = car data[fob id]
+  uint16_t last_counter_value = car_state_ram->fob_counter_values[msg_buf.payload.fob_id];
+
+  // if outside window { sendAckFailure(); return; }
+  if( (last_counter_value + WINDOW) - msg_buf.payload.counter >= WINDOW )
+  {
+    sendAckFailure();
+    return;
+  }
+
+  // car data[fob id] = recv'd counter value
+  car_state_ram->fob_counter_values[msg_buf.payload.fob_id] = msg_buf.payload.counter;
+  saveCarState(car_state_ram);
+
+/*
   // Ensure nul termination
   message.buffer[7] = '\0';
 
@@ -209,6 +262,7 @@ void unlockCar(CAR_FLASH_DATA* car_state_ram)
       sendAckFailure();
       return;
   }
+  */
 
 #ifndef TEST_BUILD
   // In production mode: send unlock flag and feature flags
@@ -230,6 +284,8 @@ void unlockCar(CAR_FLASH_DATA* car_state_ram)
   sendAckSuccess();
 
   // Wait for start message with feature data
+  uint8_t buffer[64] = {0};
+  message.buffer = buffer;
   receive_board_message_by_type(&message, START_MAGIC);
 
   FEATURE_DATA *feature_info = (FEATURE_DATA *)buffer;
