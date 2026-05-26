@@ -163,7 +163,7 @@ class TestCarAndPairedFob:
     def test_car_starts_locked(self, car_and_paired_fob):
         """Car should start in locked state."""
         car, fob = car_and_paired_fob
-        assert proto.is_locked(car, timeout=20.0), "Car should start locked"
+        assert proto.is_locked(car), "Car should start locked"
         assert proto.get_unlock_count(car) == 0, "Unlock count should be 0"
 
     def test_paired_fob_can_unlock_car(self, car_and_paired_fob):
@@ -171,7 +171,7 @@ class TestCarAndPairedFob:
         car, fob = car_and_paired_fob
 
         # Verify car is locked
-        assert proto.is_locked(car, timeout=20.0), "Car should start locked"
+        assert proto.is_locked(car), "Car should start locked"
 
         # Fob initiates unlock (blocks until complete)
         resp = proto.cmd_btn_press(fob)
@@ -186,7 +186,7 @@ class TestCarAndPairedFob:
         car, fob = car_and_paired_fob
 
         for i in range(3):
-            resp = proto.cmd_btn_press(fob, timeout=20.0)
+            resp = proto.cmd_btn_press(fob)
             assert resp.success, f"btnPress {i+1} failed: {resp.error}"
 
         assert proto.get_unlock_count(car) == 3, "Should have 3 unlocks"

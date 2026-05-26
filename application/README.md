@@ -79,7 +79,7 @@ Flowcharts made with [Monosketch.io](https://monosketch.io/)
       Y │             │
         ▼             │
 ┏ ━ ━ ━ ━ ━ ━ ━ ┓ N   │
-  rec'd len ==   ─────┤
+  rec'd len >=   ─────┤
 ┃  enable len?  ┃     │
  ━ ━ ━ ━ ━ ━ ━ ━      │
       Y │             │
@@ -89,6 +89,12 @@ Flowcharts made with [Monosketch.io](https://monosketch.io/)
 ┃               ┃     │
  ━ ━ ━ ━ ━ ━ ━ ━      │
       Y │             │
+        ▼             │
+┏ ━ ━ ━ ━ ━ ━ ━ ┓ Y   │
+  Feature list   ─────┤
+┃    full?      ┃     │
+ ━ ━ ━ ━ ━ ━ ━ ━      │
+      N │             │
         ▼             │
 ┏ ━ ━ ━ ━ ━ ━ ━ ┓ N   │
  Feature num is  ─────┤
@@ -174,53 +180,6 @@ Flowcharts made with [Monosketch.io](https://monosketch.io/)
         ▼              
 ```
 
-#### Flowchart for receivePairData()
-
-```
-│                                                                              
-│  PAIR_STATE_WAIT_MAGIC   ┌ ─ ─ ─ ─ ─ ─ ─ ┐ N                                 
-├─────────────────────────▶   rec'd c ==    ──────────────────────────────────┐
-│                          │  PAIR_MAGIC?  │                                  │
-│                           ─ ─ ─ ─ ─ ─ ─ ─                                   │
-│                                Y │                                          │
-│                                  ▼                                          │
-│                          ┌───────────────┐                                  │
-│                          │    state =    ├──────────────────────────────────┤
-│                          │   WAIT_LEN    │                                  │
-│                          └───────────────┘                                  │
-│                                                                             │
-│  PAIR_STATE_WAIT_LEN     ┌ ─ ─ ─ ─ ─ ─ ─ ┐ N    ┌───────────────┐           │
-├─────────────────────────▶  rec'd len ==   ──────│    state =    ├───────────┤
-│                          │   pair len?   │      │  WAIT_MAGIC   │           │
-│                           ─ ─ ─ ─ ─ ─ ─ ─       └───────────────┘           │
-│                                Y │                                          │
-│                                  ▼                                          │
-│                          ┌───────────────┐                                  │
-│                          │    state =    ├──────────────────────────────────┤
-│                          │   WAIT_DATA   │                                  │
-│                          └───────────────┘                                  │
-│                                                                             │
-│  PAIR_STATE_WAIT_DATA    ┌ ─ ─ ─ ─ ─ ─ ─ ┐ Y    ┌───────────────┐           │
-└─────────────────────────▶   rec'd "len"   ─────▶│Save pair data │           │
-                           │    chars?     │      │               │           │
-                            ─ ─ ─ ─ ─ ─ ─ ─       └───────────────┘           │
-                                 N │                      │                   │
-                                   ▼                      ▼                   │
-                           ┌ ─ ─ ─ ─ ─ ─ ─ ┐ Y    ┌───────────────┐           │
-                            Filled buffer? ──────▶│    state =    ├───────────┤
-                           │               │      │  WAIT_MAGIC   │           │
-                            ─ ─ ─ ─ ─ ─ ─ ─       └───────────────┘           │
-                                 N │                                          │
-                                   ▼                                          │
-                           ┌───────────────┐                                  │
-                           │ Add to buffer │                                  │
-                           │               │                                  │
-                           └───────────────┘                                  │
-                                   │                                          │
-                                   ├──────────────────────────────────────────┘
-                                   ▼                                           
-```
-
 ### Car
 
 Flowcharts made with [Monosketch.io](https://monosketch.io/)
@@ -254,18 +213,30 @@ Flowcharts made with [Monosketch.io](https://monosketch.io/)
 │      msg      │      
 └───────────────┘      
         │              
-        ▼              
+        ▼  
+┌───────────────┐      
+│  Compute MAC  │      
+│               │      
+└───────────────┘      
+        │              
+        ▼             
 ┏ ━ ━ ━ ━ ━ ━ ━ ┓ N    
-  Rec'd len ==   ─────┐
-┃    pw len?    ┃     │
+  Computed MAC   ─────┐
+┃ == Rec'd MAC? ┃     │
  ━ ━ ━ ━ ━ ━ ━ ━      │
       Y │             │
         ▼             │
 ┏ ━ ━ ━ ━ ━ ━ ━ ┓ N   │
-   msg == pw?    ─────┤
-┃               ┃     │
+  Rec'd counter  ─────┤
+┃ within WINDOW?┃     │
  ━ ━ ━ ━ ━ ━ ━ ━      │
       Y │             │
+        ▼             │
+┌───────────────┐     │
+│Emit unlock flag     │
+│Send ACK_SUCCESS     │
+└───────────────┘     │
+        │             │
         ▼             │
 ┌───────────────┐     │
 │ Receive start │     │
@@ -280,8 +251,8 @@ Flowcharts made with [Monosketch.io](https://monosketch.io/)
       Y │             │
         ▼             │
 ┌───────────────┐     │
-│  Emit flags   │     │
-│               │     │
+│ Emit feature  │     │
+│    flags      │     │
 └───────────────┘     │
         │             │
         ├─────────────┘
@@ -295,22 +266,23 @@ Flowcharts made with [Monosketch.io](https://monosketch.io/)
 sequenceDiagram
     Paired fob->>Car: UNLOCK MSG
     alt Fob is authenticated
+        Car->>Host: Unlock flag
         Car->>Paired fob: ACK SUCCESS
         Paired fob->>Car: START MSG
-        Car->>Host: Flags
+        Car->>Host: Feature flags
     else Fob is NOT authenticated
         Car->>Paired fob: ACK FAILURE
     end
 ```
 
 ```
-                 Tag Len                                                          
-      (UNLOCK_MAGIC)  │                                                           
+                 Tag Len                                                         
+      (UNLOCK_MAGIC)  │                                                          
                   │   │                                                           
                   ▼   ▼                                                           
-               ┌────┬────┬────┬────┬────┬────┬────┬────┐                          
-UNLOCK MSG:    │0x56│0x06│'u' │'n' │'l' │'o' │'c' │'k' │                          
-               └────┴────┴────┴────┴────┴────┴────┴────┘                          
+               ┌────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┐                          
+UNLOCK MSG:    │0x56│0x0B│ ID │ Counter │                  MAC                  │                          
+               └────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┘                          
                                                                                   
                  Tag Len                                                          
        (START_MAGIC)  │                                                           
@@ -358,7 +330,7 @@ sequenceDiagram
                    │   │                                                           
                    ▼   ▼                                                           
                 ┌────┬────┬──────────────────┬───────────────────┬──────────────┐  
- PAIR MSG:      │0x55│0x1A│Car ID (11 bytes) │Password (8 bytes) │Pin (7 bytes) │  
+ PAIR MSG:      │0x55│0x22│Car ID (11 bytes) │ Key (16 bytes)    │Pin (7 bytes) │  
                 └────┴────┴──────────────────┴───────────────────┴──────────────┘  
 ```
 

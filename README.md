@@ -7,42 +7,48 @@ This project demonstrates iterative attacks and defenses for embedded systems us
 **Article Series:**
 - [Part 1: Introduction to the 2023 MITRE eCTF](https://www.digikey.com/en/maker/blogs/2025/how-hardware-gets-hacked-part-1)
 - [Part 2: On-boarding](https://www.digikey.com/en/maker/blogs/2026/how-hardware-gets-hacked-part-2-on-boarding)
-- [Part 3: Adopting the Attacker Mindset](link)
-- [Part 4: Memory Protections](link)
+- [Part 3: Adopting the Attacker Mindset](https://www.digikey.com/en/maker/blogs/2026/how-hardware-gets-hacked-part-3-adopting-the-attacker-mindset)
+- [Part 4: Memory Protections](https://www.digikey.com/en/maker/blogs/2026/how-hardware-gets-hacked-part-4-memory-protections)
 
 ## Project Structure
 
 ```
 ./
-├── application/          # Platform-independent firmware
-│   ├── source/           # car.c, fob.c, messages.c
-│   ├── include/          # Shared headers
-│   ├── packages/         # Feature package definitions
-│   └── SConscript        # Application build rules
+├── application/                      # Platform-independent firmware
+│   ├── source/                       # car.c, fob.c, messages.c, host_msg_helpers.c
+│   ├── include/                      # Shared headers
+│   ├── packages/                     # Feature package definitions
+│   └── SConscript                    # Application build rules
 │
-├── hardware/             # Platform-specific implementations
-│   ├── include/          # platform.h and uart.h (abstraction layer)
-│   ├── stm32/            # STM32F4 HAL & drivers
-│   ├── tm4c/             # TM4C123 drivers
-│   └── sim/              # Desktop simulation layer
+├── hardware/                         # Platform-specific implementations
+│   ├── include/                      # platform.h and uart.h (abstraction layer)
+│   ├── source/                       # platform_common.c (abstraction layer)
+│   ├── stm32/                        # STM32F4 HAL & drivers
+│   ├── tm4c/                         # TM4C123 drivers
+│   └── sim/                          # Desktop simulation layer
 │
-├── tools/                # Python utilities
-│   ├── simulate.py       # x86 simulation environment
-│   ├── openocd.py        # Flash & debug wrapper
-│   ├── monitor.py        # Serial monitor
-│   ├── list.py           # Device enumeration
-│   ├── package.py        # Package a car feature
-│   ├── icdi_unlock.py    # Script to unlock a locked TM4C device
-│   └── enable.py         # Feature enablement
+├── libraries/                        # External libraries used in the project
+│   ├── tiny-AES-c/                   # Provides AES operations
+│   └── tiny-AES-CMAC-c/              # Implements AES-CMAC using another AES library
 │
-├── testing/              # Automated test suite
-│   ├── test.py           # Protocol & security tests
-│   ├── conftest.py       # pytest fixtures & device mgmt
-│   └── protocol.py       # Test message helpers
+├── tools/                            # Python utilities
+│   ├── simulate.py                   # x86 simulation environment
+│   ├── openocd.py                    # Flash & debug wrapper
+│   ├── monitor.py                    # Serial monitor
+│   ├── list.py                       # Device enumeration
+│   ├── package.py                    # Package a car feature
+│   ├── icdi_unlock.py                # Script to unlock a locked TM4C device
+│   └── enable.py                     # Feature enablement
 │
-├── setup/                # Platform setup guides
-├── secrets/              # Secret generation & storage
-└── SConstruct            # Build system entry point
+├── testing/                          # Automated test suite
+│   ├── functional_tests.py           # Protocol & security tests
+│   ├── conftest.py                   # pytest fixtures & device mgmt
+│   └── protocol.py                   # Test message helpers
+│
+├── setup/                            # Platform setup guides
+├── secrets/                          # Secret generation & storage
+│   └── secrets.json                  # Record of car keys and fob IDs
+└── SConstruct                        # Build system entry point
 ```
 
 ### Hardware Abstraction
@@ -219,13 +225,13 @@ The testing framework supports both hardware and simulation:
 
 ```bash
 # Run full test suite on simulated firmware
-pytest testing/test.py
+pytest testing/functional_tests.py
 
 # Run single test on simulated firmware
-pytest testing/test.py::TestSinglePairedFob::test_unlock_valid_fob
+pytest testing/functional_tests.py::TestSinglePairedFob::test_paired_fob_can_enable_multiple_valid_features
 
 # Run test on real hardware
-pytest testing/test.py --using stm32@<SERIAL_NUMBER_1>,<SERIAL_NUMBER_2>
+pytest testing/functional_tests.py --using stm32@<SERIAL_NUMBER_1>,<SERIAL_NUMBER_2>
 ```
 
 **Useful pytest flags:**
@@ -261,6 +267,8 @@ Responses are "OK\n", "OK: {value}\n", or "ERROR: {reason}\n".
 
 Test Commands (TEST_BUILD only):
     Both:
+        sendBoardMsg              - Transmits a message over a device's board UART
+        getBoardMsgLog            - Returns the last 15 messages sent or received over the board UART
         reset                     - Factory reset (clear state, restart)
     
     Fob:
@@ -358,12 +366,13 @@ cd hardware/newplatform
 
 ### 2. Implement Platform Abstraction (`platform.h` and `uart.h`)
 
-Create implementations for all functions in `hardware/include/platform.h` and `hardware/include/uart.h`:
+Create implementations for all functions in `hardware/include/platform.h` and `hardware/include/uart.h`. `loadFobState`, `saveFobState`, `loadCarState`, and `saveCarState` have implementations in `hardware/source/platform_common.c` that reference `load_flash` and `save_flash` (declared in `platform_impl.h`); you'll need to implement those instead of the `load/save*State` functions.
 
 ```c
 // hardware/newplatform/source/newplatform.c
 
 #include "platform.h"
+#include "platform_impl.h"
 #include <newplatform_hal.h>  // Your platform's HAL
 
 void initHardware_car(int argc, char **argv) {
@@ -389,48 +398,56 @@ Import('app_env', 'gen_secrets_action')
 # Clone environment for platform-specific settings
 env = app_env.Clone()
 
-# Replace tools, as needed
-env.Replace(CC='arm-none-eabi-gcc')
-env.Replace(AR='arm-none-eabi-ar')
-env.Replace(AS='arm-none-eabi-as')
+# Add compiler flags
+env.Append(CPPFLAGS=['-std=c99', '-ffunction-sections', '-fdata-sections', ...])
 
-# Set defines, compiler flags, and include paths
-env.Append(CPPFLAGS=['-ffunction-sections', ...])
-env.Append(CPPDEFINES=['STM32F411xE', ...])
+# Set platform-specific defines
+env.Append(CPPDEFINES=['NEWPLATFORM_DEFINE', ...])
+
+# Add platform-specific include paths
 env.Append(CPPPATH=[
-    '#/hardware/stm32/Core/Inc',
-    '#/hardware/stm32/Drivers/STM32F4xx_HAL_Driver/Inc',
+    '#/hardware/newplatform/include',
     ...
 ])
 
-# Set linker flags (check for Mac users)
+# Set linker flags (macOS vs Linux differ)
 import platform
 
-# Platform-specific linker flags (ARM GNU toolchain)
 if platform.system() == 'Darwin':  # macOS
-    # Some macOS ARM toolchains may have linker differences
-    linkflags = ['-Tnewplatform.ld', ...]
+    env.Append(LINKFLAGS=[
+        '-T', 'hardware/newplatform/newplatform.ld',
+        '-Wl,-dead_strip',
+        f'-Wl,-map,{env["build_dir"]}/newplatform.map',
+    ])
 else:  # Linux and other Unix-like systems
-    linkflags = ['-Tnewplatform.ld', ...]
+    env.Append(LINKFLAGS=[
+        '-T', 'hardware/newplatform/newplatform.ld',
+        '-Wl,--gc-sections',
+        f'-Wl,-Map={env["build_dir"]}/newplatform.map,--cref',
+    ])
 
-env.Append(LINKFLAGS=linkflags)
+env.Append(LIBS=['c', 'm', 'nosys'])
 
-# Add platform sources
-platform_sources = Glob('source/*.c')
+# Platform-specific sources
+sources = Glob('source/*.c')
+sources.append('startup_newplatform.s')
 
-# Add rule to build 'secrets.h'
-secrets_h = stm32_env.Command(
-    target='secrets.h',
-    source=['#secrets/car_secrets.json'],
+# Build rule for secrets.h (generated by gen_secrets_action)
+secrets_h = env.Command(
+    target=['secrets.h'],
+    source=[],
     action=gen_secrets_action
 )
+
+# Get AES libraries pre-built by SConstruct's configure_env()
+aes_lib, aes_cmac_lib = app_env['platform_libs']
 
 # Get application object files
 app_objects = SConscript(
     '#/application/SConscript',
     variant_dir='application',  # Relative to current variant_dir
     duplicate=0,
-    exports={'env': stm32_env}  # Pass our configured environment
+    exports={'env': env}
 )
 
 # Get object files for HAL (or replace this as needed to build HAL)
@@ -438,11 +455,14 @@ driver_objects = SConscript(
     'Drivers/SConscript',
     variant_dir='drivers',
     duplicate=0,
-    exports={'env': stm32_env}
+    exports={'env': env}
 )
 
-# Build firmware
-app = env.Program(f'{env["name"]}.bin', sources + app_objects + driver_objects)
+# Link everything together
+app = env.Program(
+    f'{env["name"]}.elf',
+    sources + app_objects + driver_objects + [app_env['platform_common_obj']] + aes_lib + aes_cmac_lib
+)
 env.Depends(app, secrets_h)
 
 Return('app')
@@ -451,7 +471,7 @@ Return('app')
 Add platform to `SConstruct`:
 
 ```python
-AVAILABLE_PLATFORMS = ["stm32", "tm4c", "x86", "newplatform"]
+AVAILABLE_PLATFORMS = ["stm32", "tm4c", "sim", "newplatform"]
 ```
 
 ### 4. Integrate with `openocd.py`
@@ -539,6 +559,6 @@ gdbgui -g "gdb-multiarch -ex 'target remote localhost:3333'" --args /path/to/bin
 # or
 
 # Run hardware tests (builds and flashes as part of the tests)
-python tools/openocd.py flash newplatform <SERIAL> hardware/newplatform/build/car_12345/firmware.bin
+./tools/openocd.py flash newplatform <SERIAL> hardware/newplatform/build/car_12345/firmware.bin
 pytest testing/test.py --using newplatform@<SERIAL_1>,<SERIAL_2>
 ```
