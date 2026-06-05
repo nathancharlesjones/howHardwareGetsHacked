@@ -14,14 +14,14 @@ Test Commands (TEST_BUILD only):
         sendBoardMsg              - Transmits a message over a device's board UART
         getBoardMsgLog            - Returns the last 15 messages sent or received over the board UART
         reset                     - Factory reset (clear state, restart)
-    
+        getFlashData              - Get flash data as hex
+        setFlashData <hex>        - Set flash data from hex (persists to flash)
+
     Fob:
         reload                    - Reload flash data, state persists
         btnPress                  - Simulate button press, blocks until unlock completes
-        getFlashData              - Get FLASH_DATA as hex
-        setFlashData <hex>        - Set FLASH_DATA from hex (persists to flash)
         isPaired                  - Returns OK: 1 or OK: 0
-    
+
     Car:
         isLocked                  - Returns OK: 1 or OK: 0
         getUnlockCount            - Returns OK: <n> (resets on power cycle)
@@ -249,6 +249,44 @@ class FlashData:
 
 
 # =============================================================================
+# CAR_FLASH_DATA Structure Handling
+# =============================================================================
+
+# From dataFormats.h:
+#   typedef struct __attribute__((aligned(4))) {
+#     uint16_t fob_counter_values[256];  // one rolling counter per fob_id
+#   } CAR_FLASH_DATA;                    // 512 bytes
+
+CAR_FLASH_DATA_SIZE = 512  # sizeof(CAR_FLASH_DATA)
+
+NUM_FOB_IDS = 256
+
+
+@dataclass
+class CarFlashData:
+    fob_counter_values: list  # 256 uint16_t values, little-endian
+
+    def pack(self) -> bytes:
+        return struct.pack(f'<{NUM_FOB_IDS}H', *self.fob_counter_values)
+
+    @classmethod
+    def unpack(cls, data: bytes) -> 'CarFlashData':
+        values = list(struct.unpack(f'<{NUM_FOB_IDS}H', data[:CAR_FLASH_DATA_SIZE]))
+        return cls(fob_counter_values=values)
+
+    @classmethod
+    def from_hex(cls, hex_str: str) -> 'CarFlashData':
+        return cls.unpack(bytes.fromhex(hex_str))
+
+    def to_hex(self) -> str:
+        return self.pack().hex()
+
+    @classmethod
+    def zeroed(cls) -> 'CarFlashData':
+        return cls(fob_counter_values=[0] * NUM_FOB_IDS)
+
+
+# =============================================================================
 # Standard Commands (Production)
 # =============================================================================
 
@@ -447,3 +485,21 @@ def get_unlock_count(device, timeout: float = 2.0) -> int:
     if not resp.success:
         raise RuntimeError(f"getUnlockCount failed: {resp.error}")
     return int(resp.value)
+
+
+def cmd_get_car_flash_data(device, timeout: float = 2.0) -> Response:
+    """Get car's CAR_FLASH_DATA as hex string."""
+    return parse_response(device.send_recv("getFlashData", timeout=timeout))
+
+
+def cmd_set_car_flash_data(device, car_flash: CarFlashData, timeout: float = 15.0) -> Response:
+    """Set car's CAR_FLASH_DATA and persist to flash."""
+    return parse_response(device.send_recv(f"setFlashData {car_flash.to_hex()}", timeout=timeout))
+
+
+def get_car_flash_data(device, timeout: float = 2.0) -> CarFlashData:
+    """Convenience: get and parse CAR_FLASH_DATA."""
+    resp = cmd_get_car_flash_data(device, timeout=timeout)
+    if not resp.success:
+        raise RuntimeError(f"getFlashData failed: {resp.error}")
+    return CarFlashData.from_hex(resp.value)

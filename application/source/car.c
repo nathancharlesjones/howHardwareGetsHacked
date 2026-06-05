@@ -29,7 +29,7 @@
 #include "aes.h"
 
 /*** Macros ***/
-#define MAX_CMD_LEN 128
+#define MAX_CMD_LEN 1040
 #define WINDOW 32
 
 /*** Function definitions ***/
@@ -50,7 +50,7 @@ void sendAckSuccess(void);
 void sendAckFailure(void);
 
 // Command processing
-void processHostCommand(const char *cmd);
+void processHostCommand(CAR_FLASH_DATA *car_state_ram, const char *cmd);
 
 // Declare const variables
 const uint8_t key[16] = KEY;
@@ -107,7 +107,7 @@ int main(int argc, char **argv)
         if (cmdIndex > 0)
         {
           cmdBuffer[cmdIndex] = '\0';
-          processHostCommand(cmdBuffer);
+          processHostCommand(&car_state_ram, cmdBuffer);
           cmdIndex = 0;
         }
       }
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 /**
  * @brief Process a command received from the host
  */
-void processHostCommand(const char *cmd)
+void processHostCommand(CAR_FLASH_DATA *car_state_ram, const char *cmd)
 {
 #ifdef TEST_BUILD
   // Test command: isLocked
@@ -141,6 +141,31 @@ void processHostCommand(const char *cmd)
     char buf[16];
     snprintf(buf, sizeof(buf), "%lu", (unsigned long)unlockCount);
     sendOK(buf);
+    return;
+  }
+
+  // Test command: getFlashData
+  if (strcmp(cmd, "getFlashData") == 0)
+  {
+    char hex[sizeof(CAR_FLASH_DATA) * 2 + 1];
+    bytesToHex((uint8_t *)car_state_ram, sizeof(CAR_FLASH_DATA), hex);
+    sendOK(hex);
+    return;
+  }
+
+  // Test command: setFlashData <hex>
+  if (strncmp(cmd, "setFlashData ", 13) == 0)
+  {
+    uint8_t data[sizeof(CAR_FLASH_DATA)];
+    int len = hexToBytes(cmd + 13, data, sizeof(data));
+    if (len != (int)sizeof(CAR_FLASH_DATA))
+    {
+      sendError("invalid size");
+      return;
+    }
+    memcpy(car_state_ram, data, sizeof(CAR_FLASH_DATA));
+    saveCarState(car_state_ram);
+    sendOK(NULL);
     return;
   }
 
@@ -180,8 +205,8 @@ void processHostCommand(const char *cmd)
   {
     carLocked = true;
     unlockCount = 0;
-    // For car, factory reset just resets runtime state
-    // A full factory reset would also clear EEPROM, but car has no persistent state
+    memset(car_state_ram, 0, sizeof(CAR_FLASH_DATA));
+    saveCarState(car_state_ram);
     sendOK(NULL);
     return;
   }
