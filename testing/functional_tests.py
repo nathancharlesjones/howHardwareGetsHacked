@@ -261,36 +261,26 @@ class TestCarPairedAndUnpaired:
 '''
 
 class TestStateManagement:
-    """Tests for reload and reset functionality."""
+    """Tests for reset and flash data functionality."""
 
-    def test_reload_preserves_state(self, car_and_paired_fob):
-        """Software reload should preserve flash data."""
-        car, paired_fob = car_and_paired_fob
-
-        # Get current state
-        flash_before = proto.get_flash_data(paired_fob)
-
-        # Reload
-        resp = proto.cmd_reload(paired_fob)
-        assert resp.success, f"Reload failed: {resp.error}"
-
-        # State should be preserved
-        flash_after = proto.get_flash_data(paired_fob)
-        assert flash_after.paired == flash_before.paired
-        assert flash_after.pair_info.car_id == flash_before.pair_info.car_id
-
-    def test_reset_clears_state(self, car_and_paired_fob):
-        """Factory reset should clear all state."""
-        car, paired_fob = car_and_paired_fob
-
-        assert proto.is_paired(paired_fob), "Should start paired"
+    def test_reset_restores_factory_state(self, paired_fob):
+        """Factory reset should restore the paired fob to its initial state."""
+        # Add a feature so there is modified state to clear
+        flash = proto.get_flash_data(paired_fob)
+        pkg = create_feature_package(flash.pair_info.car_id, 1)
+        resp = proto.cmd_enable(paired_fob, pkg)
+        assert resp.success, f"Feature enable failed: {resp.error}"
 
         # Factory reset
         resp = proto.cmd_reset(paired_fob)
         assert resp.success, f"Reset failed: {resp.error}"
 
-        # Should now be unpaired
-        assert not proto.is_paired(paired_fob), "Should be unpaired after reset"
+        # Paired fob should still be paired (factory state is paired)
+        assert proto.is_paired(paired_fob), "Paired fob should still be paired after reset"
+
+        # Features should be cleared
+        flash = proto.get_flash_data(paired_fob)
+        assert flash.feature_info.num_active == 0, "Features should be cleared after reset"
 
     def test_set_flash_data(self, car_and_paired_fob):
         """Should be able to modify flash data directly."""

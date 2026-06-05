@@ -272,7 +272,6 @@ Test Commands (TEST_BUILD only):
         reset                     - Factory reset (clear state, restart)
     
     Fob:
-        reload                    - Reload flash data, state persists
         btnPress                  - Simulate button press, blocks until unlock completes
         getFlashData              - Get FLASH_DATA as hex
         setFlashData <hex>        - Set FLASH_DATA from hex (persists to flash)

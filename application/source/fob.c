@@ -57,9 +57,32 @@ void aes_cmac_encrypt(uint8_t* data) {
 // Helper functions
 uint8_t receiveAck(void);
 void processHostCommand(FOB_FLASH_DATA *fob_state_ram, const char *cmd);
+static void initFobState(FOB_FLASH_DATA *fob_state_ram);
 
 // Declare const variables
 const uint8_t my_id = FOB_ID;
+
+static void initFobState(FOB_FLASH_DATA *fob_state_ram)
+{
+#if PAIRED == 1
+  if (FLASH_UNINITIALIZED == fob_state_ram->paired)
+  {
+    memset(fob_state_ram, 0, sizeof(FOB_FLASH_DATA));
+    strcpy(fob_state_ram->pair_info.pin, PAIR_PIN);
+    strcpy(fob_state_ram->pair_info.car_id, CAR_ID);
+    strcpy(fob_state_ram->feature_info.car_id, CAR_ID);
+    fob_state_ram->paired = FLASH_PAIRED;
+    fob_state_ram->feature_info.num_active = 0;
+    saveFobState(fob_state_ram);
+  }
+#else
+  if (0xFF == fob_state_ram->feature_info.num_active)
+  {
+    fob_state_ram->feature_info.num_active = 0;
+    saveFobState(fob_state_ram);
+  }
+#endif
+}
 
 /**
  * @brief Main function for the fob example
@@ -80,27 +103,7 @@ int main(int argc, char **argv)
   FOB_FLASH_DATA fob_state_ram = {0};
   loadFobState(&fob_state_ram);
 
-// If paired fob, initialize the system information on first boot
-#if PAIRED == 1
-  if (FLASH_UNINITIALIZED == fob_state_ram.paired)
-  {
-    memset(&fob_state_ram, 0, sizeof(FOB_FLASH_DATA));
-    strcpy(fob_state_ram.pair_info.pin, PAIR_PIN);
-    strcpy(fob_state_ram.pair_info.car_id, CAR_ID);
-    strcpy(fob_state_ram.feature_info.car_id, CAR_ID);
-    fob_state_ram.paired = FLASH_PAIRED;
-    fob_state_ram.feature_info.num_active = 0;
-
-    saveFobState(&fob_state_ram);
-  }
-#else
-  // This will run on first boot to initialize features
-  if (0xFF == fob_state_ram.feature_info.num_active)
-  {
-    fob_state_ram.feature_info.num_active = 0;
-    saveFobState(&fob_state_ram);
-  }  
-#endif
+  initFobState(&fob_state_ram);
 
   // Signal ready to host
   uart_write(HOST_UART, (uint8_t *)"OK: started\n", 12);
@@ -242,20 +245,11 @@ void processHostCommand(FOB_FLASH_DATA *fob_state_ram, const char *cmd)
     return;
   }
 
-  // Test command: reload (reload data from flash)
-  if (strcmp(cmd, "reload") == 0)
-  {
-    loadFobState(fob_state_ram);
-    sendOK(NULL);
-    return;
-  }
-
   // Test command: reset (factory reset)
   if (strcmp(cmd, "reset") == 0)
   {
-    // Should this unpair the fob??
-    memset(fob_state_ram, 0, sizeof(FOB_FLASH_DATA));
-    saveFobState(fob_state_ram);
+    memset(fob_state_ram, 0xFF, sizeof(FOB_FLASH_DATA));
+    initFobState(fob_state_ram);
     sendOK(NULL);
     return;
   }

@@ -18,7 +18,6 @@ Test Commands (TEST_BUILD only):
         setFlashData <hex>        - Set flash data from hex (persists to flash)
 
     Fob:
-        reload                    - Reload flash data, state persists
         btnPress                  - Simulate button press, blocks until unlock completes
         isPaired                  - Returns OK: 1 or OK: 0
 
@@ -342,25 +341,16 @@ def cmd_get_board_msg_log(device, role: str = None, timeout: float = 2.0) -> lis
 
 def cmd_reset(device, timeout: float = 5.0) -> Response:
     """
-    Factory reset - clear all state and restart.
-    
-    For fob: clears FLASH_DATA (becomes unpaired)
+    Factory reset - restore to initial factory state.
+
+    For paired fob: restores original PIN/car_id credentials, clears features
+    For unpaired fob: clears pair data, returns to unpaired state
     For car: resets unlock count, re-locks
     """
     return parse_response(device.send_recv("reset", timeout=timeout))
 
 
 # --- Fob Only ---
-
-def cmd_reload(device, timeout: float = 2.0) -> Response:
-    """
-    Reload flash data, check state persists.
-    
-    Returns:
-        Response: OK when complete
-    """
-    return parse_response(device.send_recv("reload", timeout=timeout))
-
 
 def cmd_btn_press(device, timeout: float = 5.0) -> Response:
     """
