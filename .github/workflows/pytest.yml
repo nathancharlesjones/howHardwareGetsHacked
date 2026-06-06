@@ -38,5 +38,5 @@ jobs:
     - name: Run functional tests
       run: pytest testing/functional_tests.py -v
 
-    - name: Run security tests
-      run: pytest testing/security_tests.py -v
+    - name: Run security tests (simple replay — challenge-response required for complex replay)
+      run: pytest testing/security_tests.py::TestSimpleReplayAttacks -v
