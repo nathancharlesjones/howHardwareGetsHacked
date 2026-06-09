@@ -27,6 +27,7 @@
 #include "host_msg_helpers.h"
 #include "aes_cmac.h"
 #include "aes.h"
+#include "rand.h"
 
 /*** Macros ***/
 #define MAX_CMD_LEN 1040
@@ -75,6 +76,8 @@ int main(int argc, char **argv)
   AES_init_ctx(&cmac_ctx, aes_key);
   /* provide the CMAC library with AES encryption callback function that will perform the actual AES encryption */
   AES_CMAC_init_ctx(&aes_cmac_ctx, &aes_cmac_encrypt);
+
+  seed(getPrngSeed());
 
   CAR_FLASH_DATA car_state_ram = {0};
   loadCarState(&car_state_ram);
@@ -234,47 +237,33 @@ void unlockCar(CAR_FLASH_DATA* car_state_ram)
   //sendOK("Inside unlock car\n");
 
   MESSAGE_PACKET message;
-  UNLOCK_MSG_BUF msg_buf = {0};
-  message.buffer = (uint8_t*)&msg_buf.payload;
+  uint8_t buffer[64] = {0};
+  message.buffer = buffer;
 
   // Receive unlock message
   receive_board_message_by_type(&message, UNLOCK_MAGIC);
-  msg_buf.magic = message.magic;
-  msg_buf.length = message.message_len;
 
-  // Layout of message and msg_buf at this point:
-  // message:
-  //   [ MAGIC | LENGTH | *BUFFER ]
-  //                         |
-  //                         |
-  // msg_buf:                \/
-  //   [ MAGIC | LENGTH | FOB ID | COUNTER (2) | MAC (8 + 8) ]
+  // Generate and transmit nonce
+  message.magic = NONCE_MAGIC;
+  message.message_len = NONCE_SIZE;
+  uint32_t nonce = rand();
+  message.buffer = (uint8_t*)&nonce;
+  send_board_message(&message);
 
   // Compute MAC
   uint8_t computed_mac[16] = {0};
-  AES_CMAC_digest(&aes_cmac_ctx, (uint8_t*)&msg_buf, offsetof(UNLOCK_MSG_BUF, payload.mac), computed_mac);
+  AES_CMAC_digest(&aes_cmac_ctx, (uint8_t*)&nonce, NONCE_SIZE, computed_mac);
 
-  // if( computed MAC != received MAC ) { sendAckFailure(); return; }
-  if( memcmp(computed_mac, msg_buf.payload.mac, 8) != 0 )
+  // Receive response
+  uint8_t received_mac[8] = {0};
+  message.buffer = received_mac;
+  receive_board_message_by_type(&message, RESPONSE_MAGIC);
+
+  if( memcmp(computed_mac, received_mac, 8) != 0 )
   {
     sendAckFailure();
     return;
   }
-
-  // last counter value = car data[fob id]
-  uint16_t last_counter_value = car_state_ram->fob_counter_values[msg_buf.payload.fob_id];
-
-  // if outside window { sendAckFailure(); return; }
-  uint16_t dist = (uint16_t)(msg_buf.payload.counter - last_counter_value);
-  if( dist == 0 || dist > WINDOW )
-  {
-    sendAckFailure();
-    return;
-  }
-
-  // car data[fob id] = recv'd counter value
-  car_state_ram->fob_counter_values[msg_buf.payload.fob_id] = msg_buf.payload.counter;
-  saveCarState(car_state_ram);
 
 #ifndef TEST_BUILD
   // In production mode: send unlock flag and feature flags
@@ -296,7 +285,6 @@ void unlockCar(CAR_FLASH_DATA* car_state_ram)
   sendAckSuccess();
 
   // Wait for start message with feature data
-  uint8_t buffer[64] = {0};
   message.buffer = buffer;
   receive_board_message_by_type(&message, START_MAGIC);
 

@@ -141,6 +141,11 @@ void save_flash(const void* src, size_t size)
     if(size != written) exit(EXIT_FAILURE);
 }
 
+uint32_t getPrngSeed(void)
+{
+    return 42;
+}
+
 void __attribute__((weak)) initThread(int argc, char ** argv)
 {
     // Empty

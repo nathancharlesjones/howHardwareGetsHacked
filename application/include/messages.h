@@ -26,9 +26,12 @@
 #define ACK_MAGIC 0x54
 #define PAIR_MAGIC 0x55
 #define UNLOCK_MAGIC 0x56
+#define NONCE_MAGIC 0x58
+#define RESPONSE_MAGIC 0x59
 #define START_MAGIC 0x57
 
 #define MAX_MSG_LEN 64
+#define NONCE_SIZE 4  // nonce is uint32_t
 
 /**
  * @brief Structure for message between boards

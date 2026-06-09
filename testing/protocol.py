@@ -30,16 +30,20 @@ import time
 from dataclasses import dataclass
 from typing import Optional
 
-ACK_MAGIC    = 0x54
-PAIR_MAGIC   = 0x55
-UNLOCK_MAGIC = 0x56
-START_MAGIC  = 0x57
+ACK_MAGIC      = 0x54
+PAIR_MAGIC     = 0x55
+UNLOCK_MAGIC   = 0x56
+START_MAGIC    = 0x57
+NONCE_MAGIC    = 0x58
+RESPONSE_MAGIC = 0x59
 
 MAGIC_NAMES = {
   0x54: "ACK",
   0x55: "PAIR",
   0x56: "UNLOCK",
   0x57: "START",
+  0x58: "NONCE",
+  0x59: "RESPONSE"
 }
 
 ACK_SUCCESS  = 1

@@ -389,30 +389,24 @@ void attemptUnlock(FOB_FLASH_DATA *fob_state_ram)
     return;
   }
 
-  // Send unlock message with password
   MESSAGE_PACKET message;
+  uint8_t buffer[NONCE_SIZE] = {0};
+  message.buffer = buffer;
 
-  // msg_buf is used first to store the input to AES-CMAC and the MAC result
-  // Once the MAC is computed, msg_buf.payload forms the message
-  // Layout of buffer before AES_CMAC_digest:
-  //          1 byte      1 byte   1 byte   2 bytes   16 bytes
-  //     [ UNLOCK_MAGIC | Length | Fob ID | Counter | Padding ]
-  // Layout of buffer after AES_CMAC_digest:
-  //          1 byte      1 byte   1 byte   2 bytes  16 bytes
-  //     [ UNLOCK_MAGIC | Length | Fob ID | Counter | MAC ]
-  //                               \------message------/ (first 8 bytes of MAC only)
-  UNLOCK_MSG_BUF msg_buf = {0};
+  // Send unlock request
+  message.magic = UNLOCK_MAGIC;
+  message.message_len = 0;
+  send_board_message(&message);
 
-  msg_buf.magic = UNLOCK_MAGIC;
-  msg_buf.length = sizeof(UNLOCK_PACKET);
-  msg_buf.payload.fob_id = my_id;
-  msg_buf.payload.counter = ++fob_state_ram->rolling_counter;
-  saveFobState(fob_state_ram);
-  AES_CMAC_digest(&aes_cmac_ctx, (uint8_t*)&msg_buf, offsetof(UNLOCK_MSG_BUF, payload.mac), msg_buf.payload.mac);
-  message.magic = msg_buf.magic;
-  message.message_len = msg_buf.length;
-  message.buffer = (uint8_t*)&msg_buf.payload;
+  // Receive nonce message
+  receive_board_message_by_type(&message, NONCE_MAGIC);
 
+  // Craft encrypted response
+  uint8_t MAC[16] = {0};
+  message.magic = RESPONSE_MAGIC;
+  message.message_len = 8;
+  message.buffer = MAC;
+  AES_CMAC_digest(&aes_cmac_ctx, buffer, NONCE_SIZE, MAC);
   send_board_message(&message);
 
   // Wait for ACK from car (with timeout)

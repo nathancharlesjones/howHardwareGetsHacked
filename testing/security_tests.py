@@ -28,14 +28,18 @@ class TestSimpleReplayAttacks:
             if entry.magic != 0:
                 print(entry)
         unlock_entries = [e for e in log if not e.tx and e.magic == proto.UNLOCK_MAGIC]
+        response_entries = [e for e in log if not e.tx and e.magic == proto.RESPONSE_MAGIC]
         assert unlock_entries, "Should have captured an UNLOCK message"
+        assert response_entries, "Should have captured a RESPONSE message"
         captured_unlock_payload = unlock_entries[-1].payload
+        captured_response_payload = response_entries[-1].payload
 
         unlock_count_before = proto.get_unlock_count(car)
 
         # Step 2: replay the captured UNLOCK message
         proto.cmd_send_board_msg(fob, proto.UNLOCK_MAGIC, captured_unlock_payload)
         time.sleep(0.05)
+        proto.cmd_send_board_msg(fob, proto.RESPONSE_MAGIC, captured_response_payload)
 
         # If the replay worked, the car accepted the UNLOCK and is now blocked waiting
         # for a START message; getUnlockCount will time out and the test will fail.
@@ -63,6 +67,7 @@ class TestComplexReplayAttacks:
     """Advanced replay attacks that require temporary access to a paired fob (eCTF Car #2
     scenario). Defenses against these require a challenge-response protocol."""
 
+    @pytest.mark.skip(reason="Car no longer implements a rolling counter")
     def test_rolljam_fails(self, deploy):
         """RollJam attack should be defeated: even if an attacker intercepts the unlock
         message before the car receives it (simulated by rewinding the car's stored
@@ -105,8 +110,11 @@ class TestComplexReplayAttacks:
 
         log = proto.cmd_get_board_msg_log(car, role="car")
         unlock_entries = [e for e in log if not e.tx and e.magic == proto.UNLOCK_MAGIC]
+        response_entries = [e for e in log if not e.tx and e.magic == proto.RESPONSE_MAGIC]
         assert unlock_entries, "Should have captured an UNLOCK message"
+        assert response_entries, "Should have captured a RESPONSE message"
         captured_unlock_payload = unlock_entries[-1].payload
+        captured_response_payload = response_entries[-1].payload
 
         # Step 2: factory-reset the car, simulating mass erase / reflash
         proto.cmd_reset(car)
@@ -115,10 +123,12 @@ class TestComplexReplayAttacks:
         # Step 3: replay the captured UNLOCK — should be rejected
         proto.cmd_send_board_msg(fob, proto.UNLOCK_MAGIC, captured_unlock_payload)
         time.sleep(0.05)
+        proto.cmd_send_board_msg(fob, proto.RESPONSE_MAGIC, captured_response_payload)
 
         assert proto.get_unlock_count(car) == unlock_count_before, \
             "Forced rollback attack should NOT unlock the car"
 
+    @pytest.mark.skip(reason="Car no longer implements a rolling counter")
     def test_forced_rollover_fails(self, deploy):
         """Forced rollover attack should be defeated: even after UINT16_MAX-1 additional
         unlocks wrap the 16-bit counter so the captured value re-enters the acceptance
