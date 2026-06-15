@@ -36,12 +36,20 @@ def main():
 
     # Find car ID and matching key, if present
     if args.car_id in secrets["keys"]:
-        key_array = secrets["keys"][args.car_id]
+        car_key_array = secrets["keys"][args.car_id]["car"]
+        if "prng" in secrets["keys"][args.car_id]:
+            prng_key_array = secrets["keys"][args.car_id]["prng"]
+        else:
+            prng_key_array = list(random.randbytes(16))
+            secrets["keys"][args.car_id]["prng"] = prng_key_array
 
     # Else make a new key (and save it)
     else:
-        key_array = list(random.randbytes(16))
-        secrets["keys"][args.car_id] = key_array
+        secrets["keys"][args.car_id] = {}
+        car_key_array = list(random.randbytes(16))
+        secrets["keys"][args.car_id]["car"] = car_key_array
+        prng_key_array = list(random.randbytes(16))
+        secrets["keys"][args.car_id]["prng"] = prng_key_array
 
         # Save the new key
         args.secrets_file.parent.mkdir(parents=True, exist_ok=True)
@@ -53,10 +61,14 @@ def main():
         fp.write("#ifndef __CAR_SECRETS__\n")
         fp.write("#define __CAR_SECRETS__\n\n")
         fp.write(f'#define CAR_ID "{args.car_id}"\n\n')
-        fp.write('#define KEY {')
+        fp.write('#define CAR_KEY {')
         for i in range(15):
-            fp.write(f'{key_array[i]}, ')
-        fp.write(f'{key_array[15]}}}\n')
+            fp.write(f'{car_key_array[i]}, ')
+        fp.write(f'{car_key_array[15]}}}\n')
+        fp.write('#define PRNG_KEY {')
+        for i in range(15):
+            fp.write(f'{prng_key_array[i]}, ')
+        fp.write(f'{prng_key_array[15]}}}\n')
         fp.write("#endif\n")
 
 

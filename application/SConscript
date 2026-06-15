@@ -7,8 +7,10 @@ sources = [
     'source/car.c' if env["role"] == "car" else 'source/fob.c',
     'source/messages.c',
     'source/host_msg_helpers.c',
-    'source/rand.c'
 ]
+
+if env["role"] == "car":
+    sources.append('source/rand.c')
 
 # Build objects only (not a program)
 objects = local_env.Object(sources)

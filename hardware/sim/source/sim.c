@@ -7,6 +7,7 @@
 #include <unistd.h>             // For getcwd, access
 #include <string.h>             // For strncpy, memcpy
 #include <signal.h>             // For signal, SIGTERM, SIGINT
+#include <time.h>               // For time (to seed PRNG)
 
 #include "platform.h"
 #include "uart.h"
@@ -141,9 +142,13 @@ void save_flash(const void* src, size_t size)
     if(size != written) exit(EXIT_FAILURE);
 }
 
-uint32_t getPrngSeed(void)
+void getPrngSeed(uint8_t* dest)
 {
-    return 42;
+    unsigned time_val = time(NULL);
+    memcpy(dest, &time_val, sizeof(unsigned));
+
+    unsigned pid_val = getpid();
+    memcpy(dest+4, &pid_val, sizeof(unsigned));
 }
 
 void __attribute__((weak)) initThread(int argc, char ** argv)

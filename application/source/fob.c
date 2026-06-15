@@ -50,7 +50,7 @@ static struct AES_ctx cmac_ctx;
 /* AES-CMAC context storing the AES callback pointer */
 static struct AES_CMAC_ctx aes_cmac_ctx;
 
-void aes_cmac_encrypt(uint8_t* data) {
+static void aes_cmac_encrypt(uint8_t* data) {
   AES_ECB_encrypt(&cmac_ctx, data);
 }
 
@@ -95,10 +95,10 @@ int main(int argc, char **argv)
   initHardware_fob(argc, argv);
 
   /* expand the key into AES round keys once; reused for every CMAC call */
-  const uint8_t aes_key[16] = KEY;
-  AES_init_ctx(&cmac_ctx, aes_key);
+  const uint8_t car_key[16] = CAR_KEY;
+  AES_init_ctx(&cmac_ctx, car_key);
   /* provide the CMAC library with AES encryption callback function that will perform the actual AES encryption */
-  AES_CMAC_init_ctx(&aes_cmac_ctx, &aes_cmac_encrypt);
+  AES_CMAC_init_ctx(&aes_cmac_ctx, (void*)&aes_cmac_encrypt);
 
   FOB_FLASH_DATA fob_state_ram = {0};
   loadFobState(&fob_state_ram);

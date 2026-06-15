@@ -42,7 +42,7 @@ static struct AES_ctx cmac_ctx;
 /* AES-CMAC context storing the AES callback pointer */
 static struct AES_CMAC_ctx aes_cmac_ctx;
 
-void aes_cmac_encrypt(uint8_t* data) {
+static void aes_cmac_encrypt(uint8_t* data) {
   AES_ECB_encrypt(&cmac_ctx, data);
 }
 
@@ -54,7 +54,7 @@ void sendAckFailure(void);
 void processHostCommand(CAR_FLASH_DATA *car_state_ram, const char *cmd);
 
 // Declare const variables
-const uint8_t key[16] = KEY;
+const uint8_t car_key[16] = CAR_KEY;
 const char car_id[11] = CAR_ID;
 
 // State variables
@@ -72,12 +72,9 @@ int main(int argc, char **argv)
   initHardware_car(argc, argv);
 
   /* expand the key into AES round keys once; reused for every CMAC call */
-  const uint8_t aes_key[16] = KEY;
-  AES_init_ctx(&cmac_ctx, aes_key);
+  AES_init_ctx(&cmac_ctx, car_key);
   /* provide the CMAC library with AES encryption callback function that will perform the actual AES encryption */
-  AES_CMAC_init_ctx(&aes_cmac_ctx, &aes_cmac_encrypt);
-
-  seed(getPrngSeed());
+  AES_CMAC_init_ctx(&aes_cmac_ctx, (void*)&aes_cmac_encrypt);
 
   CAR_FLASH_DATA car_state_ram = {0};
   loadCarState(&car_state_ram);

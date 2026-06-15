@@ -63,6 +63,7 @@ class TestSimpleReplayAttacks:
         assert proto.is_locked(car_b), "Cross-car attack should NOT succeed"
 
 @pytest.mark.car2
+@pytest.mark.car3
 class TestComplexReplayAttacks:
     """Advanced replay attacks that require temporary access to a paired fob (eCTF Car #2
     scenario). Defenses against these require a challenge-response protocol."""
