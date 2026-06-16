@@ -148,7 +148,7 @@ void getPrngSeed(uint8_t* dest)
     memcpy(dest, &time_val, sizeof(unsigned));
 
     unsigned pid_val = getpid();
-    memcpy(dest+4, &pid_val, sizeof(unsigned));
+    memcpy(dest+sizeof(unsigned), &pid_val, sizeof(unsigned));
 }
 
 void __attribute__((weak)) initThread(int argc, char ** argv)

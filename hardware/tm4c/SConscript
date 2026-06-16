@@ -26,6 +26,9 @@ sources = [
     'libraries/tivaware/startup_tm4c123gh6pm_baremetal.c'
 ]
 
+if tm4c_env["role"] == "car":
+    sources.append('source/prng_tm4c.c')
+
 import platform
 
 # Platform-specific linker flags (using ld directly)

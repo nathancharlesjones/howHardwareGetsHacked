@@ -3,6 +3,6 @@
 
 #include <stdint.h>
 
-uint32_t rand(void);
+uint32_t prng_rand(void);
 
 #endif // RAND_H

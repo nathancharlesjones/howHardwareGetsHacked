@@ -22,7 +22,8 @@ stm32_env.Append(CPPPATH=[
 ])
 
 # STM32 sources
-sources = Glob('Core/Src/*.c')
+sources = [f for f in Glob('Core/Src/*.c')
+           if stm32_env["role"] == "car" or f.name != 'prng_stm32.c']
 sources.append('startup_stm32f411xe.s')
 
 import platform

@@ -39,9 +39,12 @@ def main():
         car_key_array = secrets["keys"][args.car_id]["car"]
         if "prng" in secrets["keys"][args.car_id]:
             prng_key_array = secrets["keys"][args.car_id]["prng"]
+            seed_key_array = secrets["keys"][args.car_id]["seed"]
         else:
             prng_key_array = list(random.randbytes(16))
             secrets["keys"][args.car_id]["prng"] = prng_key_array
+            seed_key_array = list(random.randbytes(16))
+            secrets["keys"][args.car_id]["seed"] = seed_key_array
 
     # Else make a new key (and save it)
     else:
@@ -50,6 +53,8 @@ def main():
         secrets["keys"][args.car_id]["car"] = car_key_array
         prng_key_array = list(random.randbytes(16))
         secrets["keys"][args.car_id]["prng"] = prng_key_array
+        seed_key_array = list(random.randbytes(16))
+        secrets["keys"][args.car_id]["seed"] = seed_key_array
 
         # Save the new key
         args.secrets_file.parent.mkdir(parents=True, exist_ok=True)
@@ -69,6 +74,10 @@ def main():
         for i in range(15):
             fp.write(f'{prng_key_array[i]}, ')
         fp.write(f'{prng_key_array[15]}}}\n')
+        fp.write('#define SEED_KEY {')
+        for i in range(15):
+            fp.write(f'{seed_key_array[i]}, ')
+        fp.write(f'{seed_key_array[15]}}}\n')
         fp.write("#endif\n")
 
 

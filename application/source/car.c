@@ -243,7 +243,7 @@ void unlockCar(CAR_FLASH_DATA* car_state_ram)
   // Generate and transmit nonce
   message.magic = NONCE_MAGIC;
   message.message_len = NONCE_SIZE;
-  uint32_t nonce = rand();
+  uint32_t nonce = prng_rand();
   message.buffer = (uint8_t*)&nonce;
   send_board_message(&message);
 

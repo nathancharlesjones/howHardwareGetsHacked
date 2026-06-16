@@ -19,7 +19,7 @@ static void aes_cmac_encrypt(uint8_t* data) {
   AES_ECB_encrypt(&cmac_ctx, data);
 }
 
-uint32_t rand(void)
+uint32_t prng_rand(void)
 {
 	static bool seeded = false;
 	if(!seeded)
