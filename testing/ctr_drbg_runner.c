@@ -6,8 +6,9 @@
  *   stdout: two lines, each 128 hex chars = 64 bytes ReturnedBits
  *           (matching CAVS ReturnedBitsLen = 512)
  *
- * If a second line is present, ctr_drbg_reseed() is called between the two
- * Generate calls, matching the NIST CAVS "no prediction resistance" protocol.
+ * If a second line is present, ctr_drbg_reseed() is called before the first
+ * Generate call, matching the NIST CAVS "no prediction resistance" protocol
+ * (Instantiate → Reseed → Generate → Generate, compare second output).
  *
  * Exit 0 on success, non-zero on error. */
 
@@ -65,14 +66,9 @@ int main(void)
     ctr_drbg_init(&ctx, seed);
     memset(seed, 0, sizeof(seed));
 
-    /* First Generate(512 bits). */
-    if (ctr_drbg_generate_bytes(&ctx, gen1, sizeof(gen1)) != 0) {
-        fputs("error: generate 1 failed\n", stderr);
-        return 1;
-    }
-
-    /* Optional reseed: if a second line of input is present, use it.
-     * This matches the NIST CAVS "no prediction resistance" protocol. */
+    /* Optional reseed: if a second line of input is present, apply it before
+     * any Generate call.  This matches the NIST CAVS "no prediction
+     * resistance" protocol: Instantiate → Reseed → Generate → Generate. */
     if (fgets(line, sizeof(line), stdin)) {
         uint8_t reseed[32];
         line[strcspn(line, "\r\n")] = '\0';
@@ -80,6 +76,12 @@ int main(void)
             ctr_drbg_reseed(&ctx, reseed);
             memset(reseed, 0, sizeof(reseed));
         }
+    }
+
+    /* First Generate(512 bits). */
+    if (ctr_drbg_generate_bytes(&ctx, gen1, sizeof(gen1)) != 0) {
+        fputs("error: generate 1 failed\n", stderr);
+        return 1;
     }
 
     /* Second Generate(512 bits). */

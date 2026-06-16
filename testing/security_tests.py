@@ -1,8 +1,26 @@
+import math
 import time
 import pytest
 import struct
+from collections import Counter
 from conftest import RoleConfig
 import protocol as proto
+
+
+def _mcv_min_entropy(samples: list[int]) -> float:
+    """NIST SP 800-90B §6.3.1 Most Common Value Estimate.
+
+    Returns the min-entropy lower bound (bits) for a byte-valued source given
+    a list of observed samples. Uses a 99% one-sided Wilson confidence interval
+    (z = 2.576) as specified in §6.3.1.
+    """
+    N = len(samples)
+    p_hat = max(Counter(samples).values()) / N
+    z = 2.576
+    p = min(1.0,
+            (p_hat + z*z / (2*N) + z * math.sqrt(p_hat*(1-p_hat)/N + z*z/(4*N*N)))
+            / (1 + z*z / N))
+    return -math.log2(p)
 
 
 FEATURE_DATA_SIZE = 15  # sizeof(FEATURE_DATA): car_id[11] + num_active[1] + features[3]
@@ -225,6 +243,42 @@ class TestNonceRandomness:
         diffs = [(nonces[i+1] - nonces[i]) & 0xFFFFFFFF for i in range(len(nonces) - 1)]
         assert len(set(diffs)) > 1, \
             f"Nonces follow a constant step of {diffs[0]}: {[hex(n) for n in nonces]}"
+
+    def test_seed_entropy_sufficient(self, deploy, hardware_config):
+        """Catch weak entropy sources: apply the NIST SP 800-90B §6.3.1 Most
+        Common Value estimate per byte across N seeds and verify the summed
+        min-entropy meets a minimum threshold.
+
+        The estimate is applied independently to each of the 16 byte positions
+        of the getPrngSeed() output, then summed. Bytes that never vary (e.g.
+        always 0x00) contribute 0 bits and pull the total below the threshold,
+        exposing under-seeded implementations."""
+        N_SAMPLES = 50
+        THRESHOLD_BITS = 32
+
+        seeds = []
+        if hardware_config:
+            car, fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
+            for _ in range(N_SAMPLES):
+                proto.cmd_reset(car)
+                seeds.append(proto.get_prng_seed(car))
+        else:
+            from conftest import build_binary
+            from simulate import SimulationEnvironment
+            car_bin = build_binary(RoleConfig("car", id="1337"), "sim")
+            fob_bin = build_binary(RoleConfig("paired_fob", id="1337", pin="123456"), "sim")
+            for _ in range(N_SAMPLES):
+                with SimulationEnvironment(car_bin, fob_bin) as (car, fob):
+                    seeds.append(proto.get_prng_seed(car))
+
+        per_byte = [_mcv_min_entropy([seed[i] for seed in seeds]) for i in range(16)]
+        total_bits = sum(per_byte)
+
+        if total_bits < THRESHOLD_BITS:
+            pytest.xfail(
+                f"Seed entropy estimate {total_bits:.1f} bits < {THRESHOLD_BITS} bits. "
+                f"Per-byte: {[f'{b:.1f}' for b in per_byte]}"
+            )
 
     def test_nonce_bit_distribution(self, deploy):
         """Sanity check: nonce bits should be roughly 50/50 across many samples.

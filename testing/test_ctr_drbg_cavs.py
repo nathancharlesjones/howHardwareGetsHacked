@@ -243,12 +243,19 @@ def _parse_cavs_rsp(path: str):
     """
     Parse a CAVS .rsp file and yield dicts for each vector in the
     [AES-128 no df] / [PredictionResistance = False] section with
-    AdditionalInputLen = 0.
+    PersonalizationStringLen = 0 and AdditionalInputLen = 0.
 
-    Yields: {'count': int, 'entropy': str, 'returned_bits': str}
+    There are 16 [AES-128 no df] sub-sections in the NIST file, varying
+    PersonalizationStringLen (0 or 256) and AdditionalInputLen (0 or 256).
+    We only run the no-personalization, no-additional-input sub-sections
+    because our ctr_drbg_init does not accept a personalization string.
+
+    Yields: {'count': int, 'entropy': str, 'reseed_entropy': str,
+             'returned_bits': str}
     """
     in_target_section = False
     additional_input_len = None
+    personalization_string_len = None
     current = {}
 
     with open(path) as f:
@@ -259,6 +266,7 @@ def _parse_cavs_rsp(path: str):
             if line == '[AES-128 no df]':
                 in_target_section = True
                 additional_input_len = None
+                personalization_string_len = None
                 current = {}
                 continue
 
@@ -271,6 +279,9 @@ def _parse_cavs_rsp(path: str):
                     m = re.match(r'\[AdditionalInputLen\s*=\s*(\d+)\]', line)
                     if m:
                         additional_input_len = int(m.group(1))
+                    m = re.match(r'\[PersonalizationStringLen\s*=\s*(\d+)\]', line)
+                    if m:
+                        personalization_string_len = int(m.group(1))
                     continue
                 else:
                     # A new algorithm section; stop.
@@ -280,8 +291,11 @@ def _parse_cavs_rsp(path: str):
             if not in_target_section:
                 continue
 
-            # We only want vectors with no additional input.
+            # Skip sections that use personalization strings or additional input —
+            # our ctr_drbg_init does not accept a personalization string.
             if additional_input_len is not None and additional_input_len != 0:
+                continue
+            if personalization_string_len is not None and personalization_string_len != 0:
                 continue
 
             if line.startswith('COUNT'):
@@ -334,8 +348,8 @@ def test_nist_cavs_python_reference(cavs_vectors):
     for v in cavs_vectors:
         seed = bytes.fromhex(v['entropy'])
         K, V = ref_init(seed)
+        K, V = ref_reseed(K, V, bytes.fromhex(v['reseed_entropy']))  # reseed before any Generate
         _gen1, K, V = ref_generate(K, V, 64)              # first call — result discarded
-        K, V = ref_reseed(K, V, bytes.fromhex(v['reseed_entropy']))  # reseed per CAVS protocol
         gen2,  K, V = ref_generate(K, V, 64)              # second call — compare this
         got = gen2.hex().upper()
         exp = v['returned_bits']

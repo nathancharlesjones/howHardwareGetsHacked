@@ -24,6 +24,7 @@ Test Commands (TEST_BUILD only):
     Car:
         isLocked                  - Returns OK: 1 or OK: 0
         getUnlockCount            - Returns OK: <n> (resets on power cycle)
+        getPrngSeed               - Returns OK: <32 hex chars> (16 bytes from getPrngSeed())
 """
 
 import time
@@ -497,3 +498,16 @@ def get_car_flash_data(device, timeout: float = 2.0) -> CarFlashData:
     if not resp.success:
         raise RuntimeError(f"getFlashData failed: {resp.error}")
     return CarFlashData.from_hex(resp.value)
+
+
+def cmd_get_prng_seed(device, timeout: float = 2.0) -> Response:
+    """Get 16 bytes of seed material from getPrngSeed() as a 32-char hex string."""
+    return parse_response(device.send_recv("getPrngSeed", timeout=timeout))
+
+
+def get_prng_seed(device, timeout: float = 2.0) -> bytes:
+    """Convenience: get getPrngSeed() output as bytes."""
+    resp = cmd_get_prng_seed(device, timeout=timeout)
+    if not resp.success:
+        raise RuntimeError(f"getPrngSeed failed: {resp.error}")
+    return bytes.fromhex(resp.value)

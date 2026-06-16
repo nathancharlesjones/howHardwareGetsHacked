@@ -220,6 +220,17 @@ void processHostCommand(CAR_FLASH_DATA *car_state_ram, const char *cmd)
     sendOK(NULL);
     return;
   }
+
+  // Test command: getPrngSeed
+  if (strcmp(cmd, "getPrngSeed") == 0)
+  {
+    uint8_t buf[16] = {0};
+    getPrngSeed(buf);
+    char hex[33];
+    bytesToHex(buf, sizeof(buf), hex);
+    sendOK(hex);
+    return;
+  }
 #endif
 
   // Unknown command
