@@ -67,7 +67,6 @@ static void initCar(CAR_FLASH_DATA* car_state_ram)
 {
   uint8_t seed[32] = {0};
   getPrngSeed(seed);
-  getPrngSeed(seed+16);
   ctr_drbg_init(&prng_ctx, seed);
 
   loadCarState(car_state_ram);
@@ -265,7 +264,7 @@ void unlockCar(CAR_FLASH_DATA* car_state_ram)
   message.magic = NONCE_MAGIC;
   message.message_len = NONCE_SIZE;
   uint32_t nonce;
-  ctr_drbg_generate(&prng_ctx, &nonce);
+  while( ctr_drbg_generate(&prng_ctx, &nonce) != 0 );
   message.buffer = (uint8_t*)&nonce;
   send_board_message(&message);
 

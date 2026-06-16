@@ -71,6 +71,7 @@ static void seed_encrypt(uint8_t *data) { AES_ECB_encrypt(&s_seed_aes, data); }
 void getPrngSeed(uint8_t *dest)
 {
     struct __attribute__((packed)) {
+        uint8_t counter;
         uint16_t vcc[8];
         uint16_t temp[8];
         uint32_t jitter[8];
@@ -90,5 +91,8 @@ void getPrngSeed(uint8_t *dest)
     struct AES_CMAC_ctx cmac;
     AES_init_ctx(&s_seed_aes, key);
     AES_CMAC_init_ctx(&cmac, (void *)seed_encrypt);
+    s.counter = 1;
     AES_CMAC_digest(&cmac, (uint8_t *)&s, sizeof(s), dest);
+    s.counter = 2;
+    AES_CMAC_digest(&cmac, (uint8_t *)&s, sizeof(s), dest+16);
 }
