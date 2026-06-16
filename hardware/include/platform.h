@@ -18,5 +18,6 @@ void loadCarState(CAR_FLASH_DATA *car_data);
 void saveCarState(const CAR_FLASH_DATA *car_data);
 void setLED(led_color_t color);
 bool buttonPressed(void);
+void getPrngSeed(uint8_t * dest);
 
 #endif // PLATFORM_H

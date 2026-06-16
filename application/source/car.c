@@ -27,7 +27,7 @@
 #include "host_msg_helpers.h"
 #include "aes_cmac.h"
 #include "aes.h"
-#include "rand.h"
+#include "ctr_drbg.h"
 
 /*** Macros ***/
 #define MAX_CMD_LEN 1040
@@ -41,6 +41,8 @@ void unlockCar(CAR_FLASH_DATA* car_state_ram);
 static struct AES_ctx cmac_ctx;
 /* AES-CMAC context storing the AES callback pointer */
 static struct AES_CMAC_ctx aes_cmac_ctx;
+
+static ctr_drbg_ctx_t prng_ctx;
 
 static void aes_cmac_encrypt(uint8_t* data) {
   AES_ECB_encrypt(&cmac_ctx, data);
@@ -61,6 +63,24 @@ const char car_id[11] = CAR_ID;
 static bool carLocked = true;
 static uint32_t unlockCount = 0;
 
+static void initCar(CAR_FLASH_DATA* car_state_ram)
+{
+  uint8_t seed[32] = {0};
+  getPrngSeed(seed);
+  getPrngSeed(seed+16);
+  ctr_drbg_init(&prng_ctx, seed);
+
+  loadCarState(car_state_ram);
+  if(FLASH_UNINITIALIZED == *(uint8_t*)(car_state_ram))
+  {
+    memset(car_state_ram, 0, sizeof(CAR_FLASH_DATA));
+    saveCarState(car_state_ram);
+  }
+
+  carLocked = true;
+  unlockCount = 0;
+}
+
 /**
  * @brief Main function for the car example
  *
@@ -77,16 +97,7 @@ int main(int argc, char **argv)
   AES_CMAC_init_ctx(&aes_cmac_ctx, (void*)&aes_cmac_encrypt);
 
   CAR_FLASH_DATA car_state_ram = {0};
-  loadCarState(&car_state_ram);
-  if(FLASH_UNINITIALIZED == *(uint8_t*)(&car_state_ram))
-  {
-    memset(&car_state_ram, 0, sizeof(CAR_FLASH_DATA));
-    saveCarState(&car_state_ram);
-  }
-
-  // Reset state on startup
-  carLocked = true;
-  unlockCount = 0;
+  initCar(&car_state_ram);
 
   // Signal ready to host
   uart_write(HOST_UART, (uint8_t *)"OK: started\n", 12);
@@ -203,10 +214,9 @@ void processHostCommand(CAR_FLASH_DATA *car_state_ram, const char *cmd)
   // Test command: reset (factory reset)
   if (strcmp(cmd, "reset") == 0)
   {
-    carLocked = true;
-    unlockCount = 0;
     memset(car_state_ram, 0, sizeof(CAR_FLASH_DATA));
     saveCarState(car_state_ram);
+    initCar(car_state_ram);
     sendOK(NULL);
     return;
   }
@@ -243,7 +253,8 @@ void unlockCar(CAR_FLASH_DATA* car_state_ram)
   // Generate and transmit nonce
   message.magic = NONCE_MAGIC;
   message.message_len = NONCE_SIZE;
-  uint32_t nonce = prng_rand();
+  uint32_t nonce;
+  ctr_drbg_generate(&prng_ctx, &nonce);
   message.buffer = (uint8_t*)&nonce;
   send_board_message(&message);
 

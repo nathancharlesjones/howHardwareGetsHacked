@@ -10,7 +10,7 @@ sources = [
 ]
 
 if env["role"] == "car":
-    sources.append('source/rand.c')
+    sources.append('source/ctr_drbg.c')
 
 # Build objects only (not a program)
 objects = local_env.Object(sources)

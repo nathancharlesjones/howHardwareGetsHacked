@@ -161,3 +161,88 @@ class TestComplexReplayAttacks:
 
         assert proto.get_unlock_count(car) == unlock_count_before, \
             "Forced rollover attack should NOT unlock the car"
+
+
+@pytest.mark.car2
+@pytest.mark.car3
+class TestNonceRandomness:
+    """Tests that the challenge nonce PRNG is unpredictable.
+
+    A weak PRNG (e.g. a fixed seed or a simple counter) lets an attacker who
+    has observed past nonces predict future ones, defeating the challenge-response
+    protocol entirely. These tests are designed to catch naive implementations.
+    """
+
+    def _capture_nonce(self, car, fob) -> bytes:
+        """Perform one unlock and return the 4-byte nonce the car issued."""
+        resp = proto.cmd_btn_press(fob)
+        assert resp.success, f"Unlock failed: {resp.error}"
+        log = proto.cmd_get_board_msg_log(car, role="car")
+        entries = [e for e in log if e.tx and e.magic == proto.NONCE_MAGIC]
+        assert entries, "No NONCE message found in board log"
+        return bytes(entries[-1].payload[:4])
+
+    def test_nonces_differ_across_reboots(self, deploy, hardware_config):
+        """Catch fixed seeds: a PRNG seeded with a constant value produces the
+        same nonce sequence on every boot, letting an attacker who observed one
+        session predict every future session without knowing any secret.
+
+        On hardware, cmd_reset() re-seeds the PRNG via getPrngSeed() (hardware
+        entropy). In simulation, cmd_reset() re-seeds using time() and getpid(),
+        but getpid() doesn't change within a process, so we use SimulationEnvironment
+        to get a genuine new process — and a new PID — for each iteration instead."""
+        N_BOOTS = 10
+        nonces = []
+
+        if hardware_config:
+            car, fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
+            for _ in range(N_BOOTS):
+                proto.cmd_reset(car)
+                nonces.append(self._capture_nonce(car, fob))
+        else:
+            from conftest import build_binary
+            from simulate import SimulationEnvironment
+            car_bin = build_binary(RoleConfig("car", id="1337"), "sim")
+            fob_bin = build_binary(RoleConfig("paired_fob", id="1337", pin="123456"), "sim")
+            for _ in range(N_BOOTS):
+                with SimulationEnvironment(car_bin, fob_bin) as (car, fob):
+                    nonces.append(self._capture_nonce(car, fob))
+
+        assert len(set(nonces)) == N_BOOTS, \
+            f"PRNG repeated a nonce across reboots: {[n.hex() for n in nonces]}"
+
+    def test_nonces_not_sequential(self, deploy):
+        """Catch counter-based PRNGs: state++ produces nonces with a constant
+        difference of 1 between successive unlocks. An attacker who observes
+        one nonce can immediately predict the next."""
+        N_UNLOCKS = 8
+        car, fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
+
+        nonces = []
+        for _ in range(N_UNLOCKS):
+            nonces.append(int.from_bytes(self._capture_nonce(car, fob), 'little'))
+
+        diffs = [(nonces[i+1] - nonces[i]) & 0xFFFFFFFF for i in range(len(nonces) - 1)]
+        assert len(set(diffs)) > 1, \
+            f"Nonces follow a constant step of {diffs[0]}: {[hex(n) for n in nonces]}"
+
+    def test_nonce_bit_distribution(self, deploy):
+        """Sanity check: nonce bits should be roughly 50/50 across many samples.
+
+        Note: this test alone is not a meaningful security gate — a sequential
+        counter (state++) also produces balanced bits and would pass. Use this
+        alongside test_nonces_not_sequential, not as a substitute for it."""
+        N_UNLOCKS = 32
+        car, fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
+
+        ones = 0
+        total = 0
+        for _ in range(N_UNLOCKS):
+            for byte in self._capture_nonce(car, fob):
+                for bit in range(8):
+                    ones += (byte >> bit) & 1
+                    total += 1
+
+        ratio = ones / total
+        assert 0.35 < ratio < 0.65, \
+            f"Nonce bits strongly skewed: {ratio:.1%} ones (expected ~50%)"

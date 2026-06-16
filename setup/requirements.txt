@@ -14,3 +14,6 @@ PyVirtualSerialPorts==2.0.0
 
 # GDB GUI debugger
 gdbgui==0.15.2.0
+
+# Cryptographic library, used for testing CTR-DRBG implementation
+cryptography==46.0.5
