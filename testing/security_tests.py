@@ -200,31 +200,17 @@ class TestNonceRandomness:
         assert entries, "No NONCE message found in board log"
         return bytes(entries[-1].payload[:4])
 
-    def test_nonces_differ_across_reboots(self, deploy, hardware_config):
+    def test_nonces_differ_across_reboots(self, deploy):
         """Catch fixed seeds: a PRNG seeded with a constant value produces the
         same nonce sequence on every boot, letting an attacker who observed one
-        session predict every future session without knowing any secret.
-
-        On hardware, cmd_reset() re-seeds the PRNG via getPrngSeed() (hardware
-        entropy). In simulation, cmd_reset() re-seeds using time() and getpid(),
-        but getpid() doesn't change within a process, so we use SimulationEnvironment
-        to get a genuine new process — and a new PID — for each iteration instead."""
+        session predict every future session without knowing any secret."""
         N_BOOTS = 10
-        nonces = []
+        car, fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
 
-        if hardware_config:
-            car, fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
-            for _ in range(N_BOOTS):
-                proto.cmd_reset(car)
-                nonces.append(self._capture_nonce(car, fob))
-        else:
-            from conftest import build_binary
-            from simulate import SimulationEnvironment
-            car_bin = build_binary(RoleConfig("car", id="1337"), "sim")
-            fob_bin = build_binary(RoleConfig("paired_fob", id="1337", pin="123456"), "sim")
-            for _ in range(N_BOOTS):
-                with SimulationEnvironment(car_bin, fob_bin) as (car, fob):
-                    nonces.append(self._capture_nonce(car, fob))
+        nonces = []
+        for _ in range(N_BOOTS):
+            proto.cmd_reset(car)
+            nonces.append(self._capture_nonce(car, fob))
 
         assert len(set(nonces)) == N_BOOTS, \
             f"PRNG repeated a nonce across reboots: {[n.hex() for n in nonces]}"
@@ -244,7 +230,7 @@ class TestNonceRandomness:
         assert len(set(diffs)) > 1, \
             f"Nonces follow a constant step of {diffs[0]}: {[hex(n) for n in nonces]}"
 
-    def test_seed_entropy_sufficient(self, deploy, hardware_config):
+    def test_seed_entropy_sufficient(self, request, deploy):
         """Catch weak entropy sources: apply the NIST SP 800-90B §6.3.1 Most
         Common Value estimate per byte across N seeds and verify the summed
         min-entropy meets a minimum threshold.
@@ -252,27 +238,52 @@ class TestNonceRandomness:
         The estimate is applied independently to each of the 16 byte positions
         of the getPrngSeed() output, then summed. Bytes that never vary (e.g.
         always 0x00) contribute 0 bits and pull the total below the threshold,
-        exposing under-seeded implementations."""
-        N_SAMPLES = 50
-        THRESHOLD_BITS = 32
+        exposing under-seeded implementations.
+
+        N_SAMPLES is configurable via --n-samples. The MCV lower bound saturates
+        at roughly log2(N) bits/byte, so interpretation depends on sample count:
+          N~50   → max certifiable ~48 bits; detects constant/broken bytes only
+          N~500  → max certifiable ~94 bits; distinguishes 5-bit from 3-bit sources
+          N~5000 → max certifiable ~125 bits; meaningful estimate for 8-bit sources"""
+        N_SAMPLES = request.config.getoption("--n-samples")
+        THRESHOLD_BITS = 32  # sanity floor: catches constant bytes at any N
+
+        car, fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
 
         seeds = []
-        if hardware_config:
-            car, fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
-            for _ in range(N_SAMPLES):
-                proto.cmd_reset(car)
-                seeds.append(proto.get_prng_seed(car))
-        else:
-            from conftest import build_binary
-            from simulate import SimulationEnvironment
-            car_bin = build_binary(RoleConfig("car", id="1337"), "sim")
-            fob_bin = build_binary(RoleConfig("paired_fob", id="1337", pin="123456"), "sim")
-            for _ in range(N_SAMPLES):
-                with SimulationEnvironment(car_bin, fob_bin) as (car, fob):
-                    seeds.append(proto.get_prng_seed(car))
+        for _ in range(N_SAMPLES):
+            proto.cmd_reset(car)
+            seeds.append(proto.get_prng_seed(car))
 
         per_byte = [_mcv_min_entropy([seed[i] for seed in seeds]) for i in range(16)]
         total_bits = sum(per_byte)
+
+        # Theoretical maximum MCV total for a truly uniform source at this N:
+        # when max_count=1 (no repeated value), p_hat=1/N, apply Wilson CI.
+        z = 2.576
+        p_hat_best = 1.0 / N_SAMPLES
+        p_best = min(1.0,
+                     (p_hat_best + z*z / (2*N_SAMPLES) + z * math.sqrt(p_hat_best*(1-p_hat_best)/N_SAMPLES + z*z/(4*N_SAMPLES*N_SAMPLES)))
+                     / (1 + z*z / N_SAMPLES))
+        max_possible = -math.log2(p_best) * 16
+
+        pct = total_bits / max_possible * 100
+        if pct >= 70:
+            quality = "GOOD  (source looks uniform)"
+        elif pct >= 40:
+            quality = "OK    (some byte positions have limited variation)"
+        else:
+            quality = "WEAK  (significant entropy deficit)"
+
+        print(
+            f"\nSeed entropy estimate:  {total_bits:.1f} bits  "
+            f"({pct:.0f}% of {max_possible:.0f}-bit ceiling at N={N_SAMPLES})  [{quality}]"
+        )
+        print(f"Per-byte: {[f'{b:.1f}' for b in per_byte]}")
+        print(
+            f"Note: MCV ceiling grows with N. "
+            f"Run with --n-samples=5000 for a meaningful estimate of an 8-bit/byte source."
+        )
 
         if total_bits < THRESHOLD_BITS:
             pytest.xfail(

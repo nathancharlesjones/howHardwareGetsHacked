@@ -94,6 +94,15 @@ def pytest_addoption(parser):
         default=None,
         help="Hardware mode: board@sn1,sn2 (e.g., stm32@066DFF555051897267073723,0670FF494849897267154049)"
     )
+    parser.addoption(
+        "--n-samples",
+        type=int,
+        default=50,
+        help="Number of seed samples for test_seed_entropy_sufficient (default: 50). "
+             "Larger values give a tighter lower-bound estimate but require more resets. "
+             "~200 needed to distinguish 5-bit from 3-bit sources; "
+             "~5000 for a meaningful estimate of an 8-bit/byte source."
+    )
 
 
 @pytest.fixture(scope="session")

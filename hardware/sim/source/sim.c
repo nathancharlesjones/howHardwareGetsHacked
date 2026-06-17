@@ -142,17 +142,23 @@ void save_flash(const void* src, size_t size)
     if(size != written) exit(EXIT_FAILURE);
 }
 
-void getPrngSeed(uint8_t* dest)
+#if defined(_WIN32)
+#  include <bcrypt.h>
+#elif defined(__APPLE__)
+#  include <sys/random.h>   /* getentropy */
+#else
+#  include <sys/random.h>   /* getrandom */
+#endif
+
+void getPrngSeed(uint8_t *dest)
 {
-    unsigned time_val = time(NULL);
-    memcpy(dest, &time_val, sizeof(unsigned));
-
-    unsigned pid_val = getpid();
-    memcpy(dest+sizeof(unsigned), &pid_val, sizeof(unsigned));
-
-    static unsigned counter = 0;
-    memcpy(dest+sizeof(unsigned)+sizeof(unsigned), &counter, sizeof(unsigned));
-    counter++;
+#if defined(_WIN32)
+  BCryptGenRandom(NULL, dest, 32, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+#elif defined(__APPLE__)
+  getentropy(dest, 32);
+#else
+  getrandom(dest, 32, 0);
+#endif
 }
 
 void __attribute__((weak)) initThread(int argc, char ** argv)
