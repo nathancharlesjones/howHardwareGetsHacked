@@ -27,7 +27,7 @@ rectangle REPLAY [
 
 rectangle CR [
     ️<:shield:> Challenge-response with nonce
-    Commit: xxxxxx
+    Commit: 8c758ac
 ]
 
 BASE --> DBG : <:crossed_swords:> Read out flags from memory\nover unlocked debug port\nFlags captured: all
