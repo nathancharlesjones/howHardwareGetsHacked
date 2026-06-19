@@ -41,6 +41,10 @@ With a paired fob and computer connected as shown below, sending `enable <BIN>\n
 
 #### Main flowchart
 
+![](https://img.plantuml.biz/plantuml/png/RP0n3eCm34NtdC9RuGhjKA0CR5GK3X0bHaI594fCgzw-1YenbCcM_lVpryyYoK3pD8fr4G4zIX80feUaGNNIKDMF5fIR9cdrDGKQq4BomPYo2-3iWrCOO-KYtJPJabvOGgjD_mFTfGbuSBnenKpaBFZ0a2CFlv14E7dgxEZKSwFlV1mZGcBTJjnYQqaI65pKULD2bpVj8JkWGlF29M795t_qTMwjm7im8_-YC6FAVJalCjQvl2y0)
+
+<details><summary>PlantUML code</summary>
+
 ```plantuml
 @startuml
 start
@@ -61,6 +65,7 @@ repeat while (true)
 stop
 @enduml
 ```
+</details>
 
 #### Flowchart for processHostCommand()
 
