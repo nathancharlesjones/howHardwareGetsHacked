@@ -69,6 +69,10 @@ stop
 
 #### Flowchart for processHostCommand()
 
+![](https://img.plantuml.biz/plantuml/png/VOv13eCm30JlVeN5oVa25Ied_X7AeaOA2OhDeR-leQUgKc_MxEx8erfiTcoPheFIolBO5Xu6xb3YdD7T0ziJXUK53SJSV_Y4Q4U3X9ipjReJieAbr40eIrg_N7jCxTTqqgdEVnozL9yqTezww-gC7ld7Rm00)
+
+<details><summary>PlantUML code</summary>
+
 ```plantuml
 @startuml
 start
@@ -86,8 +90,13 @@ endif
 stop
 @enduml
 ```
+</details>
 
 #### Flowchart for enableFeature()
+
+![](https://img.plantuml.biz/plantuml/png/bP2n2W8n38RtFaKsxmO7SLFK4qLm4zyWcXGBkPuqxN1lRw-2A8ASMqA-Bp_yZKOCCRLYoc2SXUg4BZ1jQeWtzb3vhZO06hkxOL66gcUj3Njojk1dlau89AFh5R37Y_2mZVPt6E2uLr1iURHqO8mfv22d4MmIUPa5_527Nz-cJoquXTbq_dSeIc2a7f3ehQTVmOij4TYdlZG5QV8bz_u0)
+
+<details><summary>PlantUML code</summary>
 
 ```plantuml
 @startuml
@@ -120,8 +129,13 @@ endif
 stop
 @enduml
 ```
+</details>
 
 #### Flowchart for pairFob()
+
+![](https://img.plantuml.biz/plantuml/png/SoWkIImgAStDuG8pk3BJ53G24ZEBKbFiDHLACbBp53JoyZMv51IAI_8Bk59pYbCLD2fJYpMvKlDICjF0oeDIazLJ508y_HHoWCfjRM5CCWo0Q2PAerKma5O8SFGCKl0DThVc0gjo08e1_G80)
+
+<details><summary>PlantUML code</summary>
 
 ```plantuml
 @startuml
@@ -142,8 +156,13 @@ endif
 stop
 @enduml
 ```
+</details>
 
 #### Flowchart for attemptUnlock()
+
+![](https://img.plantuml.biz/plantuml/png/FO_D2eCm48JlUOgzrHpw0lLGGmWzMAEuUYwYAmre51CBVVl67thQOTcP_IPnlbdyEWvi5ypq41MDMQYxS_1liX3PYJC0vwUPqU08eYyvpiXsfcSt31Dg_Snb2Xa-OdOhgINp8T2vbkhSoMcSLqyW55vb9cJ8j2tn-FIN2ejSutcz8OIGImT2fY-ifLI8VvhzES1Xn4gKrU4wq3RMWspdJO8EtNu0)
+
+<details><summary>PlantUML code</summary>
 
 ```plantuml
 @startuml
@@ -163,10 +182,15 @@ endif
 stop
 @enduml
 ```
+</details>
 
 ### Car
 
 #### Main flowchart
+
+![](https://img.plantuml.biz/plantuml/png/ROv12i8m50NtESNRcLn15xRMHNU5M0yGabyQR9EI_23Utc0t2kuUp6EO9hD9NDP5V8P8j95X0VW9KfCzEFJ3ROIDwsg2EolmJ07oHLdL5t3SKhIKSnypT_j9gbD559oVVaJEi44Ck0ojlkBUwl6FheGbsaTdqhTbhy9pzWj1SYgaQc_SH5DvZNy3)
+
+<details><summary>PlantUML code</summary>
 
 ```plantuml
 @startuml
@@ -182,8 +206,13 @@ repeat while (true)
 stop
 @enduml
 ```
+</details>
 
 #### Flowchart for unlockCar()
+
+![](https://img.plantuml.biz/plantuml/png/PP51Ri8m44Ntd69sJHPSe0Y1Qqo4WAIoatLbXKc9cjWeTf1w-quSJALsDPxl_-UDR82jythmOzyj0CAHwgl46jixGfMV2dw4iyfMavoXmK5x16DDZP3mKYvtyYrBmwr2Su6yoBbu1hZjRoFvcL1BVcOy2S7P7XbIgFSYLyzGsz3WENS1oi1w3UHz2Sqc1Nz50yatkfJCD4VqhOVHTBR-WgRJdwjP3jimVlnG5UT2gOSSgQfaiep81rGFSDWvwBMlh_z14TMWzkE0WUNcD7QENiFOsKZWjbdyLNyNshF3gP9YYaQhy_P6PKlzz1C_)
+
+<details><summary>PlantUML code</summary>
 
 ```plantuml
 @startuml
@@ -207,6 +236,7 @@ endif
 stop
 @enduml
 ```
+</details>
 
 ### Unlock sequence diagram
 
