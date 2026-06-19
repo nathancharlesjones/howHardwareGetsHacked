@@ -14,12 +14,12 @@ Test Commands (TEST_BUILD only):
         sendBoardMsg              - Transmits a message over a device's board UART
         getBoardMsgLog            - Returns the last 15 messages sent or received over the board UART
         reset                     - Factory reset (clear state, restart)
-        getFlashData              - Get flash data as hex
-        setFlashData <hex>        - Set flash data from hex (persists to flash)
 
     Fob:
         btnPress                  - Simulate button press, blocks until unlock completes
         isPaired                  - Returns OK: 1 or OK: 0
+        getFlashData              - Get flash data as hex
+        setFlashData <hex>        - Set flash data from hex (persists to flash)
 
     Car:
         isLocked                  - Returns OK: 1 or OK: 0
@@ -144,13 +144,11 @@ def parse_response(line: str) -> Response:
 # From dataFormats.h:
 #   typedef struct __attribute__((aligned(4))) {
 #     uint8_t paired;           // offset 0
-#     // 1 byte padding
-#     uint16_t rolling_counter; // offset 2
-#     PAIR_PACKET pair_info;    // offset 4:  car_id[11], key[16], pin[7]  = 34 bytes
-#     FEATURE_DATA feature_info;// offset 38: car_id[11], num_active, features[3] = 15 bytes
-#   } FOB_FLASH_DATA;           // 53 bytes content, padded to 56
+#     PAIR_PACKET pair_info;    // offset 1:  car_id[11], key[16], pin[7]  = 34 bytes
+#     FEATURE_DATA feature_info;// offset 35: car_id[11], num_active, features[3] = 15 bytes
+#   } FOB_FLASH_DATA;           // 50 bytes content, padded to 52
 
-FLASH_DATA_SIZE = 56  # sizeof(FOB_FLASH_DATA)
+FLASH_DATA_SIZE = 52  # sizeof(FOB_FLASH_DATA)
 
 NUM_FEATURES = 3
 
@@ -199,15 +197,12 @@ class FeatureData:
 @dataclass
 class FlashData:
     paired: int
-    rolling_counter: int
     pair_info: PairPacket
     feature_info: FeatureData
 
     def pack(self) -> bytes:
         """Pack to bytes for setFlashData command."""
         data = bytes([self.paired]) + \
-               b'\x00' + \
-               self.rolling_counter.to_bytes(2, 'little') + \
                self.pair_info.pack() + \
                self.feature_info.pack()
         return data.ljust(FLASH_DATA_SIZE, b'\x00')
@@ -217,9 +212,8 @@ class FlashData:
         """Unpack from bytes received from getFlashData."""
         return cls(
             paired=data[0],
-            rolling_counter=int.from_bytes(data[2:4], 'little'),
-            pair_info=PairPacket.unpack(data[4:38]),
-            feature_info=FeatureData.unpack(data[38:53])
+            pair_info=PairPacket.unpack(data[1:35]),
+            feature_info=FeatureData.unpack(data[35:50])
         )
 
     @classmethod
@@ -236,7 +230,6 @@ class FlashData:
         """Create a fresh unpaired fob state."""
         return cls(
             paired=False,
-            rolling_counter=0,
             pair_info=PairPacket(b'\x00'*11, b'\x00'*16, b'\x00'*7),
             feature_info=FeatureData(b'\x00'*11, 0, [0, 0, 0])
         )
@@ -246,48 +239,9 @@ class FlashData:
         """Create a paired fob state."""
         return cls(
             paired=True,
-            rolling_counter=0,
             pair_info=PairPacket(car_id, key, pin),
             feature_info=FeatureData(car_id, 0, [0, 0, 0])
         )
-
-
-# =============================================================================
-# CAR_FLASH_DATA Structure Handling
-# =============================================================================
-
-# From dataFormats.h:
-#   typedef struct __attribute__((aligned(4))) {
-#     uint16_t fob_counter_values[256];  // one rolling counter per fob_id
-#   } CAR_FLASH_DATA;                    // 512 bytes
-
-CAR_FLASH_DATA_SIZE = 512  # sizeof(CAR_FLASH_DATA)
-
-NUM_FOB_IDS = 256
-
-
-@dataclass
-class CarFlashData:
-    fob_counter_values: list  # 256 uint16_t values, little-endian
-
-    def pack(self) -> bytes:
-        return struct.pack(f'<{NUM_FOB_IDS}H', *self.fob_counter_values)
-
-    @classmethod
-    def unpack(cls, data: bytes) -> 'CarFlashData':
-        values = list(struct.unpack(f'<{NUM_FOB_IDS}H', data[:CAR_FLASH_DATA_SIZE]))
-        return cls(fob_counter_values=values)
-
-    @classmethod
-    def from_hex(cls, hex_str: str) -> 'CarFlashData':
-        return cls.unpack(bytes.fromhex(hex_str))
-
-    def to_hex(self) -> str:
-        return self.pack().hex()
-
-    @classmethod
-    def zeroed(cls) -> 'CarFlashData':
-        return cls(fob_counter_values=[0] * NUM_FOB_IDS)
 
 
 # =============================================================================
@@ -481,23 +435,6 @@ def get_unlock_count(device, timeout: float = 2.0) -> int:
         raise RuntimeError(f"getUnlockCount failed: {resp.error}")
     return int(resp.value)
 
-
-def cmd_get_car_flash_data(device, timeout: float = 2.0) -> Response:
-    """Get car's CAR_FLASH_DATA as hex string."""
-    return parse_response(device.send_recv("getFlashData", timeout=timeout))
-
-
-def cmd_set_car_flash_data(device, car_flash: CarFlashData, timeout: float = 15.0) -> Response:
-    """Set car's CAR_FLASH_DATA and persist to flash."""
-    return parse_response(device.send_recv(f"setFlashData {car_flash.to_hex()}", timeout=timeout))
-
-
-def get_car_flash_data(device, timeout: float = 2.0) -> CarFlashData:
-    """Convenience: get and parse CAR_FLASH_DATA."""
-    resp = cmd_get_car_flash_data(device, timeout=timeout)
-    if not resp.success:
-        raise RuntimeError(f"getFlashData failed: {resp.error}")
-    return CarFlashData.from_hex(resp.value)
 
 
 def cmd_get_prng_seed(device, timeout: float = 2.0) -> Response:

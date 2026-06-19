@@ -39,225 +39,168 @@ With a paired fob and computer connected as shown below, sending `enable <BIN>\n
 
 ### Fob
 
-Flowcharts made with [Monosketch.io](https://monosketch.io/)
-
 #### Main flowchart
 
+```plantuml
+@startuml
+start
+repeat
+  if (Rec'd HOST command?) then (yes)
+    :processHostCommand();
+  endif
+  if (Paired?) then (yes)
+    if (Button pressed?) then (yes)
+      :attemptUnlock();
+    endif
+  else (no)
+    if (Rec'd data on BOARD UART?) then (yes)
+      :receivePairData();
+    endif
+  endif
+repeat while (true)
+stop
+@enduml
 ```
-┌───────────┐                                                                                                       
-│           │                                                        processHostCommand()                           
-│           ▼                                                       ┌──────────────────────────────────────────────┐
-│   ┏ ━ ━ ━ ━ ━ ━ ━ ┓ Y                                             │ ┏ ━ ━ ━ ━ ━ ━ ━ ┓  Y  ┌───────────────┐      │
-│      Rec'd HOST    ───────────────────────────────────────────────┼▶ cmd == enable?  ────▶│enableFeature()│───┐  │
-│   ┃   command?    ┃                                               │ ┃               ┃     │               │   │  │
-│    ━ ━ ━ ━ ━ ━ ━ ━                                                │  ━ ━ ━ ━ ━ ━ ━ ━      └───────────────┘   │  │
-│         N │                                                       │       N │                                 │  │
-│           │                                                       │         │                                 │  │
-│           ▼                                                       │         ▼                                 │  │
-│   ┏ ━ ━ ━ ━ ━ ━ ━ ┓  Y  ┏ ━ ━ ━ ━ ━ ━ ━ ┓  Y  ┌───────────────┐   │ ┏ ━ ━ ━ ━ ━ ━ ━ ┓  Y  ┌───────────────┐   │  │
-│        Paired?     ────▶  Btn pressed?   ────▶│attemptUnlock()│   │   cmd == pair?   ────▶│   pairFob()   ├───┤  │
-│   ┃               ┃     ┃               ┃     │               │   │ ┃               ┃     │               │   │  │
-│    ━ ━ ━ ━ ━ ━ ━ ━       ━ ━ ━ ━ ━ ━ ━ ━      └───────────────┘   │  ━ ━ ━ ━ ━ ━ ━ ━      └───────────────┘   │  │
-│         N │                   N │                     │           │       N │                                 │  │
-│           │                     └─────────────────────┤           │         │                                 │  │
-│           ▼                                           │           │         ▼                                 │  │
-│   ┌ ─ ─ ─ ─ ─ ─ ─ ┐  Y  ┌───────────────┐             │           │ ┌───────────────┐                         │  │
-│      Rec'd c on    ────▶│receivePairData│             │           │ │ (other cmds)  ├─────────────────────────┤  │
-│   │  BOARD UART?  │     │      ()       │             │           │ │               │                         │  │
-│    ─ ─ ─ ─ ─ ─ ─ ─      └───────┬───────┘             │           │ └───────────────┘                         │  │
-│         N │                     │                     │           └───────────────────────────────────────────┼──┘
-└───────────┴─────────────────────┴─────────────────────┴───────────────────────────────────────────────────────┘   
+
+#### Flowchart for processHostCommand()
+
+```plantuml
+@startuml
+start
+if (cmd == "enable"?) then (yes)
+  :enableFeature();
+  stop
+else (no)
+endif
+if (cmd == "pair"?) then (yes)
+  :pairFob();
+  stop
+else (no)
+endif
+:(other cmds);
+stop
+@enduml
 ```
 
 #### Flowchart for enableFeature()
 
-```
-┏ ━ ━ ━ ━ ━ ━ ━ ┓ N    
-     paired?     ─────┐
-┃               ┃     │
- ━ ━ ━ ━ ━ ━ ━ ━      │
-      Y │             │
-        ▼             │
-┏ ━ ━ ━ ━ ━ ━ ━ ┓ N   │
-  rec'd len >=   ─────┤
-┃  enable len?  ┃     │
- ━ ━ ━ ━ ━ ━ ━ ━      │
-      Y │             │
-        ▼             │
-┏ ━ ━ ━ ━ ━ ━ ━ ┓ N   │
-  car IDs same?  ─────┤
-┃               ┃     │
- ━ ━ ━ ━ ━ ━ ━ ━      │
-      Y │             │
-        ▼             │
-┏ ━ ━ ━ ━ ━ ━ ━ ┓ Y   │
-  Feature list   ─────┤
-┃    full?      ┃     │
- ━ ━ ━ ━ ━ ━ ━ ━      │
-      N │             │
-        ▼             │
-┏ ━ ━ ━ ━ ━ ━ ━ ┓ N   │
- Feature num is  ─────┤
-┃     1-3?      ┃     │
- ━ ━ ━ ━ ━ ━ ━ ━      │
-      Y │             │
-        ▼             │
-┏ ━ ━ ━ ━ ━ ━ ━ ┓ Y   │
- Feature already ─────┤
-┃    added?     ┃     │
- ━ ━ ━ ━ ━ ━ ━ ━      │
-      N │             │
-        ▼             │
-┌───────────────┐     │
-│  Add feature  │     │
-│               │     │
-└───────────────┘     │
-        │             │
-        ├─────────────┘
-        │              
-        ▼              
+```plantuml
+@startuml
+start
+if (Paired?) then (no)
+  stop
+else (yes)
+endif
+if (Rec'd len >= enable len?) then (no)
+  stop
+else (yes)
+endif
+if (Car IDs same?) then (no)
+  stop
+else (yes)
+endif
+if (Feature list full?) then (yes)
+  stop
+else (no)
+endif
+if (Feature num is 1-3?) then (no)
+  stop
+else (yes)
+endif
+if (Feature already added?) then (yes)
+  stop
+else (no)
+endif
+:Add feature;
+stop
+@enduml
 ```
 
 #### Flowchart for pairFob()
 
-```
-┏ ━ ━ ━ ━ ━ ━ ━ ┓ N    
-     paired?     ─────┐
-┃               ┃     │
- ━ ━ ━ ━ ━ ━ ━ ━      │
-      Y │             │
-        ▼             │
-┏ ━ ━ ━ ━ ━ ━ ━ ┓ N   │
-  rec'd pin len  ─────┤
-┃  == pin len?  ┃     │
- ━ ━ ━ ━ ━ ━ ━ ━      │
-      Y │             │
-        ▼             │
-┏ ━ ━ ━ ━ ━ ━ ━ ┓ N   │
-  rec'd pin ==   ─────┤
-┃     pin?      ┃     │
- ━ ━ ━ ━ ━ ━ ━ ━      │
-      Y │             │
-        ▼             │
-┌───────────────┐     │
-│ Send pair pkt │     │
-│               │     │
-└───────────────┘     │
-        │             │
-        ├─────────────┘
-        │              
-        ▼              
+```plantuml
+@startuml
+start
+if (Paired?) then (no)
+  stop
+else (yes)
+endif
+if (Rec'd PIN len == PIN len?) then (no)
+  stop
+else (yes)
+endif
+if (Rec'd PIN == PIN?) then (no)
+  stop
+else (yes)
+endif
+:Send PAIR MSG;
+stop
+@enduml
 ```
 
 #### Flowchart for attemptUnlock()
 
-```
-┌ ─ ─ ─ ─ ─ ─ ─ ┐ N    
-     paired?     ─────┐
-│               │     │
- ─ ─ ─ ─ ─ ─ ─ ─      │
-      Y │             │
-        ▼             │
-┌───────────────┐     │
-│Send unlock msg│     │
-│               │     │
-└───────────────┘     │
-        │             │
-        ▼             │
-┌ ─ ─ ─ ─ ─ ─ ─ ┐ N   │
-      Rec'd      ─────┤
-│ ACK_SUCCESS?  │     │
- ─ ─ ─ ─ ─ ─ ─ ─      │
-      Y │             │
-        ▼             │
-┌───────────────┐     │
-│Send start msg │     │
-│               │     │
-└───────────────┘     │
-        │             │
-        ├─────────────┘
-        │              
-        ▼              
+```plantuml
+@startuml
+start
+if (Paired?) then (no)
+  stop
+else (yes)
+endif
+:Send UNLOCK MSG;
+:Receive NONCE MSG;
+:Compute AES-CMAC(nonce);
+:Send RESPONSE MSG;
+if (Rec'd ACK_SUCCESS?) then (yes)
+  :Send START MSG;
+else (no)
+endif
+stop
+@enduml
 ```
 
 ### Car
 
-Flowcharts made with [Monosketch.io](https://monosketch.io/)
-
 #### Main flowchart
 
-```
-┌───────────┐                                   
-│           │                                   
-│           ▼                                   
-│   ┏ ━ ━ ━ ━ ━ ━ ━ ┓ Y   ┌───────────────┐     
-│      Rec'd HOST    ────▶│  processHost  │────┐
-│   ┃   command?    ┃     │   Command()   │    │
-│    ━ ━ ━ ━ ━ ━ ━ ━      └───────────────┘    │
-│         N │                                  │
-│           │                                  │
-│           ▼                                  │
-│   ┌ ─ ─ ─ ─ ─ ─ ─ ┐  Y  ┌───────────────┐    │
-│      Rec'd c on    ────▶│  unlockCar()  │    │
-│   │  BOARD UART?  │     │               │    │
-│    ─ ─ ─ ─ ─ ─ ─ ─      └───────┬───────┘    │
-│         N │                     │            │
-└───────────┴─────────────────────┴────────────┘
+```plantuml
+@startuml
+start
+repeat
+  if (Rec'd HOST command?) then (yes)
+    :processHostCommand();
+  endif
+  if (Rec'd data on BOARD UART?) then (yes)
+    :unlockCar();
+  endif
+repeat while (true)
+stop
+@enduml
 ```
 
 #### Flowchart for unlockCar()
 
-```
-┌───────────────┐      
-│Receive unlock │      
-│      msg      │      
-└───────────────┘      
-        │              
-        ▼  
-┌───────────────┐      
-│  Compute MAC  │      
-│               │      
-└───────────────┘      
-        │              
-        ▼             
-┏ ━ ━ ━ ━ ━ ━ ━ ┓ N    
-  Computed MAC   ─────┐
-┃ == Rec'd MAC? ┃     │
- ━ ━ ━ ━ ━ ━ ━ ━      │
-      Y │             │
-        ▼             │
-┏ ━ ━ ━ ━ ━ ━ ━ ┓ N   │
-  Rec'd counter  ─────┤
-┃ within WINDOW?┃     │
- ━ ━ ━ ━ ━ ━ ━ ━      │
-      Y │             │
-        ▼             │
-┌───────────────┐     │
-│Emit unlock flag     │
-│Send ACK_SUCCESS     │
-└───────────────┘     │
-        │             │
-        ▼             │
-┌───────────────┐     │
-│ Receive start │     │
-│      msg      │     │
-└───────────────┘     │
-        │             │
-        ▼             │
-┏ ━ ━ ━ ━ ━ ━ ━ ┓ N   │
-  car IDs same?  ─────┤
-┃               ┃     │
- ━ ━ ━ ━ ━ ━ ━ ━      │
-      Y │             │
-        ▼             │
-┌───────────────┐     │
-│ Emit feature  │     │
-│    flags      │     │
-└───────────────┘     │
-        │             │
-        ├─────────────┘
-        │              
-        ▼              
+```plantuml
+@startuml
+start
+:Receive UNLOCK MSG;
+:Generate nonce (CTR-DRBG);
+:Send NONCE MSG;
+:Compute AES-CMAC(nonce);
+:Receive RESPONSE MSG;
+if (Computed MAC == Rec'd MAC?) then (yes)
+  :Emit unlock flag;
+  :Send ACK_SUCCESS;
+  :Receive START MSG;
+  if (Car IDs match?) then (yes)
+    :Emit feature flags;
+  else (no)
+  endif
+else (no)
+  :Send ACK_FAILURE;
+endif
+stop
+@enduml
 ```
 
 ### Unlock sequence diagram
@@ -265,50 +208,67 @@ Flowcharts made with [Monosketch.io](https://monosketch.io/)
 ```mermaid
 sequenceDiagram
     Paired fob->>Car: UNLOCK MSG
-    alt Fob is authenticated
+    Car->>Paired fob: NONCE MSG
+    Paired fob->>Car: RESPONSE MSG
+    alt MAC matches
         Car->>Host: Unlock flag
         Car->>Paired fob: ACK SUCCESS
         Paired fob->>Car: START MSG
         Car->>Host: Feature flags
-    else Fob is NOT authenticated
+    else MAC does not match
         Car->>Paired fob: ACK FAILURE
     end
 ```
 
 ```
-                 Tag Len                                                         
-      (UNLOCK_MAGIC)  │                                                          
-                  │   │                                                           
-                  ▼   ▼                                                           
-               ┌────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┐                          
-UNLOCK MSG:    │0x56│0x0B│ ID │ Counter │                  MAC                  │                          
-               └────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┘                          
-                                                                                  
-                 Tag Len                                                          
-       (START_MAGIC)  │                                                           
-                  │   │                                                           
-                  ▼   ▼                                                           
-               ┌────┬────┬────────────────────────────┐                           
-START MSG:     │0x57│0x0F│  Feature info (15 bytes)   │                           
-               └────┴────┴─────────────┬──────────────┘                           
-                                       │                                          
-                                       ▼                                          
+                 Tag Len
+      (UNLOCK_MAGIC)  │
+                  │   │
+                  ▼   ▼
+               ┌────┬────┐
+UNLOCK MSG:    │0x56│0x00│
+               └────┴────┘
+
+                 Tag Len
+       (NONCE_MAGIC)  │
+                  │   │
+                  ▼   ▼
+               ┌────┬────┬──────────────────────┐
+NONCE MSG:     │0x58│0x04│    Nonce (4 bytes)    │
+               └────┴────┴──────────────────────┘
+
+                 Tag Len
+    (RESPONSE_MAGIC)  │
+                  │   │
+                  ▼   ▼
+               ┌────┬────┬──────────────────────────────────────┐
+RESPONSE MSG:  │0x59│0x08│      Truncated CMAC (8 bytes)        │
+               └────┴────┴──────────────────────────────────────┘
+
+                 Tag Len
+       (START_MAGIC)  │
+                  │   │
+                  ▼   ▼
+               ┌────┬────┬────────────────────────────┐
+START MSG:     │0x57│0x0F│  Feature info (15 bytes)   │
+               └────┴────┴─────────────┬──────────────┘
+                                       │
+                                       ▼
      ┌───────────────────┬───────────────────────────┬───────────────────────────┐
      │ Car ID (11 bytes) │# active features (1 byte) │List of features (3 bytes) │
      └───────────────────┴───────────────────────────┴───────────────────────────┘
-                                                                                  
-                                                                                  
-                 Tag Len                                                          
-         (ACK_MAGIC)  │                                                           
-                  │   │                                                           
-                  ▼   ▼                                                           
-               ┌────┬────┬────┐                                                   
-ACK MSG:       │0x54│0x01│0x01│ ◀──── ACK_SUCCESS                                 
-               └────┴────┴────┘                                                   
-                                                                                  
-               ┌────┬────┬────┐                                                   
-               │0x54│0x01│0x00│ ◀──── ACK_FAILURE                                 
-               └────┴────┴────┘                                                   
+
+                 Tag Len
+         (ACK_MAGIC)  │
+                  │   │
+                  ▼   ▼
+               ┌────┬────┬────┐
+ACK MSG:       │0x54│0x01│0x01│ ◀──── ACK_SUCCESS
+               └────┴────┴────┘
+
+               ┌────┬────┬────┐
+               │0x54│0x01│0x00│ ◀──── ACK_FAILURE
+               └────┴────┴────┘
 ```
 
 ### Pairing sequence diagram
@@ -325,13 +285,13 @@ sequenceDiagram
 ```
 
 ```
-                  Tag Len                                                          
-         (PAIR_MAGIC)  │                                                           
-                   │   │                                                           
-                   ▼   ▼                                                           
-                ┌────┬────┬──────────────────┬───────────────────┬──────────────┐  
- PAIR MSG:      │0x55│0x22│Car ID (11 bytes) │ Key (16 bytes)    │Pin (7 bytes) │  
-                └────┴────┴──────────────────┴───────────────────┴──────────────┘  
+                  Tag Len
+         (PAIR_MAGIC)  │
+                   │   │
+                   ▼   ▼
+                ┌────┬────┬──────────────────┬───────────────────┬──────────────┐
+ PAIR MSG:      │0x55│0x22│Car ID (11 bytes) │ Key (16 bytes)    │Pin (7 bytes) │
+                └────┴────┴──────────────────┴───────────────────┴──────────────┘
 ```
 
 ### Enabling sequence diagram
@@ -347,7 +307,7 @@ sequenceDiagram
 ```
 
 ```
-                ┌──────────────────┬───────────────────┐                           
- FEATURE PKT:   │Car ID (11 bytes) │Feature # (1 byte) │                           
-                └──────────────────┴───────────────────┘                           
+                ┌──────────────────┬───────────────────┐
+ FEATURE PKT:   │Car ID (11 bytes) │Feature # (1 byte) │
+                └──────────────────┴───────────────────┘
 ```

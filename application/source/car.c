@@ -31,11 +31,10 @@
 
 /*** Macros ***/
 #define MAX_CMD_LEN 1040
-#define WINDOW 32
 
 /*** Function definitions ***/
 // Core functions - unlockCar and startCar
-void unlockCar(CAR_FLASH_DATA* car_state_ram);
+void unlockCar(void);
 
 /* AES-ECB context used by the CMAC callback; key loaded once in main() */
 static struct AES_ctx cmac_ctx;
@@ -53,7 +52,7 @@ void sendAckSuccess(void);
 void sendAckFailure(void);
 
 // Command processing
-void processHostCommand(CAR_FLASH_DATA *car_state_ram, const char *cmd);
+void processHostCommand(const char *cmd);
 
 // Declare const variables
 const uint8_t car_key[16] = CAR_KEY;
@@ -63,18 +62,11 @@ const char car_id[11] = CAR_ID;
 static bool carLocked = true;
 static uint32_t unlockCount = 0;
 
-static void initCar(CAR_FLASH_DATA* car_state_ram)
+static void initCar(void)
 {
   uint8_t seed[32] = {0};
   getPrngSeed(seed);
   ctr_drbg_init(&prng_ctx, seed);
-
-  loadCarState(car_state_ram);
-  if(FLASH_UNINITIALIZED == *(uint8_t*)(car_state_ram))
-  {
-    memset(car_state_ram, 0, sizeof(CAR_FLASH_DATA));
-    saveCarState(car_state_ram);
-  }
 
   carLocked = true;
   unlockCount = 0;
@@ -95,8 +87,7 @@ int main(int argc, char **argv)
   /* provide the CMAC library with AES encryption callback function that will perform the actual AES encryption */
   AES_CMAC_init_ctx(&aes_cmac_ctx, (void*)&aes_cmac_encrypt);
 
-  CAR_FLASH_DATA car_state_ram = {0};
-  initCar(&car_state_ram);
+  initCar();
 
   // Signal ready to host
   uart_write(HOST_UART, (uint8_t *)"OK: started\n", 12);
@@ -117,7 +108,7 @@ int main(int argc, char **argv)
         if (cmdIndex > 0)
         {
           cmdBuffer[cmdIndex] = '\0';
-          processHostCommand(&car_state_ram, cmdBuffer);
+          processHostCommand(cmdBuffer);
           cmdIndex = 0;
         }
       }
@@ -128,14 +119,14 @@ int main(int argc, char **argv)
     }
 
     // Check for board messages (blocking)
-    if (uart_avail(BOARD_UART)) unlockCar(&car_state_ram);
+    if (uart_avail(BOARD_UART)) unlockCar();
   }
 }
 
 /**
  * @brief Process a command received from the host
  */
-void processHostCommand(CAR_FLASH_DATA *car_state_ram, const char *cmd)
+void processHostCommand(const char *cmd)
 {
 #ifdef TEST_BUILD
   // Test command: isLocked
@@ -151,31 +142,6 @@ void processHostCommand(CAR_FLASH_DATA *car_state_ram, const char *cmd)
     char buf[16];
     snprintf(buf, sizeof(buf), "%lu", (unsigned long)unlockCount);
     sendOK(buf);
-    return;
-  }
-
-  // Test command: getFlashData
-  if (strcmp(cmd, "getFlashData") == 0)
-  {
-    char hex[sizeof(CAR_FLASH_DATA) * 2 + 1];
-    bytesToHex((uint8_t *)car_state_ram, sizeof(CAR_FLASH_DATA), hex);
-    sendOK(hex);
-    return;
-  }
-
-  // Test command: setFlashData <hex>
-  if (strncmp(cmd, "setFlashData ", 13) == 0)
-  {
-    uint8_t data[sizeof(CAR_FLASH_DATA)];
-    int len = hexToBytes(cmd + 13, data, sizeof(data));
-    if (len != (int)sizeof(CAR_FLASH_DATA))
-    {
-      sendError("invalid size");
-      return;
-    }
-    memcpy(car_state_ram, data, sizeof(CAR_FLASH_DATA));
-    saveCarState(car_state_ram);
-    sendOK(NULL);
     return;
   }
 
@@ -213,9 +179,7 @@ void processHostCommand(CAR_FLASH_DATA *car_state_ram, const char *cmd)
   // Test command: reset (factory reset)
   if (strcmp(cmd, "reset") == 0)
   {
-    memset(car_state_ram, 0, sizeof(CAR_FLASH_DATA));
-    saveCarState(car_state_ram);
-    initCar(car_state_ram);
+    initCar();
     sendOK(NULL);
     return;
   }
@@ -249,7 +213,7 @@ void processHostCommand(CAR_FLASH_DATA *car_state_ram, const char *cmd)
  *   OK: 3,<feature3_flag_64_bytes>   (if feature 3 enabled)
  *   OK: done
  */
-void unlockCar(CAR_FLASH_DATA* car_state_ram)
+void unlockCar(void)
 {
   //sendOK("Inside unlock car\n");
 
@@ -264,7 +228,12 @@ void unlockCar(CAR_FLASH_DATA* car_state_ram)
   message.magic = NONCE_MAGIC;
   message.message_len = NONCE_SIZE;
   uint32_t nonce;
-  while( ctr_drbg_generate(&prng_ctx, &nonce) != 0 );
+  while( ctr_drbg_generate(&prng_ctx, &nonce) != 0 )
+  {
+    uint8_t seed[32] = {0};
+    getPrngSeed(seed);
+    ctr_drbg_reseed(&prng_ctx, seed);
+  }
   message.buffer = (uint8_t*)&nonce;
   send_board_message(&message);
 

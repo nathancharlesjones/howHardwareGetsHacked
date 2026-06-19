@@ -67,25 +67,9 @@ static void initHardware(int argc, char ** argv)
     initThread(argc, argv);
 }
 
-static void create_default_car_state(void)
-{
-    CAR_FLASH_DATA default_state;
-    memset(&default_state, 0xFF, sizeof(CAR_FLASH_DATA));
-    
-    saveCarState(&default_state);
-}
-
 void initHardware_car(int argc, char ** argv)
 {
     initHardware(argc, argv);
-
-#ifndef TEST_BUILD
-    /* Create default fob state file if it doesn't exist */
-    if (access(flash_data_file_path, F_OK) != 0)
-#endif
-    {
-        create_default_car_state();
-    }
 
     setLED(RED);
 }

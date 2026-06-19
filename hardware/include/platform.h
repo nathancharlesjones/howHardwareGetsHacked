@@ -14,8 +14,6 @@ void initHardware_fob(int argc, char ** argv);
 void loadFlag(uint8_t* dest, flag_t flag);
 void loadFobState(FOB_FLASH_DATA *fob_data);
 void saveFobState(const FOB_FLASH_DATA *fob_data);
-void loadCarState(CAR_FLASH_DATA *car_data);
-void saveCarState(const CAR_FLASH_DATA *car_data);
 void setLED(led_color_t color);
 bool buttonPressed(void);
 void getPrngSeed(uint8_t * dest);
