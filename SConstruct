@@ -1,6 +1,7 @@
 import os
 import sys
 import subprocess
+import string
 
 AVAILABLE_PLATFORMS = ["stm32", "tm4c", "sim"]
 AVAILABLE_ROLES = ["car", "paired_fob", "unpaired_fob"]
@@ -86,8 +87,8 @@ if not clean_mode:  # Validate pin
         Exit(1)
 
     if pin:
-        if not pin.isdigit():
-            print("Error: 'pin' must be numeric")
+        if not all(c in string.hexdigits for c in pin):
+            print("Error: 'pin' must only contain hex digits")
             Exit(1)
         if len(pin) != 6:
             print("Error: 'pin' must be exactly 6 digits")

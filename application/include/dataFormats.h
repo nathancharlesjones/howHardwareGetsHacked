@@ -13,7 +13,7 @@ typedef struct
 {
   char car_id[11];
   uint8_t key[16];
-  char pin[7];
+  uint8_t pin[3];
 } PAIR_PACKET;
 
 // Defines a struct for the format of start message

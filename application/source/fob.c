@@ -68,7 +68,7 @@ static void initFobState(FOB_FLASH_DATA *fob_state_ram)
   if (FLASH_UNINITIALIZED == fob_state_ram->paired)
   {
     memset(fob_state_ram, 0, sizeof(FOB_FLASH_DATA));
-    strcpy(fob_state_ram->pair_info.pin, PAIR_PIN);
+    hexToBytes(PAIR_PIN, fob_state_ram->pair_info.pin, 3);
     strcpy(fob_state_ram->pair_info.car_id, CAR_ID);
     strcpy(fob_state_ram->feature_info.car_id, CAR_ID);
     fob_state_ram->paired = FLASH_PAIRED;
@@ -290,8 +290,17 @@ void pairFob(FOB_FLASH_DATA *fob_state_ram, const char *pin)
   }
 
   // Verify PIN matches
-  if (strcmp(pin, fob_state_ram->pair_info.pin) != 0)
+  uint8_t hex_pin[3] = {0};
+  hexToBytes(pin, hex_pin, 3);
+  if (memcmp(hex_pin, fob_state_ram->pair_info.pin, 3) != 0)
   {
+    /*
+    char msg[64] = {0};
+    char pin_string[7] = {0};
+    bytesToHex(fob_state_ram->pair_info.pin, 3, pin_string);
+    snprintf(msg, 63, "wrong pin; expected %s, got %s", pin_string, pin);
+    sendError(msg);
+    */
     sendError("wrong pin");
     return;
   }
@@ -439,7 +448,7 @@ void receivePairData(FOB_FLASH_DATA *fob_state_ram)
   
   memcpy((uint8_t*)&fob_state_ram->pair_info, (uint8_t*)buffer, sizeof(PAIR_PACKET));
   fob_state_ram->pair_info.car_id[10] = '\0';
-  fob_state_ram->pair_info.pin[6] = '\0';
+  //fob_state_ram->pair_info.pin[6] = '\0';
   fob_state_ram->paired = FLASH_PAIRED;
   strcpy(fob_state_ram->feature_info.car_id, fob_state_ram->pair_info.car_id);
   saveFobState(fob_state_ram);

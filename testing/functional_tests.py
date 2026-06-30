@@ -142,7 +142,7 @@ class TestSingleUnpairedFob:
         assert flash.paired == 0xFF, "Flash data should show unpaired"
         assert flash.pair_info.car_id == b'\xFF' * 11, "Should not have a car ID"
         assert flash.pair_info.key == b'\xFF' * 16, "Should not have a key"
-        assert flash.pair_info.pin == b'\xFF' * 7, "Should not have a pin"
+        assert flash.pair_info.pin == b'\xFF' * 3, "Should not have a pin"
 
     def test_unpaired_fob_rejects_feature(self, unpaired_fob):        
         #resp = proto.cmd_btn_press(fob)

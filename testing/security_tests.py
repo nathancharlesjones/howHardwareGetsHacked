@@ -248,3 +248,23 @@ class TestNonceRandomness:
         ratio = ones / total
         assert 0.35 < ratio < 0.65, \
             f"Nonce bits strongly skewed: {ratio:.1%} ones (expected ~50%)"
+
+@pytest.mark.car2
+@pytest.mark.car5
+class TestPairingPinAttacks:
+    """Attacks that extract the pairing pin from a paired fob."""
+
+    def test_brute_force_attack_on_pairing_pin(self, deploy):
+        fob = deploy(RoleConfig("paired_fob", id="1337", pin="00000A"))
+
+        pin_guess = 0
+        start = time.perf_counter()
+        for i in range(20):
+            resp = proto.cmd_pair(fob, f"{pin_guess:06X}")
+            if resp.success:
+                break
+            else:
+                pin_guess += 1
+        end = time.perf_counter()
+
+        assert (end - start) > 5, f"Pairing attempts not sufficiently slow ({(end - start)/10} seconds per attempt)."

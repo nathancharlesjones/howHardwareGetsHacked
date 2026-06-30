@@ -144,11 +144,11 @@ def parse_response(line: str) -> Response:
 # From dataFormats.h:
 #   typedef struct __attribute__((aligned(4))) {
 #     uint8_t paired;           // offset 0
-#     PAIR_PACKET pair_info;    // offset 1:  car_id[11], key[16], pin[7]  = 34 bytes
-#     FEATURE_DATA feature_info;// offset 35: car_id[11], num_active, features[3] = 15 bytes
-#   } FOB_FLASH_DATA;           // 50 bytes content, padded to 52
+#     PAIR_PACKET pair_info;    // offset 1:  car_id[11], key[16], pin[3]  = 30 bytes
+#     FEATURE_DATA feature_info;// offset 31: car_id[11], num_active, features[3] = 15 bytes
+#   } FOB_FLASH_DATA;           // 46 bytes content, padded to 48
 
-FLASH_DATA_SIZE = 52  # sizeof(FOB_FLASH_DATA)
+FLASH_DATA_SIZE = 48  # sizeof(FOB_FLASH_DATA)
 
 NUM_FEATURES = 3
 
@@ -157,19 +157,19 @@ NUM_FEATURES = 3
 class PairPacket:
     car_id: bytes   # 11 bytes
     key: bytes      # 16 bytes
-    pin: bytes      # 7 bytes
+    pin: bytes      # 3 bytes
 
     def pack(self) -> bytes:
         return self.car_id.ljust(11, b'\x00')[:11] + \
                self.key.ljust(16, b'\x00')[:16] + \
-               self.pin.ljust(7, b'\x00')[:7]
+               self.pin.ljust(3, b'\x00')[:3]
 
     @classmethod
     def unpack(cls, data: bytes) -> 'PairPacket':
         return cls(
             car_id=data[0:11],
             key=data[11:27],
-            pin=data[27:34]
+            pin=data[27:30]
         )
 
 
@@ -212,8 +212,8 @@ class FlashData:
         """Unpack from bytes received from getFlashData."""
         return cls(
             paired=data[0],
-            pair_info=PairPacket.unpack(data[1:35]),
-            feature_info=FeatureData.unpack(data[35:50])
+            pair_info=PairPacket.unpack(data[1:31]),
+            feature_info=FeatureData.unpack(data[31:46])
         )
 
     @classmethod
@@ -230,7 +230,7 @@ class FlashData:
         """Create a fresh unpaired fob state."""
         return cls(
             paired=False,
-            pair_info=PairPacket(b'\x00'*11, b'\x00'*16, b'\x00'*7),
+            pair_info=PairPacket(b'\x00'*11, b'\x00'*16, b'\x00'*3),
             feature_info=FeatureData(b'\x00'*11, 0, [0, 0, 0])
         )
 
