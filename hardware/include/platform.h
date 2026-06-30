@@ -17,5 +17,7 @@ void saveFobState(const FOB_FLASH_DATA *fob_data);
 void setLED(led_color_t color);
 bool buttonPressed(void);
 void getPrngSeed(uint8_t * dest);
+void delay_ms(uint32_t ms);
+uint32_t getHardwareTime(void);
 
 #endif // PLATFORM_H

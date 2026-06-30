@@ -145,6 +145,18 @@ void getPrngSeed(uint8_t *dest)
 #endif
 }
 
+void delay_ms(uint32_t ms)
+{
+    usleep(ms * 1000);
+}
+
+uint32_t getHardwareTime(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint32_t)((uint64_t)ts.tv_sec * 1000000000ULL + (uint64_t)ts.tv_nsec);
+}
+
 void __attribute__((weak)) initThread(int argc, char ** argv)
 {
     // Empty

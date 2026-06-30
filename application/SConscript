@@ -7,6 +7,7 @@ sources = [
     'source/car.c' if env["role"] == "car" else 'source/fob.c',
     'source/messages.c',
     'source/host_msg_helpers.c',
+    'source/memcmp_ct.c'
 ]
 
 if env["role"] == "car":

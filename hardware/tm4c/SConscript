@@ -50,7 +50,7 @@ tm4c_env.Append(LINKFLAGS=linkflags)
 
 secrets_h = tm4c_env.Command(
     target=['secrets.h'],
-    source=[],
+    source=[tm4c_env.Value(f"{tm4c_env['role']}:{tm4c_env.get('id','')}:{tm4c_env.get('pin','')}")],
     action=gen_secrets_action
 )
 

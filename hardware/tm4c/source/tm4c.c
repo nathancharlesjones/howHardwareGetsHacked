@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "inc/hw_ints.h"
+#include "inc/hw_nvic.h"
 #include "inc/hw_types.h"
 #include "inc/hw_gpio.h"
 #include "driverlib/pin_map.h"
@@ -20,6 +21,9 @@
 #include "platform.h"
 
 #define FEATURE_START 0x700
+
+#define DWT_CTRL		0xE0001000
+#define DWT_CYCCNT	0xE0001004
 
 extern uint8_t _flash_config_start;
 #define FLASH_DATA_BASE ((uintptr_t)&_flash_config_start)
@@ -54,6 +58,10 @@ static void initHardware(int argc, char ** argv)
 	// Configure LED pins
 	GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE,
 	    GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3);
+
+	HWREG(NVIC_DBG_INT) |= (1 << 24);
+	HWREG(DWT_CTRL) |= (1 << 0);
+	HWREG(DWT_CYCCNT) = 0;
 }
 
 void initHardware_car(int argc, char ** argv)
@@ -155,4 +163,14 @@ bool buttonPressed(void)
   }
   previous_sw_state = current_sw_state;
   return pressed;    
+}
+
+void delay_ms(uint32_t ms)
+{
+    SysCtlDelay((SysCtlClockGet() / 3000) * ms);
+}
+
+uint32_t getHardwareTime(void)
+{
+    return HWREG(DWT_CYCCNT);
 }

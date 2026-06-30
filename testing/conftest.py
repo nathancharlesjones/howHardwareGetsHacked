@@ -86,6 +86,14 @@ def temp_secrets_file(tmp_path_factory):
 # Command-line Option Parsing
 # ============================================================================
 
+def pytest_collection_modifyitems(config, items):
+    if not config.getoption("--using", default=None):
+        skip = pytest.mark.skip(reason="requires hardware (pass --using board@sn1,sn2)")
+        for item in items:
+            if item.get_closest_marker("hardware_only"):
+                item.add_marker(skip)
+
+
 def pytest_addoption(parser):
     """Add custom command-line options for pytest."""
     parser.addoption(

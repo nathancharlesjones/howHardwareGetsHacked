@@ -55,7 +55,7 @@ stm32_env.Append(LIBS=[
 
 secrets_h = stm32_env.Command(
     target=['secrets.h'],
-    source=[],
+    source=[stm32_env.Value(f"{stm32_env['role']}:{stm32_env.get('id','')}:{stm32_env.get('pin','')}")],
     action=gen_secrets_action
 )
 

@@ -5,6 +5,7 @@ import struct
 from collections import Counter
 from conftest import RoleConfig
 import protocol as proto
+import secrets
 
 
 def _mcv_min_entropy(samples: list[int]) -> float:
@@ -268,3 +269,38 @@ class TestPairingPinAttacks:
         end = time.perf_counter()
 
         assert (end - start) > 5, f"Pairing attempts not sufficiently slow ({(end - start)/10} seconds per attempt)."
+
+    @pytest.mark.hardware_only
+    def test_timing_attack_on_pairing_pin(self, deploy):
+        random_pin = secrets.token_hex(3)
+        fob = deploy(RoleConfig("paired_fob", id="1337", pin=random_pin))
+
+        # memcmp leaks at the byte level (2 hex digits at a time), not the nibble
+        # level, because hexToBytes() packs the pin into 3 binary bytes before
+        # comparison. Iterate over all 256 byte values per byte position.
+        guess_bytes = []
+        for byte_pos in range(3):
+            prefix = bytes(guess_bytes).hex().upper()
+            suffix = "00" * (2 - byte_pos)
+
+            memcmp_times = {}
+            found = False
+            for byte_val in range(256):
+                candidate = prefix + f"{byte_val:02X}" + suffix
+                resp = proto.cmd_pair(fob, candidate)
+                if resp.success:
+                    guess_bytes.append(byte_val)
+                    found = True
+                    break
+                memcmp_times[byte_val] = proto.get_memcmp_time(fob)
+
+            if not found:
+                best = max(memcmp_times, key=memcmp_times.get)
+                guess_bytes.append(best)
+
+            top3 = sorted(memcmp_times.items(), key=lambda x: -x[1])[:3]
+            print(f"Byte {byte_pos}: top 3: {[(f'{v:02X}', t) for v, t in top3]}")
+
+        guess = bytes(guess_bytes).hex().upper()
+        print(f"Expected: {random_pin.upper()}, determined: {guess}")
+        assert guess != random_pin.upper(), "Pairing pin was recoverable using a timing attack"

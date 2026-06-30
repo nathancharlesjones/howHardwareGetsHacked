@@ -27,6 +27,7 @@
 #include "host_msg_helpers.h"
 #include "aes_cmac.h"
 #include "aes.h"
+#include "memcmp_ct.h"
 
 /*** Macros ***/
 #define MAX_CMD_LEN 128
@@ -38,29 +39,29 @@ typedef struct {
   uint8_t feature;
 } ENABLE_PACKET;
 
+/*** Static variables ***/
+/* AES-ECB context used by the CMAC callback; key loaded once in main() */
+static struct AES_ctx cmac_ctx;
+/* AES-CMAC context storing the AES callback pointer */
+static struct AES_CMAC_ctx aes_cmac_ctx;
+
+#ifdef TEST_BUILD
+static uint32_t last_memcmp_execution_time;
+#endif
+
 /*** Function definitions ***/
 // Core functions - all functionality supported by fob
 void pairFob(FOB_FLASH_DATA *fob_state_ram, const char *pin);
 void enableFeature(FOB_FLASH_DATA *fob_state_ram, const uint8_t *data, size_t len);
 void attemptUnlock(FOB_FLASH_DATA *fob_state_ram);
 void receivePairData(FOB_FLASH_DATA *fob_state_ram);
-
-/* AES-ECB context used by the CMAC callback; key loaded once in main() */
-static struct AES_ctx cmac_ctx;
-/* AES-CMAC context storing the AES callback pointer */
-static struct AES_CMAC_ctx aes_cmac_ctx;
+// Helper functions
+uint8_t receiveAck(void);
+void processHostCommand(FOB_FLASH_DATA *fob_state_ram, const char *cmd);
 
 static void aes_cmac_encrypt(uint8_t* data) {
   AES_ECB_encrypt(&cmac_ctx, data);
 }
-
-// Helper functions
-uint8_t receiveAck(void);
-void processHostCommand(FOB_FLASH_DATA *fob_state_ram, const char *cmd);
-static void initFobState(FOB_FLASH_DATA *fob_state_ram);
-
-// Declare const variables
-const uint8_t my_id = FOB_ID;
 
 static void initFobState(FOB_FLASH_DATA *fob_state_ram)
 {
@@ -83,6 +84,9 @@ static void initFobState(FOB_FLASH_DATA *fob_state_ram)
   }
 #endif
 }
+
+/*** Const variables ***/
+const uint8_t my_id = FOB_ID;
 
 /**
  * @brief Main function for the fob example
@@ -245,6 +249,15 @@ void processHostCommand(FOB_FLASH_DATA *fob_state_ram, const char *cmd)
     return;
   }
 
+  // Test command: getMemcmpTime
+  if (strcmp(cmd, "getMemcmpTime") == 0)
+  {
+    char time[16] = {0};
+    snprintf(time, 15, "%d", last_memcmp_execution_time);
+    sendOK(time);
+    return;
+  }
+
   // Test command: reset (factory reset)
   if (strcmp(cmd, "reset") == 0)
   {
@@ -275,6 +288,8 @@ void processHostCommand(FOB_FLASH_DATA *fob_state_ram, const char *cmd)
  */
 void pairFob(FOB_FLASH_DATA *fob_state_ram, const char *pin)
 {
+  //delay_ms(750);
+
   // Only paired fobs can initiate pairing
   if (fob_state_ram->paired != FLASH_PAIRED)
   {
@@ -292,7 +307,18 @@ void pairFob(FOB_FLASH_DATA *fob_state_ram, const char *pin)
   // Verify PIN matches
   uint8_t hex_pin[3] = {0};
   hexToBytes(pin, hex_pin, 3);
-  if (memcmp(hex_pin, fob_state_ram->pair_info.pin, 3) != 0)
+
+#ifdef TEST_BUILD
+  uint32_t start = getHardwareTime();
+#endif
+
+  bool pins_match = (memcmp_ct(hex_pin, fob_state_ram->pair_info.pin, 3) == 0);
+
+#ifdef TEST_BUILD
+  last_memcmp_execution_time = getHardwareTime() - start;
+#endif
+
+  if (!pins_match)
   {
     /*
     char msg[64] = {0};

@@ -20,6 +20,7 @@ Test Commands (TEST_BUILD only):
         isPaired                  - Returns OK: 1 or OK: 0
         getFlashData              - Get flash data as hex
         setFlashData <hex>        - Set flash data from hex (persists to flash)
+        getMemcmpTime             - Returns OK: <n> cycle count of the last PIN memcmp
 
     Car:
         isLocked                  - Returns OK: 1 or OK: 0
@@ -394,6 +395,24 @@ def wait_until_paired(device, timeout: float = 5.0, interval: float = 0.25) -> b
             pass  # device busy (e.g. mid-saveFobState); keep polling
         time.sleep(interval)
     return False
+
+
+def cmd_get_memcmp_time(device, timeout: float = 2.0) -> Response:
+    """
+    Get the cycle count of the most recent PIN memcmp in pairFob().
+
+    Returns:
+        Response with value=cycle count as decimal string
+    """
+    return parse_response(device.send_recv("getMemcmpTime", timeout=timeout))
+
+
+def get_memcmp_time(device, timeout: float = 2.0) -> int:
+    """Convenience: get the last PIN memcmp cycle count as an int."""
+    resp = cmd_get_memcmp_time(device, timeout=timeout)
+    if not resp.success:
+        raise RuntimeError(f"getMemcmpTime failed: {resp.error}")
+    return int(resp.value)
 
 
 # --- Car Only ---

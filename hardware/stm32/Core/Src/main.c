@@ -224,6 +224,16 @@ static void uart_flush_rx(UART_HandleTypeDef *huart)
     }
 }
 
+void delay_ms(uint32_t ms)
+{
+  HAL_Delay(ms);
+}
+
+uint32_t getHardwareTime(void)
+{
+  return DWT->CYCCNT;
+}
+
 /**
  * @brief Initialize the UART interfaces.
  *
