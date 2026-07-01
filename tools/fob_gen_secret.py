@@ -36,12 +36,6 @@ def main():
 
     secrets.setdefault("keys", {})
 
-    # Update fob ID
-    fob_id = secrets.get("next_fob_id", 0)
-    secrets["next_fob_id"] = fob_id + 1
-    if secrets["next_fob_id"] > 255:
-        raise SystemExit("Error: fob ID rolled over 255; delete secrets.json and rebuild from scratch")
-
     if args.paired:
         # Find car ID and matching key, if present
         if args.car_id in secrets["keys"]:
@@ -60,7 +54,6 @@ def main():
             fp.write("#define PAIRED 1\n")
             fp.write(f'#define PAIR_PIN "{args.pair_pin}"\n')
             fp.write(f'#define CAR_ID "{args.car_id}"\n')
-            fp.write(f'#define FOB_ID {fob_id}\n')
             fp.write('#define CAR_KEY {')
             for i in range(15):
                 fp.write(f'{key_array[i]}, ')
@@ -74,7 +67,6 @@ def main():
             fp.write("#define PAIRED 0\n")
             fp.write('#define PAIR_PIN "000000"\n')
             fp.write('#define CAR_ID "000000"\n')
-            fp.write(f'#define FOB_ID {fob_id}\n')
             fp.write("#define CAR_KEY {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}\n")
             fp.write("\n#endif\n")
 

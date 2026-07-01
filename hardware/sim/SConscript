@@ -1,4 +1,4 @@
-Import('app_env', 'gen_secrets_action')
+Import('app_env', 'gen_secrets_action', 'secrets_h_sources')
 
 sim_env = app_env.Clone()
 
@@ -45,7 +45,7 @@ sim_env.Append(LIBS=[
 
 secrets_h = sim_env.Command(
     target=['secrets.h'],
-    source=[sim_env.Value(f"{sim_env['role']}:{sim_env.get('id','')}:{sim_env.get('pin','')}")],
+    source=secrets_h_sources(sim_env),
     action=gen_secrets_action
 )
 

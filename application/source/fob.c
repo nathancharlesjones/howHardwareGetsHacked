@@ -85,9 +85,6 @@ static void initFobState(FOB_FLASH_DATA *fob_state_ram)
 #endif
 }
 
-/*** Const variables ***/
-const uint8_t my_id = FOB_ID;
-
 /**
  * @brief Main function for the fob example
  *
@@ -288,7 +285,7 @@ void processHostCommand(FOB_FLASH_DATA *fob_state_ram, const char *cmd)
  */
 void pairFob(FOB_FLASH_DATA *fob_state_ram, const char *pin)
 {
-  //delay_ms(750);
+  delay_ms(PAIRING_DELAY_MS);
 
   // Only paired fobs can initiate pairing
   if (fob_state_ram->paired != FLASH_PAIRED)

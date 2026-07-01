@@ -1,4 +1,4 @@
-Import('app_env', 'gen_secrets_action')
+Import('app_env', 'gen_secrets_action', 'secrets_h_sources')
 
 stm32_env = app_env.Clone()
 
@@ -55,7 +55,7 @@ stm32_env.Append(LIBS=[
 
 secrets_h = stm32_env.Command(
     target=['secrets.h'],
-    source=[stm32_env.Value(f"{stm32_env['role']}:{stm32_env.get('id','')}:{stm32_env.get('pin','')}")],
+    source=secrets_h_sources(stm32_env),
     action=gen_secrets_action
 )
 

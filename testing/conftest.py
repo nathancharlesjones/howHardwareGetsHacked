@@ -61,6 +61,7 @@ class RoleConfig:
     role: str  # "car", "paired_fob", or "unpaired_fob"
     id: Optional[str] = None  # Required for car and paired_fob
     pin: Optional[str] = None  # Required for paired_fob
+    pairing_delay_ms: Optional[str] = None  # Override anti-brute-force pairing delay (paired_fob only)
 
 
 # ============================================================================
@@ -297,6 +298,8 @@ def build_binary(cfg: RoleConfig, platform: str) -> Path:
         cmd.append(f"id={cfg.id}")
     if cfg.pin:
         cmd.append(f"pin={cfg.pin}")
+    if cfg.pairing_delay_ms is not None:
+        cmd.append(f"pairing_delay_ms={cfg.pairing_delay_ms}")
 
     result = subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=True, text=True)
     if result.returncode != 0:

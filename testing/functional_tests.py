@@ -175,6 +175,16 @@ class TestCarAndPairedFob:
 
         # Fob initiates unlock (blocks until complete)
         resp = proto.cmd_btn_press(fob)
+        print("-----Car-----")
+        log = proto.cmd_get_board_msg_log(car, role="car")
+        for entry in log:
+            if entry.magic != 0:
+                print(entry)
+        print("-----Fob-----")
+        log = proto.cmd_get_board_msg_log(fob, role="fob")
+        for entry in log:
+            if entry.magic != 0:
+                print(entry)
         assert resp.success, f"btnPress failed: {resp.error}"
 
         # Check car is now unlocked

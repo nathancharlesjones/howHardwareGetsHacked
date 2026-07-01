@@ -273,7 +273,11 @@ class TestPairingPinAttacks:
     @pytest.mark.hardware_only
     def test_timing_attack_on_pairing_pin(self, deploy):
         random_pin = secrets.token_hex(3)
-        fob = deploy(RoleConfig("paired_fob", id="1337", pin=random_pin))
+        # Disable the anti-brute-force pairing delay for this fob build so the
+        # ~768 memcmp timing samples (256 values x 3 byte positions) complete
+        # in a reasonable amount of time. The delay itself is covered by
+        # test_brute_force_attack_on_pairing_pin above.
+        fob = deploy(RoleConfig("paired_fob", id="1337", pin=random_pin, pairing_delay_ms="1"))
 
         # memcmp leaks at the byte level (2 hex digits at a time), not the nibble
         # level, because hexToBytes() packs the pin into 3 binary bytes before

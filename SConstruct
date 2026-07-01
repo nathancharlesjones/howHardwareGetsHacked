@@ -20,6 +20,7 @@ opts.Add('pin', 'Pairing pin (required for paired_fob)', '')
 opts.Add('opt', 'Optimization level', '2')
 opts.Add(BoolVariable('debug', 'Debug build', False))
 opts.Add(BoolVariable('test', 'Test build (enables test commands)', False))
+opts.Add('pairing_delay_ms', 'Delay (ms) before checking pairing pin (anti-brute-force)', '750')
 
 # Optional feature flags
 opts.Add('unlock_flag', 'Custom unlock flag value', '')
@@ -98,6 +99,10 @@ if not app_env['opt'].isdigit() or app_env['opt'] not in ['0', '1', '2', '3', 's
     print("Error: 'opt' must be one of: 0, 1, 2, 3, s")
     Exit(1)
 
+if not app_env['pairing_delay_ms'].isdigit():
+    print("Error: 'pairing_delay_ms' must be a non-negative integer")
+    Exit(1)
+
 FLAG_SIZE = 64
 FLAG_DEFAULTS = {
     'unlock_flag':  'default_unlock',
@@ -131,6 +136,7 @@ app_env.Append(CPPDEFINES=[('UNLOCK_FLAG',   f'\\"{app_env["unlock_flag"]}\\"')]
 app_env.Append(CPPDEFINES=[('FEATURE1_FLAG', f'\\"{app_env["feature1_flag"]}\\"')])
 app_env.Append(CPPDEFINES=[('FEATURE2_FLAG', f'\\"{app_env["feature2_flag"]}\\"')])
 app_env.Append(CPPDEFINES=[('FEATURE3_FLAG', f'\\"{app_env["feature3_flag"]}\\"')])
+app_env.Append(CPPDEFINES=[('PAIRING_DELAY_MS', app_env['pairing_delay_ms'])])
 
 # Common compiler flags
 app_env.Append(CPPFLAGS=[f'-O{app_env["opt"]}', '-Wall', '-pedantic'])
@@ -181,14 +187,23 @@ def configure_env(p, env):
         source='#/hardware/source/platform_common.c'
     )
 
+SECRETS_JSON_PATH = os.environ.get('TEST_SECRETS_FILE', 'secrets/secrets.json')
+
+GEN_SECRET_SCRIPT = {
+    'car':          'tools/car_gen_secret.py',
+    'paired_fob':   'tools/fob_gen_secret.py',
+    'unpaired_fob': 'tools/fob_gen_secret.py',
+}
+
 def gen_secrets_action(target, source, env):
     secrets_h = str(target[0])
-    secrets_json = os.environ.get('TEST_SECRETS_FILE', 'secrets/secrets.json')
+    secrets_json = SECRETS_JSON_PATH
+    gen_script = GEN_SECRET_SCRIPT[env['role']]
 
     if env['role'] == 'car':
         cmd = [
             sys.executable,
-            'tools/car_gen_secret.py',
+            gen_script,
             '--car-id', env['id'],
             '--header-file', secrets_h,
             '--secrets-file', secrets_json
@@ -196,7 +211,7 @@ def gen_secrets_action(target, source, env):
     elif env['role'] == 'paired_fob':
         cmd = [
             sys.executable,
-            'tools/fob_gen_secret.py',
+            gen_script,
             '--car-id', env['id'],
             '--pair-pin', env['pin'],
             '--header-file', secrets_h,
@@ -206,7 +221,7 @@ def gen_secrets_action(target, source, env):
     else:
         cmd = [
             sys.executable,
-            'tools/fob_gen_secret.py',
+            gen_script,
             '--header-file', secrets_h,
             '--secrets-file', secrets_json
             # No --paired flag for unpaired fob
@@ -214,7 +229,21 @@ def gen_secrets_action(target, source, env):
 
     subprocess.run(cmd, check=True)
 
-Export('gen_secrets_action')
+def secrets_h_sources(env):
+    """
+    Sources that should force secrets.h to regenerate. role/id are deliberately
+    excluded: they're already baked into the build directory path, so a
+    different role/id is always a different secrets.h target, never a staleness
+    case. pin is NOT reflected in the path (paired_fob's dir is role_id only),
+    so it must be tracked explicitly.
+    """
+    sources = [env.Value(env.get('pin', '')), f'#/{GEN_SECRET_SCRIPT[env["role"]]}']
+    if os.path.exists(SECRETS_JSON_PATH):
+        secrets_json_node = SECRETS_JSON_PATH if os.path.isabs(SECRETS_JSON_PATH) else f'#/{SECRETS_JSON_PATH}'
+        sources.append(secrets_json_node)
+    return sources
+
+Export('gen_secrets_action', 'secrets_h_sources')
 
 def gen_flags_bin_action(target, source, env):
     # Binary layout (FLAG_SIZE bytes each): feature3, feature2, feature1, unlock
