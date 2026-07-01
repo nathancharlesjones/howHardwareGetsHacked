@@ -135,10 +135,13 @@ class SimulationEnvironment:
         # Launch executable
         pid = os.fork()
         if pid == 0:
-            # Child process: redirect stdout/stderr to /dev/null and exec the binary
+            # Child process: redirect stdout to /dev/null and exec the binary.
+            # stderr is deliberately left inherited (not redirected) so that
+            # firmware perror()/fprintf(stderr, ...) diagnostics surface in
+            # pytest's "Captured stderr call" section instead of being
+            # silently discarded - see SESSION_CHANGES.md #8.
             devnull = os.open(os.devnull, os.O_WRONLY)
             os.dup2(devnull, 1)  # redirect stdout
-            os.dup2(devnull, 2)  # redirect stderr
             os.close(devnull)
 
             # Child process: set up new session and exec the binary
