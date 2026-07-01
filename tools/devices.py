@@ -39,14 +39,32 @@ class DeployedDevice:
         self.serial.flush()
 
     def recv(self, timeout: Optional[float] = None) -> str:
-        """Receive one line from device, optionally with custom timeout."""
+        """Receive one line from device, optionally with custom timeout.
+
+        Reads in chunks and extends the deadline on progress, rather than
+        using pyserial's default readline() (which reads one byte at a time,
+        each independently subject to the timeout). On a loaded host, a long
+        response can have hundreds of individual per-byte reads; if any single
+        one of them is delayed past the timeout by scheduling jitter, the
+        default readline() silently returns a truncated line. Chunked reads
+        cut the number of at-risk syscalls from one-per-byte to a handful.
+        """
+        read_timeout = timeout if timeout is not None else self.serial.timeout
         old_timeout = self.serial.timeout
-        if timeout is not None:
-            self.serial.timeout = timeout
+        self.serial.timeout = 0.1  # poll interval; overall budget enforced below
+        buf = bytearray()
+        deadline = time.monotonic() + read_timeout
         try:
-            return self.serial.readline().decode('ascii', errors='replace').strip()
+            while time.monotonic() < deadline:
+                chunk = self.serial.read(max(1, self.serial.in_waiting))
+                if chunk:
+                    buf += chunk
+                    if b'\n' in chunk:
+                        break
+                    deadline = time.monotonic() + read_timeout  # reset on progress
         finally:
             self.serial.timeout = old_timeout
+        return buf.decode('ascii', errors='replace').strip()
 
     def send_recv(self, data: str, timeout: Optional[float] = None) -> str:
         """Send data and receive response in one call."""
