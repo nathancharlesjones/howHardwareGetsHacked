@@ -79,6 +79,14 @@ class BoardMsgEntry:
 def parse_board_msg_log(hex_str: str, role: str = None) -> list[BoardMsgEntry]:
       """Parse getBoardMsgLog hex output into a list of log entries."""
       raw = bytes.fromhex(hex_str)
+      expected_len = MAX_LOG_ENTRIES * LOG_ENTRY_SIZE
+      if len(raw) != expected_len:
+          raise RuntimeError(
+              f"getBoardMsgLog response truncated: got {len(raw)} bytes, "
+              f"expected {expected_len}. Likely a slow/loaded host reading the "
+              f"serial response past its timeout rather than a firmware bug, "
+              f"since the firmware always sends a fixed-size buffer."
+          )
       entries = []
       for i in range(MAX_LOG_ENTRIES):
           offset = i * LOG_ENTRY_SIZE
@@ -292,7 +300,7 @@ def cmd_send_board_msg(device, magic: int, payload: bytes, timeout: float = 2.0)
     raw = bytes([magic, len(payload)]) + payload
     return parse_response(device.send_recv(f"sendBoardMsg {raw.hex()}", timeout=timeout))
 
-def cmd_get_board_msg_log(device, role: str = None, timeout: float = 2.0) -> list[BoardMsgEntry]:
+def cmd_get_board_msg_log(device, role: str = None, timeout: float = 5.0) -> list[BoardMsgEntry]:
     """Get and parse the board message log."""
     resp = parse_response(device.send_recv("getBoardMsgLog", timeout=timeout))
     if not resp.success:
