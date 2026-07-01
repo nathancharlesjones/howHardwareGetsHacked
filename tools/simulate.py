@@ -38,6 +38,55 @@ DEFAULT_BAUD = 115200
 DEFAULT_TIMEOUT = 1.0
 
 
+class _RetryWriteFile:
+    """Wraps a raw, unbuffered, non-blocking file object so write() always
+    writes every byte given, retrying on short writes instead of silently
+    dropping the remainder.
+
+    PyVirtualSerialPorts opens its master fds non-blocking and unbuffered
+    (buffering=0), then relays data with a bare f.write(data) whose return
+    value it never checks (see virtualserialports.VirtualSerialPorts.process).
+    A non-blocking write() can write fewer bytes than requested when the
+    destination pty's kernel buffer is momentarily full, and the untransmitted
+    remainder is lost forever. This consistently truncated the ~1950-byte
+    getBoardMsgLog response by the same amount on macOS CI runners (smaller
+    pty buffers than Linux) while never reproducing on Linux.
+    """
+
+    def __init__(self, f):
+        self._f = f
+
+    def read(self, *args, **kwargs):
+        return self._f.read(*args, **kwargs)
+
+    def write(self, data):
+        total = 0
+        while total < len(data):
+            n = self._f.write(data[total:])
+            if n:
+                total += n
+            else:
+                time.sleep(0.001)  # would-block; give the reader a moment to drain
+        return total
+
+    def close(self):
+        self._f.close()
+
+
+class ReliableVirtualSerialPorts(VirtualSerialPorts):
+    """VirtualSerialPorts with short-write-safe master file objects.
+
+    Only wraps the file objects after opening; the read/select relay loop
+    (process()) is inherited unchanged.
+    """
+
+    def open(self):
+        super().open()
+        self._master_files = {
+            fd: _RetryWriteFile(f) for fd, f in self._master_files.items()
+        }
+
+
 class SimulationEnvironment:
     """
     Context manager for a simulation environment with one or two x86 devices.
@@ -74,7 +123,7 @@ class SimulationEnvironment:
         """
         # Create board connection if we have two devices
         if self.binary2:
-            self.board_vsp = VirtualSerialPorts(2)
+            self.board_vsp = ReliableVirtualSerialPorts(2)
             self.board_vsp.open()
             self.board_vsp.start()
             board_ports = self.board_vsp.ports
@@ -118,7 +167,7 @@ class SimulationEnvironment:
         binary = Path(binary)
         
         # Create host connection for this device
-        host_vsp = VirtualSerialPorts(2)
+        host_vsp = ReliableVirtualSerialPorts(2)
         host_vsp.open()
         host_vsp.start()
         test_port, exe_host_port = host_vsp.ports
