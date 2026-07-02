@@ -83,9 +83,10 @@ def parse_board_msg_log(hex_str: str, role: str = None) -> list[BoardMsgEntry]:
       if len(raw) != expected_len:
           raise RuntimeError(
               f"getBoardMsgLog response truncated: got {len(raw)} bytes, "
-              f"expected {expected_len}. Likely a slow/loaded host reading the "
-              f"serial response past its timeout rather than a firmware bug, "
-              f"since the firmware always sends a fixed-size buffer."
+              f"expected {expected_len}. Not a firmware bug - the firmware "
+              f"always sends a fixed-size buffer. Most likely a short write "
+              f"somewhere in the transport (e.g. a non-blocking write() that "
+              f"silently drops bytes when a destination buffer is full)."
           )
       entries = []
       for i in range(MAX_LOG_ENTRIES):
