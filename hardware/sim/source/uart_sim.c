@@ -284,8 +284,6 @@ uint32_t uart_write(hw_uart_t uart, uint8_t* buf, uint32_t len)
                 usleep(100);
                 continue;
             }
-            fprintf(stderr, "uart_write: errno=%d (%s), total_written=%u of %u\n",
-                    errno, strerror(errno), total_written, len);
             perror("uart_write");
             break;
         }
