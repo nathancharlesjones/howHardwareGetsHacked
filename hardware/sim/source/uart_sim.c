@@ -276,11 +276,8 @@ uint32_t uart_write(hw_uart_t uart, uint8_t* buf, uint32_t len)
         if (n > 0) {
             total_written += n;
         } else if (n < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOBUFS || errno == EINTR) {
-                /* Transient conditions: retry. EAGAIN/EWOULDBLOCK = non-blocking
-                 * write would block; ENOBUFS = kernel temporarily out of buffer
-                 * space, seen on BSD/macOS pty implementations under load (Linux
-                 * ptys tend to just block instead); EINTR = interrupted syscall. */
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                /* Non-blocking write would block, retry */
                 usleep(100);
                 continue;
             }
