@@ -9,6 +9,7 @@ This project demonstrates iterative attacks and defenses for embedded systems us
 - [Part 2: On-boarding](https://www.digikey.com/en/maker/blogs/2026/how-hardware-gets-hacked-part-2-on-boarding)
 - [Part 3: Adopting the Attacker Mindset](https://www.digikey.com/en/maker/blogs/2026/how-hardware-gets-hacked-part-3-adopting-the-attacker-mindset)
 - [Part 4: Memory Protections](https://www.digikey.com/en/maker/blogs/2026/how-hardware-gets-hacked-part-4-memory-protections)
+- [Part 5: Replay Attacks](https://www.digikey.com/en/maker/blogs/2026/how-hardware-gets-hacked-part-5)
 
 ## Project Structure
 
@@ -107,7 +108,7 @@ This repository is organized around progressive security improvements. Each defe
 
 Navigate to the commit in question (below) by appending the commit number to the URL www.github.com/nathancharlesjones/howHardwareGetsHacked/tree/<6-digit commit #>, i.e. www.github.com/nathancharlesjones/howHardwareGetsHacked/tree/d39462a.
 
-![Threat model](https://img.plantuml.biz/plantuml/png/hLRDRjj64BxhAGRo9K4jAtPi9tOD8x9-RAUMH4WMWY8AYXKv8balTvdTfHIrA91JhmLwRYzzYZwFNw2lqDabgPzMLNs8UD9ozjkPRxxvbc-qOSfa2Q_eXrYaJB445Fg6YP3ZnKL_T0_z3WoRVQzzUGa_Le1-Lr85g8PcmH42fYCCycNcFuHAPY9eIYuLx7LExEFUTQGm-Mges68DPMtnfyhoOAZIGwTd1kGKXhvCaKvd6lhzuU7JmeugQt5NZM4RthjZByvr52CFpY__-lCNobaZF8k5HZzJ-1pm4qjIZYwoAPCaDkU0q-chOp-eV5X7R5rT5u04iyA4LgpPnFA2aoo4L2gpWHMyF3i-FMARM8EsTzVuTYjS8pCH2XFxp23COnE1afp78WHV1gY1YG2wZURNRgk7gkOp1PdWqd-01rne256Weiq1A8gL2Ly0Cp39OXxKJ9niLihEJizENfnjPjSSRCsi6J7EKOHOKwXJIGpc-Gaf_4tKr_whazVCjwYk3xNQfQFld7hXAwar1j_fEQb14-m0MG2I6ZhbBDGmLJA111Ef5cCXPrWMH_Mi61wBZWlsMMgeYm4Lmdb5IA9CnM7an94VwCLcIk_qk38MZv__iDqoAfvanZAQSXOBWv-8dbWmjO1fp74PIlMAq8OLvv9cm4YuzcxxDcGi6joW4ip4izMcGSi3ZZFaS5GkUSr1twjtkjwWNIvrlT4geUaK5NKSkirHnIPjsIe4ifMmPbwqKu92ge4QB4e99AWr2_7V13MPqh1tM3j-sXaAhVw-EEueHwDDiDVBvTEH4zXxyR_07AU6mAqTR8Tk8Usr91R4aAfo6S6CyOmc9zEscSDszodgUPzNyM6BX1u__tOZ4oGBatDQ-1ryjKYD94TBeyLIF5GXZIDDez4a26RrIrgJGDCDMcRAHpVGPVmjwJ0aiTjXjwelruTiPhCMEAVmZ89KNWxKwsnA_-frq2W26sFdfznMhRwxxRNwxwfLqF4Fk4ElQ-O2Nm4ALqmi1Jpx1l5EVdnUHeuSVTPjRbkRQwGIIxljfdrXdU3nvr_XXgbWpaYeZVOGKbHn6f4nyVMGeJDXHnITpDbioOUtC14bKQsIJolYa0f9P92HKHVoMXF4qNP1NAcCEZgLohT9Mjxzl2axj0PFXn_Gb2jNVzvdvxgMk5ndTA_uf2Hxuus5LQI955AfWaH3RBlxntR2cVOkzJjTLdkaWz2EP24XtrajIGe-ahRTkHFoWJGjn40nbieYJ6J9X9HJx1qDxc0-dn-4rB1iSa0nTL85kPtR4J559lYz5AZhaPoNNRoc9jmmwyDrGuNKBqvhGKm8QwViNUv3V807sy7NWUscNU35fLcrDtllSDaJwWVTJTkxGJf-ovB_8l9e_-LJK3ea5djn4jY4qlboQ6waTw3zmtoQWst6qvE6naHcOKJt5TaADT_TlON1hOVb6amLVHyfy0QzQxAuK2hgIR8UfX5BjRYeVH8iOPAkLkzo4BxOaOKDpPDOsWfcvMXeEuAGPDp4gVrCMjvtQQPIgVEyjvlJVV_UMoAI-6iyjZehhYHc32QfqIipGfYWiHOP5RhQiADXDxzm67rTrSeMbwww7bcQ6TmJ9PKtD57qjVmt)
+![Threat model](https://img.plantuml.biz/plantuml/png/hLVHJXj757ttLupCIr0n3ZIGG14A64DeCRPiK5I5A1hlNkzEsPtPpCpYE5MbFFMrKf_Rbtv5loS_q5_ecTbTOvE5KYduYTqxzzuvzznpxxuqbckRfqd3N0kPSSrJfYcmN4O9xUtrBozO_vYDElr1Tt-V_TnW-3jKEYGzihE4MCXDJ67nc0VNaLQv33igKPgj76-vdtzthAGjdaQQpnQyB3pyfJ4Fp9hu8NfkcPgmKQ0oGdHkMBy_sdYSsMPZmUxmODHbRtpOlLqJ2qh2tVr__luDEHjYJuGq5EIQLXbzu6cMaBVig3GLTfVHPFByMH0stYvwF3eyAHt2pQrFTYGC7pjSQ9n7B5FQBlaAlzrvjht9btqDkuEpWnzhtHtaDYPfHS0jiQcmCTCgIOICMA12CepBaFKEEj_vemFIhO1hbij41TViccQ6HIH9ut38D6nLcimOjsoSYoHiMP4ktvJlREziFTrPpguphCsi4_Ca8HbHIvF9510iyfDA1ijUNmJFjrxmu0v-tNkl78QCims6aW35XC-OLIpZGkFMItw3xM0SSBgJxKMjKq0pKJfbAQL1cZ4XWPy4zQNz4eK5lr81zkOvln6HAm0IGJbmr1aw9-zpCbOeoSQ0DSj8XguqiBbgNCdIJERfc7Hrzd9ungRJwNe4hFBnEcpQajkOItyYvZeXyvEIPDgnchxYEfnoJITapIjq5uLjgudQUzkjKC33GfIL_JKcrccztlcYOtVe8USbHPkkZyut6WtVEwtMlgVyBledqCeO2j-PAJhO0DmXyP0fDE4auP5X4wqyq4hFhgIweOgGuE1jLrp9OsySyCoYyqAGBqaAl1EQ-7ukuWs4dU2LJ_lpfxzSWrajnhbrI6S95zBI1p1QIAvdR28Icfk2eZ9oPcLOjBahmydWjEzChYIerW8DAllXqG31RoXXczMZGMVO7xIFUuDXjthK6rpUvZAPa4P_ibxdij5m2RVo350vcQh7weXmOsVkMrSxv0ges0rFm2QM6vVngDkhHyZ7G8HICsfZT8eJPOJCjH2NbIgaP0oFw4ll7QuDMzbeFNjS3AHkwUlxlIoyuH1REIyKvLYDsShJXnnxscWHnPutRmh_Rsl8y_dJ7wzKIfWtQee7Vx90ppAhC7woU3Qd3M93Eo6Tre0Ft14NB2lwrwXS1-JLjx8_1GCZiDmfiwDxzNm4sK0f9KrXdiD85pLcxJQVuBzs6nfNA8PhdEfOi_dwzFoe_xhPP4Pyf9Af2GwWbyNDBRs72vE0VSD8-iiuDNho0z6PUhzQo_9BJp0t9qwFbf-Xc8wO3dJtmcdYvrz_PvLGi8FkY6MaHHPZf2IB9YC_FZrgI2FXDtDm1ZCR8wDc4tAk0IXkbQemnuXjb3HekNulUcQpdXE7EaTzeTz1gQu-UmHxW1FiyUw7Q7dj0IYgxWUcWx5eHQm40NZbbfKhwLhAnf19TYr18Jz5S7TN5pzl7s9fbH2ImKojJmKb_PwdztdPNFlsCLwEWPGR-70sXh1_FM-UtGzukzE7dM5T3vuh2vAeF8eXskWmZ56_CvG2k6XM523JsEiq6mpFJo21aTBWPxfePeYgkUkjrb0j-CI4ldrNE4bc3sJXJ8iavXr6USKBu_Z7qZon8dFhtLpvirndoXHvr_VfHVzYK3zleA2jHBZnNOeejvRIpCujpbJKTYymNDjW9NOihnnErSalTVUSkuJbcAmpZSlkNUheKQ-GLkm_ebNnf5AfHSjA3zW5S2qdd2-msmUwzwhuRSUIoyqvHp-LIvmRnFUpQEikYtoOEYADhFBkoilFHHQb71xqsj1K4yydjLiadR6IRWFs828D9f12J6utkRz-FKm0HoM798uzeVLe7Oi6Lb-T8G6xkcJel2RAlQoj-NzMj0AfAYb0xyvRzA8UxWjmg3Zo9T9kMyLddJ3g_u3UkQX3l1mJvQT4iPrNxxhb-75Ho-X2JjHyg28Bx6QQATYaugDNs0UQvaoCjLleYeNz7HIunDqjbrELJ4QZizL5vsv0uKl8hFdETnSlzAJn4ZCMtxV_0W00)
 
 > **Note:** If you're following the articles, start with the baseline commit and progress through each defense as you read about the corresponding attack.
 
@@ -273,16 +274,18 @@ Test Commands (TEST_BUILD only):
         sendBoardMsg              - Transmits a message over a device's board UART
         getBoardMsgLog            - Returns the last 15 messages sent or received over the board UART
         reset                     - Factory reset (clear state, restart)
-    
+
     Fob:
         btnPress                  - Simulate button press, blocks until unlock completes
-        getFlashData              - Get FLASH_DATA as hex
-        setFlashData <hex>        - Set FLASH_DATA from hex (persists to flash)
         isPaired                  - Returns OK: 1 or OK: 0
-    
+        getFlashData              - Get flash data as hex
+        setFlashData <hex>        - Set flash data from hex (persists to flash)
+        getMemcmpTime             - Returns OK: <n> cycle count of the last PIN memcmp
+
     Car:
         isLocked                  - Returns OK: 1 or OK: 0
         getUnlockCount            - Returns OK: <n> (resets on power cycle)
+        getPrngSeed               - Returns OK: <32 hex chars> (16 bytes from getPrngSeed())
 ```
 
 Send commands via `monitor.py` or another terminal of choice (screen, minicom, PuTTY, etc).
@@ -318,7 +321,7 @@ class TestNewTest:
         assert proto.is_locked(car), "Car should start locked"
         assert proto.get_unlock_count(car) == 0, "Unlock count should be 0"
 
-        # See test.py or protocol.py for full list of available commands
+        # See functional_tests.py or protocol.py for full list of available commands
 ```
 
 **Available fixtures:**
@@ -368,7 +371,7 @@ cd hardware/newplatform
 
 ### 2. Implement Platform Abstraction (`platform.h` and `uart.h`)
 
-Create implementations for all functions in `hardware/include/platform.h` and `hardware/include/uart.h`. `loadFobState`, `saveFobState`, `loadCarState`, and `saveCarState` have implementations in `hardware/source/platform_common.c` that reference `load_flash` and `save_flash` (declared in `platform_impl.h`); you'll need to implement those instead of the `load/save*State` functions.
+Create implementations for all functions in `hardware/include/platform.h`, `hardware/include/platform_impl.h` and `hardware/include/uart.h`. `loadFobState` and `saveFobState` have implementations in `hardware/source/platform_common.c` that reference `load_flash` and `save_flash` (declared in `platform_impl.h`); you'll need to implement those instead of the `load/save*State` functions.
 
 ```c
 // hardware/newplatform/source/newplatform.c
@@ -395,7 +398,7 @@ void uart_write(uart_port_t port, const uint8_t *data, size_t len) {
 Create `hardware/newplatform/SConscript`:
 
 ```python
-Import('app_env', 'gen_secrets_action')
+Import('app_env', 'gen_secrets_action', 'secrets_h_sources')
 
 # Clone environment for platform-specific settings
 env = app_env.Clone()
@@ -438,7 +441,7 @@ sources.append('startup_newplatform.s')
 # Build rule for secrets.h (generated by gen_secrets_action)
 secrets_h = env.Command(
     target=['secrets.h'],
-    source=[],
+    source=secrets_h_sources(env),
     action=gen_secrets_action
 )
 
@@ -563,5 +566,5 @@ gdbgui -g "gdb-multiarch -ex 'target remote localhost:3333'" --args /path/to/bin
 
 # Run hardware tests (builds and flashes as part of the tests)
 ./tools/openocd.py flash newplatform <SERIAL> hardware/newplatform/build/car_12345/firmware.bin
-pytest testing/test.py --using newplatform@<SERIAL_1>,<SERIAL_2>
+pytest testing/functional_tests.py --using newplatform@<SERIAL_1>,<SERIAL_2>
 ```

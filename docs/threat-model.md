@@ -102,7 +102,6 @@ note right of [DELAY] : Pitfalls\
 \n\nAlternatives\
 \n• Make it harder (e.g. fingerprint)\
 \n• Make pin longer\
-\n• HSM with anti-rollback counter\
 \n\nAdd-ons\
 \n• Log/lockout/erase after repeated pairing attempts
 
@@ -113,6 +112,6 @@ note right of [CT] : Pitfalls\
 \n• Compiler optimizations\
 \n\nAlternatives\
 \n• Library memcmp_ct (e.g. from wolfSSL)\
-\n• Compare MACs, not actual pin values
+\n• Compare MACs, not pin values
 @enduml
 ```
