@@ -11,7 +11,7 @@ import time
 from conftest import RoleConfig
 import protocol as proto
 
-from package import create_feature_package
+from package import create_feature_package, FeaturePackage
 
 class TestSinglePairedFob:
     """Tests using only a single paired fob."""

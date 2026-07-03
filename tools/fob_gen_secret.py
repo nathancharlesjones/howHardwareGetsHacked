@@ -36,16 +36,23 @@ def main():
 
     secrets.setdefault("keys", {})
 
+    if "feature_key" in secrets["keys"]:
+        feature_key_array = secrets["keys"]["feature_key"]
+    else:
+        secrets["keys"]["feature_key"] = {}
+        feature_key_array = list(random.randbytes(16))
+        secrets["keys"]["feature_key"] = feature_key_array
+
     if args.paired:
         # Find car ID and matching key, if present
         if args.car_id in secrets["keys"]:
-            key_array = secrets["keys"][args.car_id]["car"]
+            car_key_array = secrets["keys"][args.car_id]["car"]
 
         # Else make a new key (and save it)
         else:
             secrets["keys"][args.car_id] = {}
-            key_array = list(random.randbytes(16))
-            secrets["keys"][args.car_id]["car"] = key_array
+            car_key_array = list(random.randbytes(16))
+            secrets["keys"][args.car_id]["car"] = car_key_array
 
         # Write to header file
         with open(args.header_file, "w") as fp:
@@ -56,8 +63,12 @@ def main():
             fp.write(f'#define CAR_ID "{args.car_id}"\n')
             fp.write('#define CAR_KEY {')
             for i in range(15):
-                fp.write(f'{key_array[i]}, ')
-            fp.write(f'{key_array[15]}}}\n')
+                fp.write(f'{car_key_array[i]}, ')
+            fp.write(f'{car_key_array[15]}}}\n')
+            fp.write('#define FEATURE_KEY {')
+            for i in range(15):
+                fp.write(f'{feature_key_array[i]}, ')
+            fp.write(f'{feature_key_array[15]}}}\n')
             fp.write("\n#endif\n")
     else:
         # Write to header file
@@ -68,6 +79,10 @@ def main():
             fp.write('#define PAIR_PIN "000000"\n')
             fp.write('#define CAR_ID "000000"\n')
             fp.write("#define CAR_KEY {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}\n")
+            fp.write('#define FEATURE_KEY {')
+            for i in range(15):
+                fp.write(f'{feature_key_array[i]}, ')
+            fp.write(f'{feature_key_array[15]}}}\n')
             fp.write("\n#endif\n")
 
     # Save the new key

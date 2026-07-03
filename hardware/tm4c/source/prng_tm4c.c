@@ -44,11 +44,13 @@ static uint16_t adc_read_step(uint32_t step_config)
 
 uint16_t entropy_adc_temp(void)
 {
+    //return 0;
     return adc_read_step(ADC_CTL_TS | ADC_CTL_IE | ADC_CTL_END);
 }
 
 uint16_t entropy_adc_float(void)
 {
+    //return 0;
     return adc_read_step(ADC_CTL_CH0 | ADC_CTL_IE | ADC_CTL_END);
 }
 

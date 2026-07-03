@@ -7,6 +7,8 @@ from conftest import RoleConfig
 import protocol as proto
 import secrets
 
+from package import create_feature_package, FeaturePackage
+
 
 def _mcv_min_entropy(samples: list[int]) -> float:
     """NIST SP 800-90B §6.3.1 Most Common Value Estimate.
@@ -308,3 +310,39 @@ class TestPairingPinAttacks:
         guess = bytes(guess_bytes).hex().upper()
         print(f"Expected: {random_pin.upper()}, determined: {guess}")
         assert guess != random_pin.upper(), "Pairing pin was recoverable using a timing attack"
+
+@pytest.mark.car5
+class TestFeatureFile:
+    """Tests that feature files cannot be forged."""
+
+    def test_feature_file_cannot_be_modified_and_deployed(self, deploy):
+        car, paired_fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
+
+        # Get enabled features
+        flash = proto.get_flash_data(paired_fob)
+        num_active_features = flash.feature_info.num_active
+        active_features = [False, False, False]
+        for i in range(num_active_features):
+            active_features[flash.feature_info.features[i]-1] = True
+        assert active_features[1] == False, "Fob started with Feature 2 active"
+
+        # Package feature 1 (comes with Car #5)
+        pkg = create_feature_package(flash.pair_info.car_id, 1)
+
+        # Modify feature 1 to become feature 2, leaving the MAC (still over
+        # feature 1) untouched, i.e. a forgery attempt
+        forged = FeaturePackage.unpack(pkg)
+        forged.feature = 2
+        pkg = forged.pack()
+
+        # Modified feature should be rejected
+        resp = proto.cmd_enable(paired_fob, pkg)
+        assert not resp.success, "Fob accepted forged Feature 2"
+
+        # Feature 2 should not be enabled
+        flash = proto.get_flash_data(paired_fob)
+        num_active_features = flash.feature_info.num_active
+        active_features = [False, False, False]
+        for i in range(num_active_features):
+            active_features[flash.feature_info.features[i]-1] = True
+        assert active_features[1] == False, "Fob accepted forged Feature 2"

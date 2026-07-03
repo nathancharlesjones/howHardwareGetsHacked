@@ -37,13 +37,14 @@
 typedef struct {
   char car_id[11];
   uint8_t feature;
+  uint8_t mac[8];
 } ENABLE_PACKET;
 
 /*** Static variables ***/
 /* AES-ECB context used by the CMAC callback; key loaded once in main() */
-static struct AES_ctx cmac_ctx;
+static struct AES_ctx unlock_aes_ctx, feature_aes_ctx;
 /* AES-CMAC context storing the AES callback pointer */
-static struct AES_CMAC_ctx aes_cmac_ctx;
+static struct AES_CMAC_ctx unlock_cmac_ctx, feature_cmac_ctx;
 
 #ifdef TEST_BUILD
 static uint32_t last_memcmp_execution_time;
@@ -59,8 +60,12 @@ void receivePairData(FOB_FLASH_DATA *fob_state_ram);
 uint8_t receiveAck(void);
 void processHostCommand(FOB_FLASH_DATA *fob_state_ram, const char *cmd);
 
-static void aes_cmac_encrypt(uint8_t* data) {
-  AES_ECB_encrypt(&cmac_ctx, data);
+static void aes_unlock_cmac(uint8_t* data) {
+  AES_ECB_encrypt(&unlock_aes_ctx, data);
+}
+
+static void aes_feature_cmac(uint8_t* data) {
+  AES_ECB_encrypt(&feature_aes_ctx, data);
 }
 
 static void initFobState(FOB_FLASH_DATA *fob_state_ram)
@@ -97,9 +102,15 @@ int main(int argc, char **argv)
 
   /* expand the key into AES round keys once; reused for every CMAC call */
   const uint8_t car_key[16] = CAR_KEY;
-  AES_init_ctx(&cmac_ctx, car_key);
+  AES_init_ctx(&unlock_aes_ctx, car_key);
   /* provide the CMAC library with AES encryption callback function that will perform the actual AES encryption */
-  AES_CMAC_init_ctx(&aes_cmac_ctx, (void*)&aes_cmac_encrypt);
+  AES_CMAC_init_ctx(&unlock_cmac_ctx, (void*)&aes_unlock_cmac);
+
+   /* expand the key into AES round keys once; reused for every CMAC call */
+  const uint8_t feature_key[16] = FEATURE_KEY;
+  AES_init_ctx(&feature_aes_ctx, feature_key);
+  /* provide the CMAC library with AES encryption callback function that will perform the actual AES encryption */
+  AES_CMAC_init_ctx(&feature_cmac_ctx, (void*)&aes_feature_cmac);
 
   FOB_FLASH_DATA fob_state_ram = {0};
   loadFobState(&fob_state_ram);
@@ -157,7 +168,7 @@ void processHostCommand(FOB_FLASH_DATA *fob_state_ram, const char *cmd)
   // Standard command: enable <hex_data>
   if (strncmp(cmd, "enable ", 7) == 0)
   {
-    uint8_t data[32];
+    uint8_t data[64];
     int len = hexToBytes(cmd + 7, data, sizeof(data));
     if (len < 0)
     {
@@ -365,6 +376,16 @@ void enableFeature(FOB_FLASH_DATA *fob_state_ram, const uint8_t *data, size_t le
   ENABLE_PACKET *enable_message = (ENABLE_PACKET *)data;
   enable_message->car_id[10] = '\0';
 
+  // Verify MAC on feature file
+  uint8_t computed_mac[16] = {0};
+  AES_CMAC_digest(&feature_cmac_ctx, (uint8_t*)enable_message, offsetof(ENABLE_PACKET, mac), computed_mac);
+
+  if( memcmp(&computed_mac[8], enable_message->mac, 8) != 0 )
+  {
+    sendError("bad MAC");
+    return;
+  }
+
   // Verify car ID matches
   if (strcmp(fob_state_ram->pair_info.car_id, enable_message->car_id) != 0)
   {
@@ -438,7 +459,7 @@ void attemptUnlock(FOB_FLASH_DATA *fob_state_ram)
   message.magic = RESPONSE_MAGIC;
   message.message_len = 8;
   message.buffer = MAC;
-  AES_CMAC_digest(&aes_cmac_ctx, buffer, NONCE_SIZE, MAC);
+  AES_CMAC_digest(&unlock_cmac_ctx, buffer, NONCE_SIZE, MAC);
   send_board_message(&message);
 
   // Wait for ACK from car (with timeout)

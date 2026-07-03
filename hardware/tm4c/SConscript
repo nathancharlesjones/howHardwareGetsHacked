@@ -53,6 +53,7 @@ secrets_h = tm4c_env.Command(
     source=secrets_h_sources(tm4c_env),
     action=gen_secrets_action
 )
+tm4c_env.AlwaysBuild(secrets_h)
 
 driver_objects = SConscript(
     'libraries/SConscript',

@@ -58,6 +58,7 @@ secrets_h = stm32_env.Command(
     source=secrets_h_sources(stm32_env),
     action=gen_secrets_action
 )
+stm32_env.AlwaysBuild(secrets_h)
 
 driver_objects = SConscript(
     'Drivers/SConscript',

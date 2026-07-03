@@ -48,6 +48,7 @@ secrets_h = sim_env.Command(
     source=secrets_h_sources(sim_env),
     action=gen_secrets_action
 )
+sim_env.AlwaysBuild(secrets_h)
 
 aes_lib, aes_cmac_lib = app_env['platform_libs']
 

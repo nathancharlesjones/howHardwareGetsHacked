@@ -1,9 +1,12 @@
 # Session change log — macOS CI investigation (2026-07-01)
 
+**Status: fixed and cleaned up.** Root cause was confirmed via a macOS CI
+run against `d06d1ab` (passed). Cleanup below (reverts + reword) is done
+and pushed as `ad13383`, `15cd2f0`, `71ddf9f`. Kept as a record of the
+investigation; safe to delete once you're done referencing it.
+
 Untracked scratch file, not meant to be committed. Lists every commit made
-during this troubleshooting session on `main`, in order, so they can be
-selectively reverted now that the real root cause of the macOS
-`getBoardMsgLog` truncation has been found.
+during this troubleshooting session on `main`, in order.
 
 | # | SHA | Files | Purpose | Status |
 |---|-----|-------|---------|--------|
