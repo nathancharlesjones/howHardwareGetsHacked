@@ -6,6 +6,9 @@ from collections import Counter
 from conftest import RoleConfig
 import protocol as proto
 import secrets
+import json
+from pathlib import Path
+import os
 
 from package import create_feature_package, FeaturePackage
 
@@ -298,7 +301,7 @@ class TestPairingPinAttacks:
                     guess_bytes.append(byte_val)
                     found = True
                     break
-                memcmp_times[byte_val] = proto.get_memcmp_time(fob)
+                memcmp_times[byte_val] = proto.get_pair_memcmp_time(fob)
 
             if not found:
                 best = max(memcmp_times, key=memcmp_times.get)
@@ -346,3 +349,43 @@ class TestFeatureFile:
         for i in range(num_active_features):
             active_features[flash.feature_info.features[i]-1] = True
         assert active_features[1] == False, "Fob accepted forged Feature 2"
+
+    @pytest.mark.hardware_only
+    def test_timing_attack_on_feature_file_mac_comparison(self, deploy):
+        car_id = "1337"
+        fob = deploy(RoleConfig("paired_fob", id=car_id, pin="123456"))
+
+        exp_pkg = create_feature_package(car_id, 1)
+
+        # Make a real package, but then clear out the MAC to start fresh
+        forged_pkg = FeaturePackage.unpack(exp_pkg)
+        forged_pkg.mac = b'\x00'*8
+
+        for byte_pos in range(8):            
+            memcmp_times = {}
+            found = False
+            for byte_val in range(256):
+                mac = bytearray(forged_pkg.mac)
+                mac[byte_pos] = byte_val
+                forged_pkg.mac = bytes(mac)
+
+                resp = proto.cmd_enable(fob, forged_pkg.pack())
+                if resp.success:
+                    found = True
+                    break
+                memcmp_times[byte_val] = proto.get_feature_memcmp_time(fob)
+
+            if not found:
+                best = min(memcmp_times, key=memcmp_times.get) if byte_pos == 3 else max(memcmp_times, key=memcmp_times.get)
+                mac = bytearray(forged_pkg.mac)
+                mac[byte_pos] = best
+                forged_pkg.mac = bytes(mac)
+
+            top3 = sorted(memcmp_times.items(), key=lambda x: -x[1])[:3]
+            print(f"Byte {byte_pos}: top 3: {[(f'{v:02X}', t) for v, t in top3]}")
+            bottom3 = sorted(memcmp_times.items(), key=lambda x: x[1])[:3]
+            print(f"Byte {byte_pos}: bottom 3: {[(f'{v:02X}', t) for v, t in bottom3]}")
+
+        exp_mac = FeaturePackage.unpack(exp_pkg).mac
+        print(f"Expected: {exp_mac}, determined: {forged_pkg.mac}")
+        assert exp_mac != forged_pkg.mac, "Feature MAC was recoverable using a timing attack"

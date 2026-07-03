@@ -47,7 +47,8 @@ static struct AES_ctx unlock_aes_ctx, feature_aes_ctx;
 static struct AES_CMAC_ctx unlock_cmac_ctx, feature_cmac_ctx;
 
 #ifdef TEST_BUILD
-static uint32_t last_memcmp_execution_time;
+static uint32_t last_pair_memcmp_execution_time;
+static uint32_t last_feature_memcmp_execution_time;
 #endif
 
 /*** Function definitions ***/
@@ -257,11 +258,20 @@ void processHostCommand(FOB_FLASH_DATA *fob_state_ram, const char *cmd)
     return;
   }
 
-  // Test command: getMemcmpTime
-  if (strcmp(cmd, "getMemcmpTime") == 0)
+  // Test command: getPairMemcmpTime
+  if (strcmp(cmd, "getPairMemcmpTime") == 0)
   {
     char time[16] = {0};
-    snprintf(time, 15, "%d", last_memcmp_execution_time);
+    snprintf(time, 15, "%d", last_pair_memcmp_execution_time);
+    sendOK(time);
+    return;
+  }
+
+  // Test command: getFeatureMemcmpTime
+  if (strcmp(cmd, "getFeatureMemcmpTime") == 0)
+  {
+    char time[16] = {0};
+    snprintf(time, 15, "%d", last_feature_memcmp_execution_time);
     sendOK(time);
     return;
   }
@@ -323,7 +333,7 @@ void pairFob(FOB_FLASH_DATA *fob_state_ram, const char *pin)
   bool pins_match = (memcmp_ct(hex_pin, fob_state_ram->pair_info.pin, 3) == 0);
 
 #ifdef TEST_BUILD
-  last_memcmp_execution_time = getHardwareTime() - start;
+  last_pair_memcmp_execution_time = getHardwareTime() - start;
 #endif
 
   if (!pins_match)
@@ -368,7 +378,7 @@ void enableFeature(FOB_FLASH_DATA *fob_state_ram, const uint8_t *data, size_t le
   if (len < sizeof(ENABLE_PACKET))
   {
     char msg[64] = {0};
-    sprintf(msg, "invalid packet; expected len of 12, got len of %zu", len);
+    sprintf(msg, "invalid packet; expected len of 20, got len of %zu", len);
     sendError(msg);
     return;
   }
@@ -380,7 +390,17 @@ void enableFeature(FOB_FLASH_DATA *fob_state_ram, const uint8_t *data, size_t le
   uint8_t computed_mac[16] = {0};
   AES_CMAC_digest(&feature_cmac_ctx, (uint8_t*)enable_message, offsetof(ENABLE_PACKET, mac), computed_mac);
 
-  if( memcmp(&computed_mac[8], enable_message->mac, 8) != 0 )
+#ifdef TEST_BUILD
+  uint32_t start = getHardwareTime();
+#endif
+
+  bool macs_match = (memcmp_ct(&computed_mac[8], enable_message->mac, 8) == 0);
+
+#ifdef TEST_BUILD
+  last_feature_memcmp_execution_time = getHardwareTime() - start;
+#endif
+
+  if (!macs_match)
   {
     sendError("bad MAC");
     return;
