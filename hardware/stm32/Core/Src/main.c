@@ -207,7 +207,10 @@ void setLED(led_color_t color)
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, color == GREEN);
 }
 
-void restart(void){}
+void restart(void)
+{
+  NVIC_SystemReset();
+}
 
 static void uart_flush_rx(UART_HandleTypeDef *huart)
 {

@@ -121,35 +121,23 @@ class Response:
 def parse_response(line: str) -> Response:
     """Parse a response line into a Response object."""
     if line is None or line == "":
-        resp = Response(success=False, error="timeout")
-        print(resp)
-        return resp
-    
+        return Response(success=False, error="timeout")
+
     line = line.strip().lstrip('\x00')
-    
+
     if line == "":
-        resp = Response(success=False, error="timeout")
-        print(resp)
-        return resp
-    
+        return Response(success=False, error="timeout")
+
     if line.startswith("OK"):
         if line == "OK":
-            resp = Response(success=True)
-            print(resp)
-            return resp
+            return Response(success=True)
         elif line.startswith("OK: "):
-            resp = Response(success=True, value=line[4:])
-            print(resp)
-            return resp
-    
+            return Response(success=True, value=line[4:])
+
     if line.startswith("ERROR: "):
-        resp = Response(success=False, error=line[7:])
-        print(resp)
-        return resp
-    
-    resp = Response(success=False, error=f"Unparseable: {line}")
-    print(resp)
-    return resp
+        return Response(success=False, error=line[7:])
+
+    return Response(success=False, error=f"Unparseable: {line}")
 
 
 # =============================================================================
@@ -574,10 +562,14 @@ def entropy_source_sample_width(device, source_num: int) -> int:
 
 
 def collect_entropy_source_samples(device, source_num: int, count: int, timeout: float = 5.0,
-                                    progress_every: int = None) -> bytes:
+                                    show_progress: bool = False) -> bytes:
     """
     Collect `count` consecutive readings from one entropy source, chunked into
     <=255-sample requests to stay within the firmware's uint8_t parameter.
+
+    With show_progress=True, renders a single self-overwriting progress bar
+    line (needs pytest -s) instead of printing one line per chunk -- a
+    1,000,000-sample collection is ~3900 chunks, too many to print separately.
 
     Returns the raw concatenated sample bytes (width * count bytes total).
     """
@@ -589,6 +581,10 @@ def collect_entropy_source_samples(device, source_num: int, count: int, timeout:
         out += get_entropy_source_samples(device, source_num, chunk, timeout=timeout)
         remaining -= chunk
         collected += chunk
-        if progress_every and collected % progress_every == 0:
-            print(f"  ... {collected}/{count} samples")
+        if show_progress:
+            frac = collected / count
+            bar = "#" * int(frac * 30) + "-" * (30 - int(frac * 30))
+            print(f"\r  [{bar}] {collected}/{count}", end="", flush=True)
+    if show_progress:
+        print()
     return bytes(out)

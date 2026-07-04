@@ -189,7 +189,7 @@ void processHostCommand(const char *cmd)
   if (strcmp(cmd, "restart") == 0)
   {
     sendOK(NULL);
-    restart(); // Does not return?
+    restart(); // On hardware this reboots and never returns; sim's stub does return
     return;
   }
 

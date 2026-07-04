@@ -78,7 +78,7 @@ class TestEntropySourceQuality:
             print(f"\nCollecting {n_samples} samples from source {source_num} "
                   f"({name}, {width} bytes/sample)...")
             raw = proto.collect_entropy_source_samples(
-                car, source_num, n_samples, progress_every=max(n_samples // 10, 1))
+                car, source_num, n_samples, show_progress=True)
             raw_by_source[name] = (raw, width)
 
             symbols = _low_byte_symbols(raw, width)
@@ -131,12 +131,13 @@ class TestEntropySourceRestart:
     collapse across power-on resets (e.g. an ADC or timer that always starts
     from the same state after boot).
 
-    Hardware-only: restart() is currently an empty stub on every platform
-    (hardware/*/**/restart()); until a real reboot is wired up there, every
-    "restart" in this test is a no-op, so the collected rows are not actually
-    independent restarts yet and any PASS here is not meaningful until that
-    firmware work lands. Simulation mode is skipped outright rather than
-    produce a misleadingly-passing result.
+    Hardware-only: restart() triggers a real warm reset on STM32/TM4C
+    (NVIC_SystemReset() / SysCtlReset()), which this test needs to collect
+    genuinely independent post-boot samples. In simulation restart() remains
+    an empty stub -- there's no real boot sequence to re-run and process
+    restart isn't viable here (see hardware/sim/source/sim.c) -- so
+    simulation mode is skipped outright rather than produce a misleadingly-
+    passing result.
     """
 
     def test_entropy_sources_restart(self, deploy, request, hardware_config):
@@ -161,8 +162,10 @@ class TestEntropySourceRestart:
             for r in range(restarts):
                 rows += proto.collect_entropy_source_samples(car, source_num, samples_per_restart)
                 proto.cmd_restart(car)
-                if (r + 1) % max(restarts // 10, 1) == 0:
-                    print(f"  ... {r + 1}/{restarts} restarts")
+                frac = (r + 1) / restarts
+                bar = "#" * int(frac * 30) + "-" * (30 - int(frac * 30))
+                print(f"\r  [{bar}] {r + 1}/{restarts} restarts", end="", flush=True)
+            print()
 
             raw = bytes(rows)
             symbols = _low_byte_symbols(raw, width)
