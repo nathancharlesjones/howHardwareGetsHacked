@@ -35,9 +35,19 @@ rectangle DELAY [
     Commit: c6cbcae
 ]
 
-rectangle CT [
+rectangle CT_PAIR [
     ️<:shield:> Perform memcmp in constant-time
     Commit: c6cbcae
+]
+
+rectangle MAC [
+    ️<:shield:> Authenticate with MAC
+    Commit: edbd8ae
+]
+
+rectangle CT_FEATURE [
+    ️<:shield:> Perform memcmp in constant-time
+    Commit: 6d3b3b0
 ]
 
 note "Navigate to the commit in question by appending the\
@@ -105,13 +115,22 @@ note right of [DELAY] : Pitfalls\
 \n\nAdd-ons\
 \n• Log/lockout/erase after repeated pairing attempts
 
-DELAY --> CT : <:crossed_swords:> Timing attack on pairing pin comparison\nFlags captured: Cars #2,5
-note right of [CT] : Pitfalls\
+DELAY --> CT_PAIR : <:crossed_swords:> Timing attack on pairing pin comparison\nFlags captured: Cars #2,5
+note right of [CT_PAIR] : Pitfalls\
 \n• Using a random delay\
 \n• Encrypting pairing info\
 \n• Compiler optimizations\
 \n\nAlternatives\
 \n• Library memcmp_ct (e.g. from wolfSSL)\
 \n• Compare MACs, not pin values
+
+DBG --> MAC : <:crossed_swords:> Forge a feature file\nFlags captured: Car #5
+note right of [MAC] : Pitfalls\
+\n• Using hash instead of MAC\
+
+MAC --> CT_FEATURE : <:crossed_swords:> Timing attack on feature MAC comparison\nFlags capture: Car #5
+note right of [CT_FEATURE] : Add-ons\
+\n• Per-device feature keys\
+\n• Digital signatures
 @enduml
 ```

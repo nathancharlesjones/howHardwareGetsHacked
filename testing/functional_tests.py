@@ -139,10 +139,10 @@ class TestSingleUnpairedFob:
     def test_get_flash_data_for_unpaired_fob(self, unpaired_fob):
         """Should be able to read fob's flash data."""
         flash = proto.get_flash_data(unpaired_fob)
-        assert flash.paired == 0xFF, "Flash data should show unpaired"
-        assert flash.pair_info.car_id == b'\xFF' * 11, "Should not have a car ID"
-        assert flash.pair_info.key == b'\xFF' * 16, "Should not have a key"
-        assert flash.pair_info.pin == b'\xFF' * 3, "Should not have a pin"
+        assert flash.paired == 0, "Flash data should show unpaired"
+        assert flash.pair_info.car_id == b'000000\x00\x00\x00\x00\x00', "Should not have a car ID"
+        assert flash.pair_info.key == b'\x00' * 16, "Should not have a key"
+        assert flash.pair_info.pin == b'\x00' * 3, "Should not have a pin"
 
     def test_unpaired_fob_rejects_feature(self, unpaired_fob):        
         #resp = proto.cmd_btn_press(fob)
@@ -230,6 +230,26 @@ class TestPairedAndUnpairedFob:
 
         # Unpaired fob should still be unpaired
         assert not proto.is_paired(unpaired), "Should still be unpaired"
+
+    def test_fob_paired_at_runtime_can_unlock_real_car(self, deploy):
+        # Pair an unpaired fob using a real paired fob
+        paired, unpaired = deploy(RoleConfig("paired_fob", id="1", pin="123456"),
+                                 RoleConfig("unpaired_fob"))
+        assert proto.cmd_pair(paired, "123456").success
+        assert proto.wait_until_paired(unpaired, timeout=5)
+
+        # Capture the state the newly-paired fob actually holds
+        cloned_flash = proto.get_flash_data(unpaired)
+
+        # Redeploy that exact state onto a fob wired to the real car
+        car, fresh_fob = deploy(RoleConfig("car", id="1"), RoleConfig("unpaired_fob"))
+        assert proto.cmd_set_flash_data(fresh_fob, cloned_flash).success
+
+        # The crux: a fob paired at RUNTIME must be able to unlock, not just report paired=1
+        resp = proto.cmd_btn_press(fresh_fob)
+        assert resp.success
+        assert not proto.is_locked(car)
+
 
 '''
 class TestCarPairedAndUnpaired:

@@ -69,26 +69,28 @@ static void aes_feature_cmac(uint8_t* data) {
   AES_ECB_encrypt(&feature_aes_ctx, data);
 }
 
+static void initUnlockAes(const uint8_t *key)
+{
+  static uint8_t car_key[16];
+  memcpy(car_key, key, sizeof(car_key));
+  AES_init_ctx(&unlock_aes_ctx, car_key);
+  AES_CMAC_init_ctx(&unlock_cmac_ctx, (void*)&aes_unlock_cmac);
+}
+
 static void initFobState(FOB_FLASH_DATA *fob_state_ram)
 {
-#if PAIRED == 1
   if (FLASH_UNINITIALIZED == fob_state_ram->paired)
   {
     memset(fob_state_ram, 0, sizeof(FOB_FLASH_DATA));
     hexToBytes(PAIR_PIN, fob_state_ram->pair_info.pin, 3);
     strcpy(fob_state_ram->pair_info.car_id, CAR_ID);
     strcpy(fob_state_ram->feature_info.car_id, CAR_ID);
-    fob_state_ram->paired = FLASH_PAIRED;
-    fob_state_ram->feature_info.num_active = 0;
+    const uint8_t car_key[16] = CAR_KEY;
+    memcpy(fob_state_ram->pair_info.key, car_key, sizeof(car_key));
+    fob_state_ram->paired = PAIRED;
     saveFobState(fob_state_ram);
   }
-#else
-  if (0xFF == fob_state_ram->feature_info.num_active)
-  {
-    fob_state_ram->feature_info.num_active = 0;
-    saveFobState(fob_state_ram);
-  }
-#endif
+  initUnlockAes(fob_state_ram->pair_info.key);
 }
 
 /**
@@ -102,12 +104,6 @@ int main(int argc, char **argv)
   initHardware_fob(argc, argv);
 
   /* expand the key into AES round keys once; reused for every CMAC call */
-  const uint8_t car_key[16] = CAR_KEY;
-  AES_init_ctx(&unlock_aes_ctx, car_key);
-  /* provide the CMAC library with AES encryption callback function that will perform the actual AES encryption */
-  AES_CMAC_init_ctx(&unlock_cmac_ctx, (void*)&aes_unlock_cmac);
-
-   /* expand the key into AES round keys once; reused for every CMAC call */
   const uint8_t feature_key[16] = FEATURE_KEY;
   AES_init_ctx(&feature_aes_ctx, feature_key);
   /* provide the CMAC library with AES encryption callback function that will perform the actual AES encryption */
@@ -223,6 +219,7 @@ void processHostCommand(FOB_FLASH_DATA *fob_state_ram, const char *cmd)
     }
     memcpy(fob_state_ram, data, sizeof(FOB_FLASH_DATA));
     saveFobState(fob_state_ram);
+    initUnlockAes(fob_state_ram->pair_info.key);
     sendOK(NULL);
     return;
   }
@@ -516,6 +513,7 @@ void receivePairData(FOB_FLASH_DATA *fob_state_ram)
   fob_state_ram->paired = FLASH_PAIRED;
   strcpy(fob_state_ram->feature_info.car_id, fob_state_ram->pair_info.car_id);
   saveFobState(fob_state_ram);
+  initUnlockAes(fob_state_ram->pair_info.key);
 }
 
 /**
