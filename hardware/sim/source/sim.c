@@ -134,16 +134,31 @@ void save_flash(const void* src, size_t size)
 #  include <sys/random.h>   /* getrandom */
 #endif
 
-void getPrngSeed(uint8_t *dest)
+uint8_t getEntropySourceCount(void){ return 1; }
+
+const char * getEntropySourceName(uint8_t source_num)
+{
+    return source_num == 0 ? "os_rng" : "Invalid source number";
+}
+
+void getRand(uint8_t *dest, uint8_t size)
 {
 #if defined(_WIN32)
-  BCryptGenRandom(NULL, dest, 32, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+  BCryptGenRandom(NULL, dest, size, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
 #elif defined(__APPLE__)
-  getentropy(dest, 32);
+  getentropy(dest, size);
 #else
-  getrandom(dest, 32, 0);
+  getrandom(dest, size, 0);
 #endif
 }
+
+uint16_t getEntropySourceSamples(uint8_t source_num, uint8_t num_samples, uint8_t* dest)
+{
+    if( source_num == 0 ) getRand(dest, num_samples);
+    return num_samples;
+}
+
+void getPrngSeed(uint8_t *dest){ getRand(dest, 32); }
 
 void delay_ms(uint32_t ms)
 {
@@ -156,6 +171,8 @@ uint32_t getHardwareTime(void)
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (uint32_t)((uint64_t)ts.tv_sec * 1000000000ULL + (uint64_t)ts.tv_nsec);
 }
+
+void restart(void){}
 
 void __attribute__((weak)) initThread(int argc, char ** argv)
 {

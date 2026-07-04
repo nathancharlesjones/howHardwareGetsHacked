@@ -174,3 +174,5 @@ uint32_t getHardwareTime(void)
 {
     return HWREG(DWT_CYCCNT);
 }
+
+void restart(void){}

@@ -207,6 +207,8 @@ void setLED(led_color_t color)
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, color == GREEN);
 }
 
+void restart(void){}
+
 static void uart_flush_rx(UART_HandleTypeDef *huart)
 {
     uint8_t dummy;

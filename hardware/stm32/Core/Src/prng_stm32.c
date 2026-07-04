@@ -68,6 +68,46 @@ static uint16_t read_adc_float(void)
 static struct AES_ctx s_seed_aes;
 static void seed_encrypt(uint8_t *data) { AES_ECB_encrypt(&s_seed_aes, data); }
 
+enum { VCC, TEMP, JITTER, FLOAT_PIN, NUM_SOURCES };
+
+uint8_t getEntropySourceCount(void){ return NUM_SOURCES; }
+
+const char * getEntropySourceName(uint8_t source_num)
+{
+    const static char* names[NUM_SOURCES] = { [VCC] = "vcc",
+                                              [TEMP] = "temp",
+                                              [JITTER] = "jitter",
+                                              [FLOAT_PIN] = "float_pin"
+                                            };
+    return source_num < NUM_SOURCES ? names[source_num] : "Invalid source number";
+}
+
+uint16_t getEntropySourceSamples(uint8_t source_num, uint8_t num_samples, uint8_t* dest)
+{
+    const static uint8_t byte_widths[NUM_SOURCES] = { [VCC] = 2,
+                                                      [TEMP] = 2,
+                                                      [JITTER] = 4,
+                                                      [FLOAT_PIN] = 2
+                                                    };
+
+    if( source_num >= getEntropySourceCount() ) return 0;
+    uint8_t byte_width = byte_widths[source_num];
+    for( ; num_samples > 0; num_samples-- )
+    {
+        uint32_t sample;
+        switch(source_num)
+        {
+            case VCC:       sample = read_adc_vref();    break;
+            case TEMP:      sample = read_adc_temp();    break;
+            case JITTER:    sample = read_hsi_per_lsi(); break;
+            case FLOAT_PIN: sample = read_adc_float();   break;
+        }
+        memcpy(dest, &sample, byte_width);
+        dest += byte_width;
+    }
+    return num_samples*byte_width;
+}
+
 void getPrngSeed(uint8_t *dest)
 {
     struct __attribute__((packed)) {

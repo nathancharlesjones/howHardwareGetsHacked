@@ -19,5 +19,10 @@ bool buttonPressed(void);
 void getPrngSeed(uint8_t * dest);
 void delay_ms(uint32_t ms);
 uint32_t getHardwareTime(void);
+void restart(void);
+
+uint8_t getEntropySourceCount(void);
+const char * getEntropySourceName(uint8_t source_num);
+uint16_t getEntropySourceSamples(uint8_t source_num, uint8_t num_samples, uint8_t* dest);
 
 #endif // PLATFORM_H
