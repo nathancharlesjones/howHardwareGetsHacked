@@ -92,6 +92,7 @@ uint16_t getEntropySourceSamples(uint8_t source_num, uint8_t num_samples, uint8_
 
     if( source_num >= getEntropySourceCount() ) return 0;
     uint8_t byte_width = byte_widths[source_num];
+    uint8_t requested = num_samples;
     for( ; num_samples > 0; num_samples-- )
     {
         uint32_t sample;
@@ -105,7 +106,7 @@ uint16_t getEntropySourceSamples(uint8_t source_num, uint8_t num_samples, uint8_
         memcpy(dest, &sample, byte_width);
         dest += byte_width;
     }
-    return num_samples*byte_width;
+    return requested*byte_width;
 }
 
 void getPrngSeed(uint8_t *dest)

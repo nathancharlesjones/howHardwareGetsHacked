@@ -7,3 +7,7 @@
 [submodule "libraries/tiny-AES-CMAC-c"]
 	path = libraries/tiny-AES-CMAC-c
 	url = https://github.com/elektronika-ba/tiny-AES-CMAC-c
+[submodule "libraries/SP800-90B_EntropyAssessment"]
+	path = libraries/SP800-90B_EntropyAssessment
+	url = https://github.com/usnistgov/SP800-90B_EntropyAssessment.git
+	ignore = untracked

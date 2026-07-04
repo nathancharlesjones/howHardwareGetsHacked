@@ -112,6 +112,35 @@ def pytest_addoption(parser):
              "~200 needed to distinguish 5-bit from 3-bit sources; "
              "~5000 for a meaningful estimate of an 8-bit/byte source."
     )
+    parser.addoption(
+        "--ea-bin-dir",
+        type=str,
+        default=None,
+        help="Directory containing the compiled ea_iid/ea_non_iid/ea_restart binaries "
+             "from https://github.com/usnistgov/SP800-90B_EntropyAssessment (cpp/ after "
+             "'make iid non_iid restart'). Defaults to libraries/SP800-90B_EntropyAssessment/cpp, "
+             "or the EA_BIN_DIR environment variable."
+    )
+    parser.addoption(
+        "--entropy-n-samples",
+        type=int,
+        default=1_000_000,
+        help="Samples to collect per entropy source for the IID/non-IID assessment "
+             "(default: 1,000,000, the SP800-90B minimum). Lower values run much faster "
+             "over serial but the result is a dev sanity check only, not a valid claim."
+    )
+    parser.addoption(
+        "--entropy-restarts",
+        type=int,
+        default=1000,
+        help="Number of restarts for the entropy restart test (default: 1000, the SP800-90B default)."
+    )
+    parser.addoption(
+        "--entropy-samples-per-restart",
+        type=int,
+        default=1000,
+        help="Samples collected per restart for the entropy restart test (default: 1000, the SP800-90B default)."
+    )
 
 
 @pytest.fixture(scope="session")

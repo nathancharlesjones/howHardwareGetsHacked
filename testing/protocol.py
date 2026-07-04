@@ -27,6 +27,10 @@ Test Commands (TEST_BUILD only):
         isLocked                  - Returns OK: 1 or OK: 0
         getUnlockCount            - Returns OK: <n> (resets on power cycle)
         getPrngSeed               - Returns OK: <32 hex chars> (16 bytes from getPrngSeed())
+        restart                   - Warm restart (state not cleared); restart() is a stub on all platforms so far
+        getEntropySourceCount     - Returns OK: <n>, number of hardware entropy sources
+        getEntropySourceName <i>  - Returns OK: <name> for entropy source i
+        getEntropySourceSamples <i> <n> - Returns OK: <hex>, n raw readings (n<=255) from entropy source i
 """
 
 import time
@@ -495,3 +499,96 @@ def get_prng_seed(device, timeout: float = 2.0) -> bytes:
     if not resp.success:
         raise RuntimeError(f"getPrngSeed failed: {resp.error}")
     return bytes.fromhex(resp.value)
+
+
+def cmd_restart(device, timeout: float = 5.0) -> Response:
+    """
+    Warm-restart the device (unlike cmd_reset, does not clear persisted state).
+
+    NOTE: restart() is currently an empty stub on every platform (see
+    hardware/*/**/restart()), so this acks OK but the device does not
+    actually reboot yet. Callers doing restart-interleaved sample collection
+    should treat identical pre/post-restart readings as expected until that
+    lands, not as a passing result.
+    """
+    return parse_response(device.send_recv("restart", timeout=timeout))
+
+
+# --- Car Only: entropy source sampling ---
+
+def cmd_get_entropy_source_count(device, timeout: float = 2.0) -> Response:
+    """Get the number of hardware entropy sources available on this platform."""
+    return parse_response(device.send_recv("getEntropySourceCount", timeout=timeout))
+
+
+def get_entropy_source_count(device, timeout: float = 2.0) -> int:
+    """Convenience: get entropy source count as an int."""
+    resp = cmd_get_entropy_source_count(device, timeout=timeout)
+    if not resp.success:
+        raise RuntimeError(f"getEntropySourceCount failed: {resp.error}")
+    return int(resp.value)
+
+
+def cmd_get_entropy_source_name(device, source_num: int, timeout: float = 2.0) -> Response:
+    """Get the name of entropy source `source_num`."""
+    return parse_response(device.send_recv(f"getEntropySourceName {source_num}", timeout=timeout))
+
+
+def get_entropy_source_name(device, source_num: int, timeout: float = 2.0) -> str:
+    """Convenience: get entropy source name as a string."""
+    resp = cmd_get_entropy_source_name(device, source_num, timeout=timeout)
+    if not resp.success:
+        raise RuntimeError(f"getEntropySourceName failed: {resp.error}")
+    return resp.value
+
+
+def cmd_get_entropy_source_samples(device, source_num: int, num_samples: int, timeout: float = 5.0) -> Response:
+    """
+    Get `num_samples` raw readings from entropy source `source_num`, hex-encoded.
+
+    num_samples is capped at 255 by the firmware's uint8_t parameter; use
+    get_entropy_source_samples() (single call) or collect_entropy_source_samples()
+    (chunked, for large collections) instead of calling this directly with
+    num_samples > 255.
+    """
+    return parse_response(device.send_recv(f"getEntropySourceSamples {source_num} {num_samples}", timeout=timeout))
+
+
+def get_entropy_source_samples(device, source_num: int, num_samples: int, timeout: float = 5.0) -> bytes:
+    """Convenience: get raw sample bytes for one command (num_samples must be 0-255)."""
+    if not (0 <= num_samples <= 255):
+        raise ValueError("num_samples must be 0-255 per call; see collect_entropy_source_samples()")
+    resp = cmd_get_entropy_source_samples(device, source_num, num_samples, timeout=timeout)
+    if not resp.success:
+        raise RuntimeError(f"getEntropySourceSamples failed: {resp.error}")
+    return bytes.fromhex(resp.value) if resp.value else b""
+
+
+def entropy_source_sample_width(device, source_num: int) -> int:
+    """
+    Bytes per reading for `source_num` (e.g. 2 for a 12-bit ADC channel, 4 for
+    a timer-jitter capture). Not exposed directly by the firmware; inferred
+    by requesting a single sample and measuring the returned length.
+    """
+    return len(get_entropy_source_samples(device, source_num, 1))
+
+
+def collect_entropy_source_samples(device, source_num: int, count: int, timeout: float = 5.0,
+                                    progress_every: int = None) -> bytes:
+    """
+    Collect `count` consecutive readings from one entropy source, chunked into
+    <=255-sample requests to stay within the firmware's uint8_t parameter.
+
+    Returns the raw concatenated sample bytes (width * count bytes total).
+    """
+    out = bytearray()
+    remaining = count
+    collected = 0
+    while remaining > 0:
+        chunk = min(remaining, 255)
+        out += get_entropy_source_samples(device, source_num, chunk, timeout=timeout)
+        remaining -= chunk
+        collected += chunk
+        if progress_every and collected % progress_every == 0:
+            print(f"  ... {collected}/{count} samples")
+    return bytes(out)

@@ -1,6 +1,7 @@
 __pycache__
 **/build/
 application/packages
+testing/entropy_logs/
 
 # SCons build database
 .sconsign.dblite
