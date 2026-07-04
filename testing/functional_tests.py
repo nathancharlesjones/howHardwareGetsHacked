@@ -104,7 +104,30 @@ class TestSinglePairedFob:
         proto.cmd_reset(paired_fob)
 
     def test_paired_fob_rejects_feature_with_invalid_feature_number(self, paired_fob):
-        pass
+        """Feature numbers outside 1-3 should be rejected by the firmware,
+        even when the MAC is valid for that (invalid) feature number.
+        create_feature_package() validates client-side, so build a valid
+        package first, then unpack/modify/repack with a recomputed MAC."""
+        import os, json
+        from cryptography.hazmat.primitives import cmac
+        from cryptography.hazmat.primitives.ciphers import algorithms
+
+        flash = proto.get_flash_data(paired_fob)
+        pkg = FeaturePackage.unpack(create_feature_package(flash.pair_info.car_id, 1))
+        pkg.feature = 4  # only 1-3 are valid
+
+        secrets_file = os.environ.get("TEST_SECRETS_FILE", "secrets/secrets.json")
+        with open(secrets_file) as fp:
+            key = bytes(json.load(fp)["keys"]["feature_key"])
+        c = cmac.CMAC(algorithms.AES(key))
+        c.update(pkg.car_id + bytes([pkg.feature]))
+        pkg.mac = c.finalize()[-8:]
+
+        resp = proto.cmd_enable(paired_fob, pkg.pack())
+        assert not resp.success, f"Feature enable succeeded with invalid feature number: {resp.value}"
+
+        flash = proto.get_flash_data(paired_fob)
+        assert flash.feature_info.num_active == 0, "Invalid feature should not have been added"
 
     def test_paired_fob_rejects_feature_when_feature_is_already_enabled(self, paired_fob):
         # Get flash data; ensure features 0
@@ -144,10 +167,11 @@ class TestSingleUnpairedFob:
         assert flash.pair_info.key == b'\x00' * 16, "Should not have a key"
         assert flash.pair_info.pin == b'\x00' * 3, "Should not have a pin"
 
-    def test_unpaired_fob_rejects_feature(self, unpaired_fob):        
-        #resp = proto.cmd_btn_press(fob)
-        # assert not resp.success, f"Feature enable succeeded when it shouldn't have: {resp.value}"
-        pass
+    def test_unpaired_fob_rejects_feature(self, unpaired_fob):
+        """An unpaired fob should reject any feature-enable attempt."""
+        pkg = create_feature_package("DUMMY", 1)
+        resp = proto.cmd_enable(unpaired_fob, pkg)
+        assert not resp.success, f"Feature enable succeeded on unpaired fob: {resp.value}"
 
     def test_unpaired_fob_rejects_btnPress(self, unpaired_fob):
         resp = proto.cmd_btn_press(unpaired_fob)
@@ -202,6 +226,23 @@ class TestCarAndPairedFob:
         assert proto.get_unlock_count(car) == 3, "Should have 3 unlocks"
 
 
+class TestCarAndUnpairedFob:
+    """Tests using a car and an unpaired fob (not the car's own fob)."""
+
+    def test_unpaired_fob_cannot_unlock_car(self, deploy):
+        """An unpaired fob should refuse to even attempt an unlock, and the
+        car's state should be completely unaffected."""
+        car, unpaired = deploy(RoleConfig("car", id="1"), RoleConfig("unpaired_fob"))
+
+        assert proto.is_locked(car), "Car should start locked"
+
+        resp = proto.cmd_btn_press(unpaired)
+        assert not resp.success, "Unpaired fob unlock should fail"
+
+        assert proto.is_locked(car), "Car should still be locked"
+        assert proto.get_unlock_count(car) == 0, "Unlock count should be 0"
+
+
 class TestPairedAndUnpairedFob:
     """Tests using a paired fob and an unpaired fob."""
 
@@ -250,45 +291,27 @@ class TestPairedAndUnpairedFob:
         assert resp.success
         assert not proto.is_locked(car)
 
+    def test_fob_paired_at_runtime_can_pair_another_fob(self, deploy):
+        """A fob paired at runtime (not build time) should retain full
+        pairing capability, not just the ability to unlock -- it should be
+        able to pair a third fob exactly like a factory-paired fob can."""
+        # Pair an unpaired fob using a real paired fob
+        paired, unpaired = deploy(RoleConfig("paired_fob", id="1", pin="123456"),
+                                  RoleConfig("unpaired_fob"))
+        assert proto.cmd_pair(paired, "123456").success
+        assert proto.wait_until_paired(unpaired, timeout=5)
 
-'''
-class TestCarPairedAndUnpaired:
-    """Tests using car, paired fob, and unpaired fob together."""
+        # Capture the state the newly-paired fob actually holds
+        cloned_flash = proto.get_flash_data(unpaired)
 
-    def test_unpaired_fob_cannot_unlock_car(self, car_paired_unpaired):
-        """An unpaired fob should not be able to unlock the car."""
-        car, paired, unpaired = car_paired_unpaired
+        # Redeploy that exact state onto a fresh fob, wired to a brand-new unpaired fob
+        fob_clone, grandchild = deploy(RoleConfig("unpaired_fob"), RoleConfig("unpaired_fob"))
+        assert proto.cmd_set_flash_data(fob_clone, cloned_flash).success
 
-        assert proto.is_locked(car), "Car should start locked"
+        # The runtime-paired fob should be able to pair a THIRD fob
+        assert proto.cmd_pair(fob_clone, "123456").success
+        assert proto.wait_until_paired(grandchild, timeout=5)
 
-        # Unpaired fob tries to unlock (should fail - not paired)
-        resp = proto.cmd_btn_press(unpaired)
-        assert not resp.success, "Unpaired fob unlock should fail"
-
-        # Car should still be locked
-        assert proto.is_locked(car), "Car should still be locked"
-        assert proto.get_unlock_count(car) == 0, "Unlock count should be 0"
-
-    def test_newly_paired_fob_can_unlock_car(self, car_paired_unpaired):
-        """After pairing, a newly-paired fob should be able to unlock the car."""
-        car, paired, unpaired = car_paired_unpaired
-
-        # Pair the unpaired fob
-        resp = proto.cmd_pair(paired, "123456")
-        assert resp.success, f"Pairing failed: {resp.error}"
-
-        # Give time for pairing message to be processed
-        time.sleep(0.1)
-
-        # Verify pairing succeeded
-        assert proto.is_paired(unpaired), "Fob should now be paired"
-
-        # Now the formerly-unpaired fob should be able to unlock
-        resp = proto.cmd_btn_press(unpaired)
-        assert resp.success, f"Unlock failed: {resp.error}"
-
-        assert not proto.is_locked(car), "Car should be unlocked"
-'''
 
 class TestStateManagement:
     """Tests for reset and flash data functionality."""
@@ -311,6 +334,34 @@ class TestStateManagement:
         # Features should be cleared
         flash = proto.get_flash_data(paired_fob)
         assert flash.feature_info.num_active == 0, "Features should be cleared after reset"
+
+    def test_reset_resyncs_unlock_key_after_corruption(self, car_and_paired_fob):
+        """Reset must resync the runtime AES context, not just the visible
+        flash fields: corrupt the key via setFlashData, confirm unlock now
+        fails, reset, then confirm unlock (with the fob's real factory key)
+        works again."""
+        car, fob = car_and_paired_fob
+
+        original_flash = proto.get_flash_data(fob)
+        try:
+            corrupted = proto.FlashData.new_paired(
+                car_id=original_flash.pair_info.car_id,
+                key=b'\x00' * 16,  # deliberately wrong key
+                pin=original_flash.pair_info.pin
+            )
+            proto.cmd_set_flash_data(fob, corrupted)
+
+            resp = proto.cmd_btn_press(fob)
+            assert not resp.success, "Unlock should fail with a corrupted key"
+            assert proto.is_locked(car)
+
+            proto.cmd_reset(fob)
+
+            resp = proto.cmd_btn_press(fob)
+            assert resp.success, "Unlock should succeed again once reset restores the real key"
+            assert not proto.is_locked(car)
+        finally:
+            proto.cmd_set_flash_data(fob, original_flash)
 
     def test_set_flash_data(self, car_and_paired_fob):
         """Should be able to modify flash data directly."""
@@ -342,19 +393,16 @@ class TestStateManagement:
 class TestCustomConfigurations:
     """Tests that deploy custom role configurations."""
 
-    '''
     def test_mismatched_fob_cannot_unlock_car(self, deploy):
         """A fob paired to a different car ID should not unlock this car."""
-        # Car with ID 1 & Fob paired to car ID 2 (mismatched!)
-        car, wrong_fob = deploy(RoleConfig("car", id="2"), RoleConfig("paired_fob", id="1", pin="654321"))
+        # Car with ID 1 & fob paired to car ID 2 (mismatched!)
+        car, wrong_fob = deploy(RoleConfig("car", id="1"), RoleConfig("paired_fob", id="2", pin="654321"))
 
-        # Wrong fob tries to unlock
         resp = proto.cmd_btn_press(wrong_fob)
-        # Should fail (either ERROR response or car stays locked)
+        assert not resp.success, f"Unlock succeeded with mismatched car/fob key: {resp.value}"
 
-        # Car should remain locked
-        assert proto.is_locked(car), "Car should reject mismatched fob"
-    '''
+        assert proto.is_locked(car), "Car should reject mismatched fob and stay locked"
+        assert proto.get_unlock_count(car) == 0, "Unlock count should remain 0"
 
 
 class TestTiming:

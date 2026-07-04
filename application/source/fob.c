@@ -509,7 +509,6 @@ void receivePairData(FOB_FLASH_DATA *fob_state_ram)
   
   memcpy((uint8_t*)&fob_state_ram->pair_info, (uint8_t*)buffer, sizeof(PAIR_PACKET));
   fob_state_ram->pair_info.car_id[10] = '\0';
-  //fob_state_ram->pair_info.pin[6] = '\0';
   fob_state_ram->paired = FLASH_PAIRED;
   strcpy(fob_state_ram->feature_info.car_id, fob_state_ram->pair_info.car_id);
   saveFobState(fob_state_ram);
