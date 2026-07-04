@@ -175,7 +175,7 @@ def deploy(hardware_config):
     """
 
     deployed_devices = []
-    sim_env = None
+    sim_envs = []
 
     if hardware_config:
         # Hardware mode
@@ -255,22 +255,32 @@ def deploy(hardware_config):
             cfg1: RoleConfig,
             cfg2: Optional[RoleConfig] = None
         ) -> Union[DeployedDevice, tuple[DeployedDevice, DeployedDevice]]:
-            """Deploy to simulation: build binaries and create SimulationEnvironment."""
-            nonlocal sim_env
+            """Deploy to simulation: build binaries and create SimulationEnvironment.
 
+            A test may call this more than once (e.g. to pair a fob in one
+            environment, then move its state to a fresh one) - each call gets
+            its own SimulationEnvironment, and all of them are torn down at
+            fixture teardown. A single nonlocal used to hold only the most
+            recent environment, silently leaking every prior one's processes
+            and relay threads; those non-daemon threads never exit, which is
+            why the full suite would hang on exit after adding a test that
+            deploys twice.
+            """
             binary1 = build_binary(cfg1, "sim")
             binary2 = build_binary(cfg2, "sim") if cfg2 else None
 
             sim_env = SimulationEnvironment(binary1, binary2)
+            sim_envs.append(sim_env)
             # SimulationEnvironment now returns DeployedDevice or tuple directly
             return sim_env.__enter__()
 
     yield deploy_fn
 
     # Cleanup - unified for both modes!
-    if sim_env:
-        # Simulation: let SimulationEnvironment handle cleanup
-        sim_env.__exit__(None, None, None)
+    if sim_envs:
+        # Simulation: let each SimulationEnvironment handle its own cleanup
+        for sim_env in sim_envs:
+            sim_env.__exit__(None, None, None)
     else:
         # Hardware: close devices manually
         for dev in deployed_devices:
