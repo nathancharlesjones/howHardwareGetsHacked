@@ -121,7 +121,7 @@ This ST targets **EAL2**, comprising:
 | ATE_FUN.1 | Functional testing |
 | AVA_VAN.2 | Vulnerability analysis |
 
-The automated test suite (`testing/functional_tests.py`) provides evidence for ATE_COV.1 and ATE_FUN.1, covering unlock authentication, replay rejection, pairing PIN validation, and feature package acceptance/rejection.
+The automated test suite (`testing/test_functional.py`) provides evidence for ATE_COV.1 and ATE_FUN.1, covering unlock authentication, replay rejection, pairing PIN validation, and feature package acceptance/rejection.
 
 ---
 

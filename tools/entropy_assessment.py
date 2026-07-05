@@ -27,6 +27,7 @@ mandatory here, not just extra logging - dropping it silently produces wrong
 (too high) IID entropy numbers.
 """
 
+import json
 import os
 import re
 import subprocess
@@ -209,6 +210,73 @@ def assess_restart(samples: bytes, bits_per_symbol: int, h_i: float, iid: bool, 
             float(hr_match.group(1)) if hr_match else None,
             float(hc_match.group(1)) if hc_match else None,
             h_i, float(result_match.group(1)), None, stdout)
+
+
+# =============================================================================
+# Saving/loading a raw capture, so the same collected data can be
+# re-analyzed later without needing a live device. A capture is a .bin file
+# (the raw interleaved row stream exactly as returned by the device) plus a
+# same-named .json sidecar recording the `widths` mapping deinterleave()
+# needs, and whatever else the capturing test wants to remember (e.g.
+# n_samples, restarts, samples_per_restart, board).
+# =============================================================================
+
+def save_capture(bin_path: Path, raw: bytes, widths: dict, **extra_metadata) -> Path:
+    """Write `raw` to `bin_path` and its {name: width} + extra metadata to a same-named .json sidecar."""
+    bin_path.write_bytes(raw)
+    meta = {"widths": widths, **extra_metadata}
+    bin_path.with_suffix(".json").write_text(json.dumps(meta, indent=2))
+    return bin_path
+
+
+def load_capture(bin_path: Path) -> tuple:
+    """
+    Load a capture previously written by save_capture().
+
+    Returns (raw_bytes, metadata_dict); metadata_dict always has a "widths"
+    key (an ordered {source_name: bytes_per_sample} mapping, see
+    deinterleave()) plus whatever extra fields were passed to save_capture().
+    """
+    meta_path = bin_path.with_suffix(".json")
+    if not meta_path.is_file():
+        raise EntropyAssessmentError(
+            f"No sidecar metadata file at {meta_path} for capture {bin_path} -- "
+            f"a .bin capture and its .json metadata must be kept together.")
+    return bin_path.read_bytes(), json.loads(meta_path.read_text())
+
+
+# =============================================================================
+# Deinterleaving a multi-source row stream (see getEntropyDescription()/
+# getEntropySamples() in hardware/*/source/*.c: one command now returns
+# `count` rows, each row being one sample from every source back to back, in
+# the same key order as getEntropyDescription()'s JSON).
+# =============================================================================
+
+def deinterleave(raw: bytes, widths: dict) -> dict:
+    """
+    Split a flat interleaved row stream into per-source byte streams.
+
+    `widths` must be an ordered {source_name: bytes_per_sample} mapping in
+    the same order the firmware actually writes each row (i.e. straight from
+    protocol.get_entropy_description()). Row i's bytes for a given source
+    land at row i's fixed offset for that source, so the returned per-source
+    streams preserve each source's original chronological order -- this is
+    also what makes index i in two different sources' returned streams a
+    genuine same-instant pair for pearson_correlation()/mutual_information_bits().
+    """
+    row_width = sum(widths.values())
+    if row_width == 0:
+        raise ValueError("widths must contain at least one source with width > 0")
+    if len(raw) % row_width != 0:
+        raise ValueError(f"raw length {len(raw)} is not a multiple of row width {row_width}")
+
+    out = {}
+    offset = 0
+    for name, width in widths.items():
+        lanes = [raw[offset + j::row_width] for j in range(width)]
+        out[name] = bytes(b for sample in zip(*lanes) for b in sample)
+        offset += width
+    return out
 
 
 # =============================================================================

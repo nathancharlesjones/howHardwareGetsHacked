@@ -27,12 +27,14 @@ Test Commands (TEST_BUILD only):
         isLocked                  - Returns OK: 1 or OK: 0
         getUnlockCount            - Returns OK: <n> (resets on power cycle)
         getPrngSeed               - Returns OK: <32 hex chars> (16 bytes from getPrngSeed())
-        restart                   - Warm restart (state not cleared); restart() is a stub on all platforms so far
-        getEntropySourceCount     - Returns OK: <n>, number of hardware entropy sources
-        getEntropySourceName <i>  - Returns OK: <name> for entropy source i
-        getEntropySourceSamples <i> <n> - Returns OK: <hex>, n raw readings (n<=255) from entropy source i
+        restart                   - Warm restart (state not cleared); real reboot on TM4C/STM32 (stub on sim) --
+                                    on hardware, must be followed by wait_for_boot() before the next command
+        getEntropyDescription     - Returns OK: <json>, {source_name: bytes_per_sample} for every entropy source
+        getEntropySamples <n>     - Returns OK: <hex>, n rows (n<=255); each row is one sample from every
+                                    entropy source back to back, in getEntropyDescription()'s key order
 """
 
+import json
 import time
 from dataclasses import dataclass
 from typing import Optional
@@ -493,92 +495,93 @@ def cmd_restart(device, timeout: float = 5.0) -> Response:
     """
     Warm-restart the device (unlike cmd_reset, does not clear persisted state).
 
-    NOTE: restart() is currently an empty stub on every platform (see
-    hardware/*/**/restart()), so this acks OK but the device does not
-    actually reboot yet. Callers doing restart-interleaved sample collection
-    should treat identical pre/post-restart readings as expected until that
-    lands, not as a passing result.
+    Sends "OK\\n" then reboots on TM4C/STM32 (SysCtlReset()/NVIC_SystemReset());
+    sim's restart() remains an empty stub and does not reboot. On hardware,
+    callers MUST follow this with wait_for_boot() before sending another
+    command -- the reboot prints an unprompted "OK: started" banner (the same
+    one deploy() waits for after flashing), and if it isn't drained first it
+    sits in the serial buffer and gets misread as the response to whatever
+    command is sent next.
     """
     return parse_response(device.send_recv("restart", timeout=timeout))
 
 
+def wait_for_boot(device, timeout: float = 5.0) -> None:
+    """
+    Block until the device's post-boot "OK: started" banner arrives.
+
+    Must be called after cmd_restart() on hardware, before sending any other
+    command -- see cmd_restart()'s docstring for why.
+    """
+    line = device.recv(timeout=timeout)
+    if "OK: started" not in line:
+        raise RuntimeError(f"Device didn't report a clean restart, got: '{line}'")
+
+
 # --- Car Only: entropy source sampling ---
 
-def cmd_get_entropy_source_count(device, timeout: float = 2.0) -> Response:
-    """Get the number of hardware entropy sources available on this platform."""
-    return parse_response(device.send_recv("getEntropySourceCount", timeout=timeout))
+def cmd_get_entropy_description(device, timeout: float = 2.0) -> Response:
+    """Get the JSON description of hardware entropy sources on this platform."""
+    return parse_response(device.send_recv("getEntropyDescription", timeout=timeout))
 
 
-def get_entropy_source_count(device, timeout: float = 2.0) -> int:
-    """Convenience: get entropy source count as an int."""
-    resp = cmd_get_entropy_source_count(device, timeout=timeout)
-    if not resp.success:
-        raise RuntimeError(f"getEntropySourceCount failed: {resp.error}")
-    return int(resp.value)
-
-
-def cmd_get_entropy_source_name(device, source_num: int, timeout: float = 2.0) -> Response:
-    """Get the name of entropy source `source_num`."""
-    return parse_response(device.send_recv(f"getEntropySourceName {source_num}", timeout=timeout))
-
-
-def get_entropy_source_name(device, source_num: int, timeout: float = 2.0) -> str:
-    """Convenience: get entropy source name as a string."""
-    resp = cmd_get_entropy_source_name(device, source_num, timeout=timeout)
-    if not resp.success:
-        raise RuntimeError(f"getEntropySourceName failed: {resp.error}")
-    return resp.value
-
-
-def cmd_get_entropy_source_samples(device, source_num: int, num_samples: int, timeout: float = 5.0) -> Response:
+def get_entropy_description(device, timeout: float = 2.0) -> dict:
     """
-    Get `num_samples` raw readings from entropy source `source_num`, hex-encoded.
+    Convenience: get an ordered {source_name: bytes_per_sample} mapping.
+
+    Key order matches the byte layout getEntropySamples() actually writes --
+    each "row" is one sample from every source, back to back, in this same
+    order (see getEntropyDescription()/getEntropySamples() in
+    hardware/*/source/*.c). Needed to split a raw row stream back into
+    per-source sequences; see entropy_assessment.deinterleave().
+    """
+    resp = cmd_get_entropy_description(device, timeout=timeout)
+    if not resp.success:
+        raise RuntimeError(f"getEntropyDescription failed: {resp.error}")
+    return json.loads(resp.value)
+
+
+def cmd_get_entropy_samples(device, num_samples: int, timeout: float = 5.0) -> Response:
+    """
+    Get `num_samples` rows, hex-encoded; each row is one sample from every
+    entropy source back to back (see get_entropy_description() for order/widths).
 
     num_samples is capped at 255 by the firmware's uint8_t parameter; use
-    get_entropy_source_samples() (single call) or collect_entropy_source_samples()
-    (chunked, for large collections) instead of calling this directly with
-    num_samples > 255.
+    get_entropy_samples() (single call) or collect_entropy_samples() (chunked,
+    for large collections) instead of calling this directly with num_samples > 255.
     """
-    return parse_response(device.send_recv(f"getEntropySourceSamples {source_num} {num_samples}", timeout=timeout))
+    return parse_response(device.send_recv(f"getEntropySamples {num_samples}", timeout=timeout))
 
 
-def get_entropy_source_samples(device, source_num: int, num_samples: int, timeout: float = 5.0) -> bytes:
-    """Convenience: get raw sample bytes for one command (num_samples must be 0-255)."""
+def get_entropy_samples(device, num_samples: int, timeout: float = 5.0) -> bytes:
+    """Convenience: get raw interleaved row bytes for one command (num_samples must be 0-255)."""
     if not (0 <= num_samples <= 255):
-        raise ValueError("num_samples must be 0-255 per call; see collect_entropy_source_samples()")
-    resp = cmd_get_entropy_source_samples(device, source_num, num_samples, timeout=timeout)
+        raise ValueError("num_samples must be 0-255 per call; see collect_entropy_samples()")
+    resp = cmd_get_entropy_samples(device, num_samples, timeout=timeout)
     if not resp.success:
-        raise RuntimeError(f"getEntropySourceSamples failed: {resp.error}")
+        raise RuntimeError(f"getEntropySamples failed: {resp.error}")
     return bytes.fromhex(resp.value) if resp.value else b""
 
 
-def entropy_source_sample_width(device, source_num: int) -> int:
+def collect_entropy_samples(device, count: int, timeout: float = 5.0,
+                             show_progress: bool = False) -> bytes:
     """
-    Bytes per reading for `source_num` (e.g. 2 for a 12-bit ADC channel, 4 for
-    a timer-jitter capture). Not exposed directly by the firmware; inferred
-    by requesting a single sample and measuring the returned length.
-    """
-    return len(get_entropy_source_samples(device, source_num, 1))
-
-
-def collect_entropy_source_samples(device, source_num: int, count: int, timeout: float = 5.0,
-                                    show_progress: bool = False) -> bytes:
-    """
-    Collect `count` consecutive readings from one entropy source, chunked into
-    <=255-sample requests to stay within the firmware's uint8_t parameter.
+    Collect `count` consecutive interleaved rows (one sample from every
+    entropy source per row), chunked into <=255-row requests to stay within
+    the firmware's uint8_t parameter.
 
     With show_progress=True, renders a single self-overwriting progress bar
     line (needs pytest -s) instead of printing one line per chunk -- a
-    1,000,000-sample collection is ~3900 chunks, too many to print separately.
+    1,000,000-row collection is ~3900 chunks, too many to print separately.
 
-    Returns the raw concatenated sample bytes (width * count bytes total).
+    Returns the raw concatenated row bytes (row_width * count bytes total).
     """
     out = bytearray()
     remaining = count
     collected = 0
     while remaining > 0:
         chunk = min(remaining, 255)
-        out += get_entropy_source_samples(device, source_num, chunk, timeout=timeout)
+        out += get_entropy_samples(device, chunk, timeout=timeout)
         remaining -= chunk
         collected += chunk
         if show_progress:

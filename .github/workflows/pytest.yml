@@ -36,7 +36,7 @@ jobs:
         sudo apt-get install -y gcc-arm-none-eabi openocd xterm
 
     - name: Run functional tests
-      run: pytest testing/functional_tests.py -v
+      run: pytest testing/test_functional.py -v
 
     - name: Run security tests (simple replay — challenge-response required for complex replay)
-      run: pytest testing/security_tests.py::TestSimpleReplayAttacks -v
+      run: pytest testing/test_security.py::TestSimpleReplayAttacks -v

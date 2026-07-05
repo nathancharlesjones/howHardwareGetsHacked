@@ -44,13 +44,11 @@ static uint16_t adc_read_step(uint32_t step_config)
 
 uint16_t entropy_adc_temp(void)
 {
-    //return 0;
     return adc_read_step(ADC_CTL_TS | ADC_CTL_IE | ADC_CTL_END);
 }
 
 uint16_t entropy_adc_float(void)
 {
-    //return 0;
     return adc_read_step(ADC_CTL_CH0 | ADC_CTL_IE | ADC_CTL_END);
 }
 
@@ -77,41 +75,6 @@ uint16_t getEntropySamples(uint8_t num_samples, uint8_t* dest)
         dest += byte_width;
     }
     return num_samples*byte_width;
-}
-
-enum { TEMP, FLOAT_PIN, NUM_SOURCES };
-
-uint8_t getEntropySourceCount(void){ return NUM_SOURCES; }
-
-const char * getEntropySourceName(uint8_t source_num)
-{
-    const static char* names[NUM_SOURCES] = { [TEMP] = "temp",
-                                              [FLOAT_PIN] = "float_pin"
-                                            };
-    return source_num < NUM_SOURCES ? names[source_num] : "Invalid source number";
-}
-
-uint16_t getEntropySourceSamples(uint8_t source_num, uint8_t num_samples, uint8_t* dest)
-{
-    const static uint8_t byte_widths[NUM_SOURCES] = { [TEMP] = 2,
-                                                      [FLOAT_PIN] = 2
-                                                    };
-
-    if( source_num >= getEntropySourceCount() ) return 0;
-    uint8_t byte_width = byte_widths[source_num];
-    uint8_t requested = num_samples;
-    for( ; num_samples > 0; num_samples-- )
-    {
-        uint32_t sample;
-        switch(source_num)
-        {
-            case TEMP:      sample = entropy_adc_temp();    break;
-            case FLOAT_PIN: sample = entropy_adc_float();   break;
-        }
-        memcpy(dest, &sample, byte_width);
-        dest += byte_width;
-    }
-    return requested*byte_width;
 }
 
 void getPrngSeed(uint8_t *dest)

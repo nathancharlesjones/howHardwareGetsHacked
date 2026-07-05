@@ -141,6 +141,46 @@ def pytest_addoption(parser):
         default=1000,
         help="Samples collected per restart for the entropy restart test (default: 1000, the SP800-90B default)."
     )
+    parser.addoption(
+        "--entropy-data-file",
+        type=str,
+        default=None,
+        help="Path to a .bin capture (with same-named .json sidecar) previously written by "
+             "TestEntropyCapture.test_capture_entropy_samples, e.g. testing/entropy_logs/"
+             "20260705_120000_tm4c_iid_non_iid.bin. Used by test_entropy_analysis.py's "
+             "test_entropy_sources_iid_or_non_iid (or pass --platform instead to use the "
+             "latest capture for a platform)."
+    )
+    parser.addoption(
+        "--entropy-restart-data-file",
+        type=str,
+        default=None,
+        help="Path to a .bin capture (with same-named .json sidecar) previously written by "
+             "TestEntropyCapture.test_capture_entropy_restart_samples. Used by "
+             "test_entropy_analysis.py's test_entropy_sources_restart (or pass --platform "
+             "instead to use the latest capture for a platform)."
+    )
+    # --platform and --entropy-skip-analysis exist only because pytest CLI options must be
+    # registered from a conftest.py -- neither implies any hardware dependency. --platform is
+    # consumed solely by test_entropy_analysis.py (pure file-lookup: which saved .bin/.json to
+    # analyze), which never touches the deploy/hardware_config fixtures above.
+    parser.addoption(
+        "--platform",
+        type=str,
+        default=None,
+        choices=["sim", "tm4c", "stm32"],
+        help="Analyze the most recently written capture for this platform instead of passing "
+             "an explicit --entropy-data-file/--entropy-restart-data-file path (see "
+             "test_entropy_analysis.py). Raises if no matching capture exists under "
+             "testing/entropy_logs/."
+    )
+    parser.addoption(
+        "--entropy-skip-analysis",
+        action="store_true",
+        default=False,
+        help="TestEntropyCapture's tests analyze what they just captured by default; pass "
+             "this to only write the .bin/.json capture and skip that immediate analysis."
+    )
 
 
 @pytest.fixture(scope="session")

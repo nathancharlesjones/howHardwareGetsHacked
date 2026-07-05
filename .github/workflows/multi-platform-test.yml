@@ -128,7 +128,7 @@ jobs:
       shell: bash
       run: |
         # Run all software-only tests using simulation
-        pytest testing/functional_tests.py -v
+        pytest testing/test_functional.py -v
 
     # Run functional tests with simulation in WSL (Windows)
     - name: Run functional tests with simulation in WSL (Windows)
@@ -136,7 +136,7 @@ jobs:
       shell: wsl-bash {0}
       run: |
         # Run all software-only tests using simulation
-        pytest testing/functional_tests.py -v
+        pytest testing/test_functional.py -v
 
     # Run security tests with simulation (Linux and macOS)
     - name: Run security tests with simulation
@@ -144,7 +144,7 @@ jobs:
       shell: bash
       run: |
         # Run all software-only tests using simulation
-        pytest testing/security_tests.py -v
+        pytest testing/test_security.py -v
 
     # Run security tests with simulation in WSL (Windows)
     - name: Run security tests with simulation in WSL (Windows)
@@ -152,4 +152,4 @@ jobs:
       shell: wsl-bash {0}
       run: |
         # Run all software-only tests using simulation
-        pytest testing/security_tests.py -v
+        pytest testing/test_security.py -v

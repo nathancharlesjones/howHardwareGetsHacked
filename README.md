@@ -44,8 +44,8 @@ This project demonstrates iterative attacks and defenses for embedded systems us
 │   └── enable.py                     # Feature enablement
 │
 ├── testing/                          # Automated test suite
-│   ├── functional_tests.py           # Protocol tests
-│   ├── security_tests.py             # Security tests
+│   ├── test_functional.py            # Protocol tests
+│   ├── test_security.py              # Security tests
 │   ├── conftest.py                   # pytest fixtures & device mgmt
 │   └── protocol.py                   # Test message helpers
 │
@@ -229,13 +229,13 @@ The testing framework supports both hardware and simulation:
 
 ```bash
 # Run full test suite on simulated firmware
-pytest testing/functional_tests.py
+pytest testing/test_functional.py
 
 # Run single test on simulated firmware
-pytest testing/functional_tests.py::TestSinglePairedFob::test_paired_fob_can_enable_multiple_valid_features
+pytest testing/test_functional.py::TestSinglePairedFob::test_paired_fob_can_enable_multiple_valid_features
 
 # Run test on real hardware
-pytest testing/functional_tests.py --using stm32@<SERIAL_NUMBER_1>,<SERIAL_NUMBER_2>
+pytest testing/test_functional.py --using stm32@<SERIAL_NUMBER_1>,<SERIAL_NUMBER_2>
 ```
 
 **Useful pytest flags:**
@@ -321,7 +321,7 @@ class TestNewTest:
         assert proto.is_locked(car), "Car should start locked"
         assert proto.get_unlock_count(car) == 0, "Unlock count should be 0"
 
-        # See functional_tests.py or protocol.py for full list of available commands
+        # See test_functional.py or protocol.py for full list of available commands
 ```
 
 **Available fixtures:**
@@ -566,5 +566,5 @@ gdbgui -g "gdb-multiarch -ex 'target remote localhost:3333'" --args /path/to/bin
 
 # Run hardware tests (builds and flashes as part of the tests)
 ./tools/openocd.py flash newplatform <SERIAL> hardware/newplatform/build/car_12345/firmware.bin
-pytest testing/functional_tests.py --using newplatform@<SERIAL_1>,<SERIAL_2>
+pytest testing/test_functional.py --using newplatform@<SERIAL_1>,<SERIAL_2>
 ```

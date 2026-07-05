@@ -196,18 +196,21 @@ void processHostCommand(const char *cmd)
   // Test command: getEntropyDescription
   if (strcmp(cmd, "getEntropyDescription") == 0)
   {
-    char msg[32] = {0};
-    strncpy(msg, getEntropySourceName(source_num), 31);
-    sendOK(msg);
+    sendOK(getEntropyDescription());
     return;
   }
 
   // Test command: getEntropySamples
-  if (strncmp(cmd, "getEntropySourceSamples ", 24) == 0)
+  if (strncmp(cmd, "getEntropySamples ", 18) == 0)
   {
-    uint8_t num_samples = atoi(cmd + 24);
-    
-    uint8_t samples[10*num_samples] = {0};
+    uint8_t num_samples = atoi(cmd + 18);
+
+    // Fixed at the worst-case row width across all platforms (see
+    // getEntropyDescription()/getEntropySamples() in hardware/*/source/*.c)
+    // so this never needs to be a VLA; num_samples is a uint8_t, so this is
+    // also the hard upper bound on how large a request can ever be.
+    #define MAX_ENTROPY_ROW_BYTES 10
+    uint8_t samples[255*MAX_ENTROPY_ROW_BYTES] = {0};
     uint16_t bytes = getEntropySamples(num_samples, samples);
 
     char hex[sizeof(samples)*2+1] = {0};
