@@ -57,6 +57,28 @@ uint16_t entropy_adc_float(void)
 static struct AES_ctx s_seed_aes;
 static void seed_encrypt(uint8_t *data) { AES_ECB_encrypt(&s_seed_aes, data); }
 
+const char * getEntropyDescription(void)
+{
+    return "{\"temp\":2,\"float_pin\":2}";
+}
+
+uint16_t getEntropySamples(uint8_t num_samples, uint8_t* dest)
+{
+    uint8_t byte_width = 4;
+
+    for( size_t count = 0; count < num_samples; count++ )
+    {
+        uint16_t sample_16b = entropy_adc_temp();
+        memcpy(dest, &sample_16b, 2);
+
+        sample_16b = entropy_adc_float();
+        memcpy(dest+2, &sample_16b, 2);
+        
+        dest += byte_width;
+    }
+    return num_samples*byte_width;
+}
+
 enum { TEMP, FLOAT_PIN, NUM_SOURCES };
 
 uint8_t getEntropySourceCount(void){ return NUM_SOURCES; }

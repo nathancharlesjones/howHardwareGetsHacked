@@ -193,52 +193,26 @@ void processHostCommand(const char *cmd)
     return;
   }
 
-  // Test command: getEntropySourceCount
-  if (strcmp(cmd, "getEntropySourceCount") == 0)
+  // Test command: getEntropyDescription
+  if (strcmp(cmd, "getEntropyDescription") == 0)
   {
-    uint8_t count = getEntropySourceCount();
-    char msg[2] = {0};
-    if( count <= 9 )
-    {
-      msg[0] = count + 0x30;
-      sendOK(msg);
-    }
-    else sendError("Unexpected count size (>9)");
+    char msg[32] = {0};
+    strncpy(msg, getEntropySourceName(source_num), 31);
+    sendOK(msg);
     return;
   }
 
-  // Test command: getEntropySourceName
-  if (strncmp(cmd, "getEntropySourceName ", 21) == 0)
-  {
-    uint8_t source_num = atoi(cmd + 21);
-    if( source_num < getEntropySourceCount() )
-    {
-      char msg[32] = {0};
-      strncpy(msg, getEntropySourceName(source_num), 31);
-      sendOK(msg);      
-    }
-    else sendError("Invalid source number");
-    return;
-  }
-
-  // Test command: getEntropySourceSamples
+  // Test command: getEntropySamples
   if (strncmp(cmd, "getEntropySourceSamples ", 24) == 0)
   {
-    char args[32] = {0};
-    strcpy(args, cmd + 24);
-    uint8_t source_num = atoi(strtok(args, " "));
-    if( source_num < getEntropySourceCount() )
-    {
-      uint8_t num_samples = atoi(strtok(NULL, " "));
+    uint8_t num_samples = atoi(cmd + 24);
+    
+    uint8_t samples[10*num_samples] = {0};
+    uint16_t bytes = getEntropySamples(num_samples, samples);
 
-      uint8_t samples[256*4] = {0};
-      uint16_t bytes = getEntropySourceSamples(source_num, num_samples, samples);
-
-      char hex[sizeof(samples)*2+1] = {0};
-      bytesToHex(samples, bytes, hex);
-      sendOK(hex);
-    }
-    else sendError("Invalid source number");
+    char hex[sizeof(samples)*2+1] = {0};
+    bytesToHex(samples, bytes, hex);
+    sendOK(hex);
     return;
   }
 #endif

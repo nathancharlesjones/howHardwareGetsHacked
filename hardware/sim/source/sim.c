@@ -134,11 +134,9 @@ void save_flash(const void* src, size_t size)
 #  include <sys/random.h>   /* getrandom */
 #endif
 
-uint8_t getEntropySourceCount(void){ return 1; }
-
-const char * getEntropySourceName(uint8_t source_num)
+const char * getEntropyDescription(void)
 {
-    return source_num == 0 ? "os_rng" : "Invalid source number";
+    return "{ \"os_rng\" : 1 }";
 }
 
 void getRand(uint8_t *dest, uint8_t size)
@@ -152,9 +150,9 @@ void getRand(uint8_t *dest, uint8_t size)
 #endif
 }
 
-uint16_t getEntropySourceSamples(uint8_t source_num, uint8_t num_samples, uint8_t* dest)
+uint16_t getEntropySamples(uint8_t num_samples, uint8_t* dest)
 {
-    if( source_num == 0 ) getRand(dest, num_samples);
+    getRand(dest, num_samples);
     return num_samples;
 }
 
