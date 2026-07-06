@@ -46,6 +46,7 @@ with the full ea_* stdout for later review, in addition to the terminal
 summary (run pytest with -s to see it live).
 """
 
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -123,18 +124,27 @@ def analyze_iid_or_non_iid(bin_path: Path, ea_bin_dir: Optional[str] = None) -> 
 
     log_lines = [f"Entropy source IID/non-IID assessment - board={board}, n_samples={n_samples}, "
                  f"data_file={bin_path}"]
-    results = {}
 
     raw_by_source = deinterleave(raw, widths)
-    symbols_by_source = {}
+    symbols_by_source = {
+        name: _low_byte_symbols(raw_by_source[name], width) for name, width in widths.items()
+    }
 
-    for name, width in widths.items():
-        raw_source = raw_by_source[name]
-        symbols = _low_byte_symbols(raw_source, width)
-        symbols_by_source[name] = symbols
-        result = assess_iid_or_non_iid(symbols, BITS_PER_SYMBOL, source_name=name, bin_dir=ea_bin_dir)
-        results[name] = result
+    # Each source's ea_iid/ea_non_iid run is independent of every other
+    # source's, so run them concurrently (like `make -j`) instead of paying
+    # for N sequential subprocess calls. Threads are sufficient here even
+    # though the work is CPU-bound: the GIL is released for the duration of
+    # each subprocess.run() call in entropy_assessment.py.
+    with ThreadPoolExecutor(max_workers=len(symbols_by_source)) as pool:
+        futures = {
+            name: pool.submit(assess_iid_or_non_iid, symbols, BITS_PER_SYMBOL,
+                               source_name=name, bin_dir=ea_bin_dir)
+            for name, symbols in symbols_by_source.items()
+        }
+        results = {name: future.result() for name, future in futures.items()}
 
+    for name in widths:
+        result = results[name]
         perm = "n/a" if result.passed_iid_permutation is None else result.passed_iid_permutation
         summary = (f"[{name}] track={result.track} iid_permutation={perm} "
                    f"assessed_min_entropy={result.h_assessed:.3f} bits/byte "
@@ -202,24 +212,31 @@ def analyze_restart(bin_path: Path, ea_bin_dir: Optional[str] = None) -> dict:
                  f"restarts={restarts}, samples_per_restart={samples_per_restart}, data_file={bin_path}"]
 
     raw_by_source = deinterleave(raw, widths)
-    results = {}
 
-    for name, width in widths.items():
+    def _assess_source(name: str, width: int):
         symbols = _low_byte_symbols(raw_by_source[name], width)
 
         # H_I is derived from this same collection's flattened stream
         # (rather than depending on a separate test run's result) so this
         # analysis stays self-contained.
         initial = assess_iid_or_non_iid(symbols, BITS_PER_SYMBOL, source_name=name, bin_dir=ea_bin_dir)
+        return assess_restart(
+            symbols, BITS_PER_SYMBOL, initial.h_assessed,
+            iid=(initial.track == "iid"), source_name=name, bin_dir=ea_bin_dir)
 
-        try:
-            restart_result = assess_restart(
-                symbols, BITS_PER_SYMBOL, initial.h_assessed,
-                iid=(initial.track == "iid"), source_name=name, bin_dir=ea_bin_dir)
-        except EntropyAssessmentError as e:
-            pytest.fail(f"Source '{name}': {e}")
-        results[name] = restart_result
+    # Each source's initial+restart assessment is independent of every other
+    # source's, so run them concurrently (like `make -j`) instead of paying
+    # for N sequential subprocess calls per source.
+    with ThreadPoolExecutor(max_workers=len(widths)) as pool:
+        futures = {name: pool.submit(_assess_source, name, width) for name, width in widths.items()}
+        results = {}
+        for name, future in futures.items():
+            try:
+                results[name] = future.result()
+            except EntropyAssessmentError as e:
+                pytest.fail(f"Source '{name}': {e}")
 
+    for name, restart_result in results.items():
         if restart_result.validation_passed:
             summary = (f"[{name}] PASSED: H_r={restart_result.h_r:.3f} H_c={restart_result.h_c:.3f} "
                        f"H_I={restart_result.h_i:.3f} -> assessed={restart_result.h_assessed:.3f} bits/byte")
