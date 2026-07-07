@@ -3,9 +3,6 @@
 #include <stdbool.h>
 
 #include "inc/hw_memmap.h"
-#include "inc/hw_types.h"
-#include "inc/hw_sysctl.h"
-#include "inc/hw_adc.h"
 #include "driverlib/gpio.h"
 #include "driverlib/sysctl.h"
 #include "driverlib/adc.h"
@@ -13,100 +10,32 @@
 #include "aes_cmac.h"
 #include "aes.h"
 #include "secrets.h"
-#include "uart.h"
 
 /* AIN0 = PE3, AIN1 = PE2 */
 #define ENTROPY_GPIO_PORT    GPIO_PORTE_BASE
 #define ENTROPY_GPIO_PINS    (GPIO_PIN_3 | GPIO_PIN_2)
 
-/* Bound on how many times the entropy init/read busy-waits poll their
- * respective ready/status bits before giving up. Ample margin over a
- * normal conversion or clock-gating settle (at most a handful of bus
- * cycles), but finite -- so a stuck peripheral after a warm
- * SysCtlReset() reboot dumps diagnostics instead of hanging the boot
- * banner forever. */
-#define PERIPH_WAIT_MAX_ITERS 100000u
-
-static void uart_write_str(const char *s)
-{
-    uart_write(HOST_UART, (uint8_t *)s, strlen(s));
-}
-
-static void uart_write_hex_u32(uint32_t val)
-{
-    static const char hexdigits[] = "0123456789ABCDEF";
-    char buf[8];
-    for (int i = 0; i < 8; i++)
-    {
-        buf[i] = hexdigits[(val >> ((7 - i) * 4)) & 0xF];
-    }
-    uart_write(HOST_UART, (uint8_t *)buf, 8);
-}
-
-static void entropy_dump_timeout_diagnostics(const char *stage)
-{
-    uart_write_str("ENTROPY_TIMEOUT stage=");
-    uart_write_str(stage);
-    uart_write_str(" RCGCADC=");
-    uart_write_hex_u32(HWREG(SYSCTL_RCGCADC));
-    uart_write_str(" PRADC=");
-    uart_write_hex_u32(HWREG(SYSCTL_PRADC));
-    uart_write_str(" RCGCGPIO=");
-    uart_write_hex_u32(HWREG(SYSCTL_RCGCGPIO));
-    uart_write_str(" PRGPIO=");
-    uart_write_hex_u32(HWREG(SYSCTL_PRGPIO));
-    uart_write_str(" ACTSS=");
-    uart_write_hex_u32(HWREG(ADC0_BASE + ADC_O_ACTSS));
-    uart_write_str(" EMUX=");
-    uart_write_hex_u32(HWREG(ADC0_BASE + ADC_O_EMUX));
-    uart_write_str(" PSSI=");
-    uart_write_hex_u32(HWREG(ADC0_BASE + ADC_O_PSSI));
-    uart_write_str(" RIS=");
-    uart_write_hex_u32(HWREG(ADC0_BASE + ADC_O_RIS));
-    uart_write_str(" ISC=");
-    uart_write_hex_u32(HWREG(ADC0_BASE + ADC_O_ISC));
-    uart_write_str(" OSTAT=");
-    uart_write_hex_u32(HWREG(ADC0_BASE + ADC_O_OSTAT));
-    uart_write_str(" CC=");
-    uart_write_hex_u32(HWREG(ADC0_BASE + ADC_O_CC));
-    uart_write_str("\n");
-}
-
-static bool wait_peripheral_ready(uint32_t peripheral)
-{
-    uint32_t spins;
-    for (spins = 0; spins < PERIPH_WAIT_MAX_ITERS && !SysCtlPeripheralReady(peripheral); spins++);
-    return spins < PERIPH_WAIT_MAX_ITERS;
-}
-
 void entropy_init(void)
 {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
-    /* SysCtlPeripheralEnable() is a no-op if the clock was already on, which
-     * it is across a warm SysCtlReset() -- unlike a true power-on reset, that
-     * doesn't reset ADC0's internal sequencer state machine, so a conversion
-     * left in-flight before the reboot can wedge every subsequent read
-     * (ACTSS reads back enabled, but RIS never sets). Force a real reset of
-     * the module's internal logic. */
-    SysCtlPeripheralReset(SYSCTL_PERIPH_ADC0);
-
-    if (!wait_peripheral_ready(SYSCTL_PERIPH_ADC0))
-        entropy_dump_timeout_diagnostics("adc0_ready");
-    if (!wait_peripheral_ready(SYSCTL_PERIPH_GPIOE))
-        entropy_dump_timeout_diagnostics("gpioe_ready");
+    while (!SysCtlPeripheralReady(SYSCTL_PERIPH_ADC0));
+    while (!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOE));
+    while (!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOE));
 
     GPIOPinTypeADC(ENTROPY_GPIO_PORT, ENTROPY_GPIO_PINS);
 
     /* ADC_O_CC (the ADC's own sample-clock source/divisor register) is
-     * separate from the RCGCADC/PRADC clock-gating bits above and was never
-     * explicitly configured here -- it was riding on whatever it reset to.
-     * Confirmed via diagnostic dump: after a warm SysCtlReset() it reads
-     * CC=0 (ADC_CLOCK_SRC_PLL), but initHardware() runs the system clock
-     * straight off the main oscillator (SYSCTL_USE_OSC) and never enables
-     * the PLL -- so the ADC has no working clock and every conversion
-     * trigger is silently accepted but never completes (PSSI/RIS never
-     * set). Pin it to PIOSC, which runs regardless of PLL/reset history. */
+     * separate from the RCGCADC/PRADC clock-gating bits above, and was
+     * never explicitly configured here -- it was riding on whatever it
+     * reset to. initHardware() runs the system clock straight off the main
+     * oscillator (SYSCTL_USE_OSC) and never enables the PLL, but the ADC's
+     * default clock source is the PLL (ADC_CLOCK_SRC_PLL == 0): after a
+     * warm SysCtlReset() this register can read back as 0, leaving the ADC
+     * with no working clock -- conversions are triggered and accepted
+     * (PSSI/ACTSS look normal) but never complete (RIS never sets), hanging
+     * every read forever. Pin it to PIOSC, which runs regardless of
+     * PLL/reset history. */
     ADCClockConfigSet(ADC0_BASE, ADC_CLOCK_SRC_PIOSC | ADC_CLOCK_RATE_FULL, 1);
 
     ADCSequenceConfigure(ADC0_BASE, 3, ADC_TRIGGER_PROCESSOR, 0);
@@ -114,26 +43,13 @@ void entropy_init(void)
 
 static uint16_t adc_read_step(uint32_t step_config)
 {
-    //uart_write_str("Inside adc_read_step\n");
-    //entropy_dump_timeout_diagnostics("adc_read_step");
     uint32_t val;
     ADCSequenceDisable(ADC0_BASE, 3);
     ADCSequenceStepConfigure(ADC0_BASE, 3, 0, step_config);
     ADCSequenceEnable(ADC0_BASE, 3);
     ADCIntClear(ADC0_BASE, 3);
     ADCProcessorTrigger(ADC0_BASE, 3);
-
-    /*
-    uart_write_str("After trigger ");
-    uart_write_hex_u32(HWREG(ADC0_BASE + ADC_O_PSSI));
-    uart_write_str("\n");
-    */
-
-    uint32_t spins;
-    for (spins = 0; spins < PERIPH_WAIT_MAX_ITERS && !ADCIntStatus(ADC0_BASE, 3, false); spins++);
-    if (spins == PERIPH_WAIT_MAX_ITERS)
-        entropy_dump_timeout_diagnostics("adc_read_step");
-
+    while (!ADCIntStatus(ADC0_BASE, 3, false));
     ADCIntClear(ADC0_BASE, 3);
     ADCSequenceDataGet(ADC0_BASE, 3, &val);
     return (uint16_t)(val & 0xFFFU);
@@ -168,7 +84,7 @@ uint16_t getEntropySamples(uint8_t num_samples, uint8_t* dest)
 
         sample_16b = entropy_adc_float();
         memcpy(dest+2, &sample_16b, 2);
-        
+
         dest += byte_width;
     }
     return num_samples*byte_width;
@@ -192,8 +108,8 @@ void getPrngSeed(uint8_t *dest)
     {
         for (int i = 0; i < 64; i++) {
             s.temp[i]      = entropy_adc_temp();
-            //s.float_pin[i] = entropy_adc_float();
-        }   
+            s.float_pin[i] = entropy_adc_float();
+        }
 
         AES_CMAC_digest(&cmac, (uint8_t *)&s, sizeof(s), dest+(i*16));
     }

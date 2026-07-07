@@ -56,9 +56,7 @@ class DeployedDevice:
         deadline = time.monotonic() + read_timeout
         try:
             while time.monotonic() < deadline:
-                waiting = self.serial.in_waiting
-                chunk = self.serial.read(max(1, waiting))
-                print(f"DEBUG recv: in_waiting={waiting} chunk={chunk!r}")
+                chunk = self.serial.read(max(1, self.serial.in_waiting))
                 if chunk:
                     buf += chunk
                     if b'\n' in chunk:
@@ -72,9 +70,7 @@ class DeployedDevice:
         # content and can only be line noise -- strip it rather than let it
         # break substring matches (e.g. wait_for_boot()'s "OK: started"
         # check) or silently corrupt a hex payload mid-string.
-        result = buf.replace(b'\x00', b'').decode('ascii', errors='replace').strip()
-        print(f"DEBUG recv: returning {result!r}")
-        return result
+        return buf.replace(b'\x00', b'').decode('ascii', errors='replace').strip()
 
     def send_recv(self, data: str, timeout: Optional[float] = None) -> str:
         """Send data and receive response in one call."""

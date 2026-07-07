@@ -503,10 +503,7 @@ def cmd_restart(device, timeout: float = 5.0) -> Response:
     sits in the serial buffer and gets misread as the response to whatever
     command is sent next.
     """
-    print("DEBUG cmd_restart: about to send_recv('restart')")
-    result = parse_response(device.send_recv("restart", timeout=timeout))
-    print(f"DEBUG cmd_restart: got {result!r}")
-    return result
+    return parse_response(device.send_recv("restart", timeout=timeout))
 
 
 def wait_for_boot(device, timeout: float = 5.0) -> None:
@@ -516,9 +513,7 @@ def wait_for_boot(device, timeout: float = 5.0) -> None:
     Must be called after cmd_restart() on hardware, before sending any other
     command -- see cmd_restart()'s docstring for why.
     """
-    print("DEBUG wait_for_boot: about to recv()")
     line = device.recv(timeout=timeout)
-    print(f"DEBUG wait_for_boot: got {line!r}")
     if "OK: started" not in line:
         raise RuntimeError(f"Device didn't report a clean restart, got: '{line}'")
 
