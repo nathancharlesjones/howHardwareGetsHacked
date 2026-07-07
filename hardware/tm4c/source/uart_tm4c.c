@@ -169,5 +169,15 @@ uint32_t uart_write(hw_uart_t uart, uint8_t *buf, uint32_t len) {
     uart_writeb(uart, buf[i]);
   }
 
+  /* UARTCharPut() only blocks until there's FIFO space to queue a byte, not
+   * until it's actually shifted out onto the wire -- unlike STM32's
+   * HAL_UART_Transmit(..., HAL_MAX_DELAY), which blocks on the transmit-
+   * complete flag. Callers that write a response and then immediately
+   * reboot (e.g. the "restart" command: sendOK() then SysCtlReset()) rely
+   * on uart_write() not returning until the bytes are genuinely gone,
+   * since SysCtlReset() wipes the UART's TX FIFO/shift register along with
+   * everything else -- otherwise the still-queued reply is silently lost. */
+  while (UARTBusy(uart_base[uart]));
+
   return i;
 }

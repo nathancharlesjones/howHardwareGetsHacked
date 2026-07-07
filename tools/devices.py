@@ -56,7 +56,9 @@ class DeployedDevice:
         deadline = time.monotonic() + read_timeout
         try:
             while time.monotonic() < deadline:
-                chunk = self.serial.read(max(1, self.serial.in_waiting))
+                waiting = self.serial.in_waiting
+                chunk = self.serial.read(max(1, waiting))
+                print(f"DEBUG recv: in_waiting={waiting} chunk={chunk!r}")
                 if chunk:
                     buf += chunk
                     if b'\n' in chunk:
@@ -64,7 +66,15 @@ class DeployedDevice:
                     deadline = time.monotonic() + read_timeout  # reset on progress
         finally:
             self.serial.timeout = old_timeout
-        return buf.decode('ascii', errors='replace').strip()
+        # Reset-adjacent UART noise can splice in stray NUL bytes (see
+        # monitor.py's own note about a leading glitch byte after a reset);
+        # this protocol is plain ASCII text, so a NUL is never legitimate
+        # content and can only be line noise -- strip it rather than let it
+        # break substring matches (e.g. wait_for_boot()'s "OK: started"
+        # check) or silently corrupt a hex payload mid-string.
+        result = buf.replace(b'\x00', b'').decode('ascii', errors='replace').strip()
+        print(f"DEBUG recv: returning {result!r}")
+        return result
 
     def send_recv(self, data: str, timeout: Optional[float] = None) -> str:
         """Send data and receive response in one call."""

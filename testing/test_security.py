@@ -13,22 +13,6 @@ import os
 from package import create_feature_package, FeaturePackage
 
 
-def _mcv_min_entropy(samples: list[int]) -> float:
-    """NIST SP 800-90B §6.3.1 Most Common Value Estimate.
-
-    Returns the min-entropy lower bound (bits) for a byte-valued source given
-    a list of observed samples. Uses a 99% one-sided Wilson confidence interval
-    (z = 2.576) as specified in §6.3.1.
-    """
-    N = len(samples)
-    p_hat = max(Counter(samples).values()) / N
-    z = 2.576
-    p = min(1.0,
-            (p_hat + z*z / (2*N) + z * math.sqrt(p_hat*(1-p_hat)/N + z*z/(4*N*N)))
-            / (1 + z*z / N))
-    return -math.log2(p)
-
-
 FEATURE_DATA_SIZE = 15  # sizeof(FEATURE_DATA): car_id[11] + num_active[1] + features[3]
 
 @pytest.mark.car1
@@ -87,7 +71,6 @@ class TestSimpleReplayAttacks:
         assert proto.is_locked(car_b), "Cross-car attack should NOT succeed"
 
 @pytest.mark.car2
-@pytest.mark.car3
 class TestComplexReplayAttacks:
     """Advanced replay attacks that require temporary access to a paired fob (eCTF Car #2
     scenario). Defenses against these require a challenge-response protocol."""
@@ -121,6 +104,70 @@ class TestComplexReplayAttacks:
 
         assert proto.get_unlock_count(car) == unlock_count_before, \
             "Forced rollback attack should NOT unlock the car"
+
+    def test_oracle_attack_fails(self, deploy):
+        """An attacker with temporary physical access to a paired fob (the eCTF Car #2
+        threat model) can record a table of (nonce -> response) pairs from real,
+        legitimate unlocks while they have the fob. The car's response is a
+        deterministic CMAC of the nonce under the shared key, so if the car ever
+        reissues a nonce already in that table - after the attacker no longer has
+        the fob - the old recorded response is still valid and can be replayed.
+
+        This builds a table of TABLE_SIZE entries (the attacker's limited access
+        window), then watches MAX_ITER further unlocks against that frozen table.
+        Nonces seen only during the second window are never added to the table:
+        a repeat entirely within that window wasn't in the attacker's table at the
+        time they'd have needed it, so it isn't something they could have exploited."""
+        car, fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
+
+        # Board message logs hold 15 entries = 3 unlocks worth (5 messages each), so
+        # batch button presses 3 at a time before reading the log back.
+        BATCH = 3
+        # T=M=150000 -> ~99.5% chance of at least one collision against a 32-bit
+        # nonce space (P = 1 - exp(-T*M/2**32)), at ~0.23ms/unlock -> ~70s total.
+        TABLE_SIZE = 150000
+        MAX_ITER = 150000
+
+        def do_batch(total_done: int):
+            for _ in range(BATCH):
+                resp = proto.cmd_btn_press(fob)
+                assert resp.success, f"Unlock failed after {total_done} unlocks: {resp.error}"
+                total_done += 1
+
+            log = proto.cmd_get_board_msg_log(car, role="car")
+            nonce_entries = [e for e in log if e.tx and e.magic == proto.NONCE_MAGIC]
+            response_entries = [e for e in log if not e.tx and e.magic == proto.RESPONSE_MAGIC]
+            assert len(nonce_entries) == BATCH and len(response_entries) == BATCH, \
+                "Did not capture the expected number of nonce/response pairs"
+            return total_done, [(e1.payload, e2.payload) for e1, e2 in zip(nonce_entries, response_entries)]
+
+        # Phase 1: attacker has the fob - build the table.
+        mac_values = {}
+        total_done = 0
+        for _ in range(TABLE_SIZE // BATCH):
+            total_done, pairs = do_batch(total_done)
+            for nonce, response in pairs:
+                mac_values[nonce] = response
+
+        # Phase 2: attacker no longer has the fob - just watch for a repeat.
+        collision_nonce = None
+        collision_after = None
+        for _ in range(MAX_ITER // BATCH):
+            total_done, pairs = do_batch(total_done)
+            for nonce, response in pairs:
+                if nonce in mac_values:
+                    collision_nonce = nonce
+                    collision_after = total_done
+                    break
+            if collision_nonce is not None:
+                break
+
+        assert collision_nonce is None, (
+            f"Nonce {collision_nonce.hex()} repeated one already in a {len(mac_values)}-entry "
+            f"table after {collision_after} total unlocks - an attacker who recorded that table "
+            f"during a temporary fob-access window could have replayed the old response and "
+            f"unlocked the car without the fob"
+        )
 
 
 

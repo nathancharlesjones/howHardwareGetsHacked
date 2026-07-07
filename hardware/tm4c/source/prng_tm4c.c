@@ -67,6 +67,8 @@ static void entropy_dump_timeout_diagnostics(const char *stage)
     uart_write_hex_u32(HWREG(ADC0_BASE + ADC_O_ISC));
     uart_write_str(" OSTAT=");
     uart_write_hex_u32(HWREG(ADC0_BASE + ADC_O_OSTAT));
+    uart_write_str(" CC=");
+    uart_write_hex_u32(HWREG(ADC0_BASE + ADC_O_CC));
     uart_write_str("\n");
 }
 
@@ -96,19 +98,36 @@ void entropy_init(void)
 
     GPIOPinTypeADC(ENTROPY_GPIO_PORT, ENTROPY_GPIO_PINS);
 
+    /* ADC_O_CC (the ADC's own sample-clock source/divisor register) is
+     * separate from the RCGCADC/PRADC clock-gating bits above and was never
+     * explicitly configured here -- it was riding on whatever it reset to.
+     * Confirmed via diagnostic dump: after a warm SysCtlReset() it reads
+     * CC=0 (ADC_CLOCK_SRC_PLL), but initHardware() runs the system clock
+     * straight off the main oscillator (SYSCTL_USE_OSC) and never enables
+     * the PLL -- so the ADC has no working clock and every conversion
+     * trigger is silently accepted but never completes (PSSI/RIS never
+     * set). Pin it to PIOSC, which runs regardless of PLL/reset history. */
+    ADCClockConfigSet(ADC0_BASE, ADC_CLOCK_SRC_PIOSC | ADC_CLOCK_RATE_FULL, 1);
+
     ADCSequenceConfigure(ADC0_BASE, 3, ADC_TRIGGER_PROCESSOR, 0);
 }
 
 static uint16_t adc_read_step(uint32_t step_config)
 {
-    uart_write_str("Inside adc_read_step\n");
-    entropy_dump_timeout_diagnostics("adc_read_step");
+    //uart_write_str("Inside adc_read_step\n");
+    //entropy_dump_timeout_diagnostics("adc_read_step");
     uint32_t val;
     ADCSequenceDisable(ADC0_BASE, 3);
     ADCSequenceStepConfigure(ADC0_BASE, 3, 0, step_config);
     ADCSequenceEnable(ADC0_BASE, 3);
     ADCIntClear(ADC0_BASE, 3);
     ADCProcessorTrigger(ADC0_BASE, 3);
+
+    /*
+    uart_write_str("After trigger ");
+    uart_write_hex_u32(HWREG(ADC0_BASE + ADC_O_PSSI));
+    uart_write_str("\n");
+    */
 
     uint32_t spins;
     for (spins = 0; spins < PERIPH_WAIT_MAX_ITERS && !ADCIntStatus(ADC0_BASE, 3, false); spins++);
