@@ -105,7 +105,7 @@ class TestComplexReplayAttacks:
         assert proto.get_unlock_count(car) == unlock_count_before, \
             "Forced rollback attack should NOT unlock the car"
 
-    def test_oracle_attack_quick_check(self, deploy):
+    def test_birthday_bound_attack_quick_check(self, deploy):
         """Fast, always-on cost estimate for the birthday-bound table/oracle attack
         (see test_oracle_attack_full for an actual reproduction, skipped by default).
 
@@ -163,17 +163,16 @@ class TestComplexReplayAttacks:
         print(f"Projected birthday-bound table attack (~50% odds): ~{table_size:,.0f} unlocks "
               f"each way, ~{projected_attack_s:,.1f}s (~{projected_attack_s / 86400:.2f} days)")
 
-        if projected_attack_s < CONCERNING_THRESHOLD_S:
-            pytest.xfail(
-                f"A birthday-bound table/oracle attack against this {nonce_bits}-bit nonce "
-                f"could plausibly succeed in as little as ~{projected_attack_s:,.1f}s "
-                f"(~{projected_attack_s / 86400:.2f} days) of continuous unlock attempts at "
-                f"the protocol's own wire rate - too low to be comfortable. Pass "
-                f"--run-oracle-attack-full to reproduce this directly."
-            )
+        assert projected_attack_s >= CONCERNING_THRESHOLD_S, (
+            f"A birthday-bound table/oracle attack against this {nonce_bits}-bit nonce "
+            f"could plausibly succeed in as little as ~{projected_attack_s:,.1f}s "
+            f"(~{projected_attack_s / 86400:.2f} days) of continuous unlock attempts at "
+            f"the protocol's own wire rate - too low to be comfortable. Pass "
+            f"--run-oracle-attack-full to reproduce this directly."
+        )
 
-    @pytest.mark.oracle_attack_full
-    def test_oracle_attack_full(self, deploy, request):
+    @pytest.mark.birthday_bound_attack_full
+    def test_birthday_bound_attack_full(self, deploy, request):
         """Full reproduction of the birthday-bound table/oracle attack (skipped by
         default - pass --run-oracle-attack-full to enable; see
         test_oracle_attack_quick_check for a fast, always-on cost estimate of this
@@ -241,9 +240,6 @@ class TestComplexReplayAttacks:
         )
 
 
-
-@pytest.mark.car2
-@pytest.mark.car3
 class TestNonceRandomness:
     """Tests that the challenge nonce PRNG is unpredictable.
 

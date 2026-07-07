@@ -94,10 +94,10 @@ def pytest_collection_modifyitems(config, items):
             if item.get_closest_marker("hardware_only"):
                 item.add_marker(skip)
 
-    if not config.getoption("--run-oracle-attack-full", default=False):
-        skip = pytest.mark.skip(reason="full oracle attack reproduction; pass --run-oracle-attack-full to enable")
+    if not config.getoption("--run-birthday-bound-attack-full", default=False):
+        skip = pytest.mark.skip(reason="full birthday bound attack reproduction; pass --run-birthday-bound-attack-full to enable")
         for item in items:
-            if item.get_closest_marker("oracle_attack_full"):
+            if item.get_closest_marker("birthday_bound_attack_full"):
                 item.add_marker(skip)
 
 
@@ -188,18 +188,18 @@ def pytest_addoption(parser):
              "this to only write the .bin/.json capture and skip that immediate analysis."
     )
     parser.addoption(
-        "--run-oracle-attack-full",
+        "--run-birthday-bound-attack-full",
         action="store_true",
         default=False,
-        help="Enable test_oracle_attack_full (skipped by default): a full reproduction of "
+        help="Enable test_birthday_bound_attack_full (skipped by default): a full reproduction of "
              "the birthday-bound table/oracle attack against the car's nonce, rather than "
-             "just the always-on quick cost estimate in test_oracle_attack_quick_check."
+             "just the always-on quick cost estimate in test_birthday_bound_attack_quick_check."
     )
     parser.addoption(
         "--oracle-table-size",
         type=int,
         default=65536,
-        help="Number of (nonce -> response) pairs test_oracle_attack_full records before "
+        help="Number of (nonce -> response) pairs test_birthday_bound_attack_full records before "
              "it stops adding new entries and starts watching for a repeat (default: 65536, "
              "i.e. sqrt(2**32), the classic birthday bound for a 32-bit nonce)."
     )
@@ -207,7 +207,7 @@ def pytest_addoption(parser):
         "--oracle-max-iter",
         type=int,
         default=0,
-        help="Cap on how many further unlocks test_oracle_attack_full watches for a nonce "
+        help="Cap on how many further unlocks test_birthday_bound_attack_full watches for a nonce "
              "repeat after its table is built, before giving up (test passes if the cap is "
              "reached with no repeat found). Default: 0, meaning no cap - keep watching "
              "until a repeat is found."
