@@ -94,7 +94,7 @@ stop
 
 #### Flowchart for enableFeature()
 
-![](https://img.plantuml.biz/plantuml/png/bP2n2W8n38RtFaKsxmO7SLFK4qLm4zyWcXGBkPuqxN1lRw-2A8ASMqA-Bp_yZKOCCRLYoc2SXUg4BZ1jQeWtzb3vhZO06hkxOL66gcUj3Njojk1dlau89AFh5R37Y_2mZVPt6E2uLr1iURHqO8mfv22d4MmIUPa5_527Nz-cJoquXTbq_dSeIc2a7f3ehQTVmOij4TYdlZG5QV8bz_u0)
+![](https://img.plantuml.biz/plantuml/png/bP7D2i9038Jl-nHpipru46zAjL8HF0ZY6qIJui9sM_P7yErTAuWYIhqbPBwPa9G-a0knCQelbAwHxKaxuMMES1QBpBQv0dneEoN62xAh-5o9PLttyeESHWoJf8i2OkbevDuDvgkswM8GncvLeIYG_4HV7lqtZqyJSjYkFJmrCZXv8nIYIzjg7r17OvvaBtn3xrwVf8qDjCTaFFqxb8mJuYk8-UNOlu9dAsRK3tokUacP9kbvDm00)
 
 <details><summary>PlantUML code</summary>
 
@@ -108,6 +108,10 @@ endif
 if (Rec'd len >= enable len?) then (no)
   stop
 else (yes)
+endif
+if (Computed MAC == Received MAC) then (no)
+  stop
+else  (yes)
 endif
 if (Car IDs same?) then (no)
   stop
@@ -342,7 +346,7 @@ sequenceDiagram
 ```
 
 ```
-                ┌──────────────────┬───────────────────┐
- FEATURE PKT:   │Car ID (11 bytes) │Feature # (1 byte) │
-                └──────────────────┴───────────────────┘
+                ┌──────────────────┬───────────────────┬────────────────────┐
+ FEATURE PKT:   │Car ID (11 bytes) │Feature # (1 byte) │MAC value (8 bytes) │
+                └──────────────────┴───────────────────┴────────────────────┘
 ```

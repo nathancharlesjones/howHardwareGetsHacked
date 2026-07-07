@@ -127,9 +127,17 @@ note right of [CT_PAIR] : Pitfalls\
 DBG --> MAC : <:crossed_swords:> Forge a feature file\nFlags captured: Car #5
 note right of [MAC] : Pitfalls\
 \n• Using hash instead of MAC\
+\n\nAlternatives\
+\n• Encrypt feature files\
+\n\nAdd-ons\
+\n• Python ""secrets"" module\
+\n• Remove explicit error messages
 
 MAC --> CT_FEATURE : <:crossed_swords:> Timing attack on feature MAC comparison\nFlags capture: Car #5
-note right of [CT_FEATURE] : Add-ons\
+note right of [CT_FEATURE] : Pitfalls\
+\n• Compiler optimizations\
+\n\nAdd-ons\
+\n• Delay for each enable attempt\
 \n• Per-device feature keys\
 \n• Digital signatures
 @enduml

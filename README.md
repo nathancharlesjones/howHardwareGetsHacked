@@ -10,6 +10,7 @@ This project demonstrates iterative attacks and defenses for embedded systems us
 - [Part 3: Adopting the Attacker Mindset](https://www.digikey.com/en/maker/blogs/2026/how-hardware-gets-hacked-part-3-adopting-the-attacker-mindset)
 - [Part 4: Memory Protections](https://www.digikey.com/en/maker/blogs/2026/how-hardware-gets-hacked-part-4-memory-protections)
 - [Part 5: Replay Attacks](https://www.digikey.com/en/maker/blogs/2026/how-hardware-gets-hacked-part-5)
+- [Part 6: Authenticated Exchanges](https://www.digikey.com/en/maker/blogs/2026/how-hardware-gets-hacked-part-6)
 
 ## Project Structure
 
@@ -108,7 +109,7 @@ This repository is organized around progressive security improvements. Each defe
 
 Navigate to the commit in question (below) by appending the commit number to the URL www.github.com/nathancharlesjones/howHardwareGetsHacked/tree/<6-digit commit #>, i.e. www.github.com/nathancharlesjones/howHardwareGetsHacked/tree/d39462a.
 
-![Threat model](https://img.plantuml.biz/plantuml/png/hLVHJXj757ttLupCIr0n3ZIGG14A64DeCRPiK5I5A1hlNkzEsPtPpCpYE5MbFFMrKf_Rbtv5loS_q5_ecTbTOvE5KYduYTqxzzuvzznpxxuqbckRfqd3N0kPSSrJfYcmN4O9xUtrBozO_vYDElr1Tt-V_TnW-3jKEYGzihE4MCXDJ67nc0VNaLQv33igKPgj76-vdtzthAGjdaQQpnQyB3pyfJ4Fp9hu8NfkcPgmKQ0oGdHkMBy_sdYSsMPZmUxmODHbRtpOlLqJ2qh2tVr__luDEHjYJuGq5EIQLXbzu6cMaBVig3GLTfVHPFByMH0stYvwF3eyAHt2pQrFTYGC7pjSQ9n7B5FQBlaAlzrvjht9btqDkuEpWnzhtHtaDYPfHS0jiQcmCTCgIOICMA12CepBaFKEEj_vemFIhO1hbij41TViccQ6HIH9ut38D6nLcimOjsoSYoHiMP4ktvJlREziFTrPpguphCsi4_Ca8HbHIvF9510iyfDA1ijUNmJFjrxmu0v-tNkl78QCims6aW35XC-OLIpZGkFMItw3xM0SSBgJxKMjKq0pKJfbAQL1cZ4XWPy4zQNz4eK5lr81zkOvln6HAm0IGJbmr1aw9-zpCbOeoSQ0DSj8XguqiBbgNCdIJERfc7Hrzd9ungRJwNe4hFBnEcpQajkOItyYvZeXyvEIPDgnchxYEfnoJITapIjq5uLjgudQUzkjKC33GfIL_JKcrccztlcYOtVe8USbHPkkZyut6WtVEwtMlgVyBledqCeO2j-PAJhO0DmXyP0fDE4auP5X4wqyq4hFhgIweOgGuE1jLrp9OsySyCoYyqAGBqaAl1EQ-7ukuWs4dU2LJ_lpfxzSWrajnhbrI6S95zBI1p1QIAvdR28Icfk2eZ9oPcLOjBahmydWjEzChYIerW8DAllXqG31RoXXczMZGMVO7xIFUuDXjthK6rpUvZAPa4P_ibxdij5m2RVo350vcQh7weXmOsVkMrSxv0ges0rFm2QM6vVngDkhHyZ7G8HICsfZT8eJPOJCjH2NbIgaP0oFw4ll7QuDMzbeFNjS3AHkwUlxlIoyuH1REIyKvLYDsShJXnnxscWHnPutRmh_Rsl8y_dJ7wzKIfWtQee7Vx90ppAhC7woU3Qd3M93Eo6Tre0Ft14NB2lwrwXS1-JLjx8_1GCZiDmfiwDxzNm4sK0f9KrXdiD85pLcxJQVuBzs6nfNA8PhdEfOi_dwzFoe_xhPP4Pyf9Af2GwWbyNDBRs72vE0VSD8-iiuDNho0z6PUhzQo_9BJp0t9qwFbf-Xc8wO3dJtmcdYvrz_PvLGi8FkY6MaHHPZf2IB9YC_FZrgI2FXDtDm1ZCR8wDc4tAk0IXkbQemnuXjb3HekNulUcQpdXE7EaTzeTz1gQu-UmHxW1FiyUw7Q7dj0IYgxWUcWx5eHQm40NZbbfKhwLhAnf19TYr18Jz5S7TN5pzl7s9fbH2ImKojJmKb_PwdztdPNFlsCLwEWPGR-70sXh1_FM-UtGzukzE7dM5T3vuh2vAeF8eXskWmZ56_CvG2k6XM523JsEiq6mpFJo21aTBWPxfePeYgkUkjrb0j-CI4ldrNE4bc3sJXJ8iavXr6USKBu_Z7qZon8dFhtLpvirndoXHvr_VfHVzYK3zleA2jHBZnNOeejvRIpCujpbJKTYymNDjW9NOihnnErSalTVUSkuJbcAmpZSlkNUheKQ-GLkm_ebNnf5AfHSjA3zW5S2qdd2-msmUwzwhuRSUIoyqvHp-LIvmRnFUpQEikYtoOEYADhFBkoilFHHQb71xqsj1K4yydjLiadR6IRWFs828D9f12J6utkRz-FKm0HoM798uzeVLe7Oi6Lb-T8G6xkcJel2RAlQoj-NzMj0AfAYb0xyvRzA8UxWjmg3Zo9T9kMyLddJ3g_u3UkQX3l1mJvQT4iPrNxxhb-75Ho-X2JjHyg28Bx6QQATYaugDNs0UQvaoCjLleYeNz7HIunDqjbrELJ4QZizL5vsv0uKl8hFdETnSlzAJn4ZCMtxV_0W00)
+![Threat model](https://img.plantuml.biz/plantuml/png/hLZ1RXj74htpAnhKnSQQeYtRYkqOGcIAifL88a5A288eC9epnPbUpNHFkdl4C8i5Sjhh0Zadbtn5liS_a5_8gvuPYhI7YXORwQIPwghgLwzUrUWBvwNrPPvrtBNIXRGo5vOYBtMIqUlNeyiBCJeMqy5eF3mu4F_g2FoyCJOcE_NBZ4GiNKfnzLX6ruarfOu79ZDMx1m_vz_mxjXeNprDh5okULbx-E_EAh3euXVHIo_CN4mZKn2YIoT6e-cJ-vdjTTRitXnEX-BR4FRrAvSgok9N1t_y_b_ax4WyKDfHL5fwAEW7cHSP1Sk1oNFbNmcQppzx5iMTxzOz7hrvMpk4crkVuaWvEMDSQ5OceZ3MR_YAdxvyjhydDtrDXkFJmszQtHsMFYNjLIGzYONogR0covHEH6HYSaBgM9mT3ZuFHyTaUv6qejIPYQx5DIsTI4YJnU5OMDYQF5iAwSMiL5dSyohVlAbykV_o-UENczaD9gsP3LAPPQGJwbboXG62LNxQw6ZJwulei-SlPFGHViEjLuvZ8SKJWP80nKmkXJUYaChYrXj-e_re5adwADkBz-F3a_QKWS_Ss5pab4Tv8PG6Y1hyr_vJA5gT0-bxLWcMcnoAP_6BbboFXuSNbvFX_vtkVlnqzdJscFrhWoIwv_969PmEm4DoECg6xEJxafnNHeiPg50Kf6Ec4sokEbUwDjDbFYFRdBsSd8h5Oh6Ru6RbR1SsVIrzAdKuaKgRaVkdqUJwgLcyapPUI4jloRjtK0IA-zuIzL_lzs853sjHTWuU2RLBk-tErntpeRkSrstLvTu_VzBfX7xlzGv2cxv2pqVME4VnUxU0wZY0Eo4P2mFXc6SoSM9kJG3QsEMLDZVKD17wvhQJh_HnC8vauQ4MCHecoogyCve73QhYZPMVurL8-yDFlx4eUAjcfMUaYqmgxUa7TA7IqYx5N6MqCaLRwOJDwh2G9Yx3s_79Y4skDDgZ1neqzfEZCOBVK2RscaVZmMGqxX-VZIV3vj7P-F8sb_cSBDWgpWQNdGudt2iBGCNIsexL4U76R1xanZ9o5LJYHcPWaoWTPpmTdhKZ568WGgrphJ46rOawGi5jBtMZP3av9nFwrFj0MYTsdlIUtIy6KlVqz_kzhBpXaDWvh_h_sCp4pkEx70VQM9MaWJVVLlw_Qo7FXvz-UMTomemq2ppuLKHsMNY3aLcaonLj41jw3xdt3doGJ5omhEfVPqeRKPWOZVq969Y0vJnDcExDyoba0wNKj81v2IDRrLZq-tAEl_fzw7Ab6DmupR5kz-kJywFHrzskSEf7gfcQuG1wMTtSqdkoDht4FmJfS1bMemTV4PsQxn-silmo48ndsydHvZCKaud9eFCBriGF__bPD48X3eTJKP1LHOencAsRJCF83wWXZKpUhC0PBtsAZBfTZ20BG76htCGbre9EJOCUztlLCtljd7XZIzGN-XtLwXgoHx0xE27kxtw2bhS1WAhgOSWpZ5KhOes9m2jUiAuqjvHF8PFYMeD2OOhWxboNi2FSnT8c8II3FQ0z5PJqIvblyxBtwEbzl1m3ALvIu6m6OV_xl0Lst-7jepuSJDfwyDnuaCIKIGhHHeTXZ8OzfnR0TREg08N5Bch5U7B-5XAO60j-vkjcZgYPky7g4Qe5dvZGj-yg9zdoZYpOj4fYrM5KDhnmp3-HbvbN1Q-aA-KlIbiOL-NTtgSNeujn-xo1WlOonUEx5b7fFUM5NrcScgJFBp1S-s0bziAW7Apg51RHBUSkOJaZpwPftRqR7JqzgwGL-u_gDJnfL6hTij43SG5SwmaN2ipxm72hYjzsB75kx1pzL2-UF8Yti-ZvnomAOTg8DFKckAilln9Pb79oUDQ7fhfqDQbv-MLZetbh3o0Y3Q6GGagycsoltnac05E9aSIn1xIRx6BHmBfk2oJW7suOijVCyClMclzbHHkGcf82zE6gHUk5l1Np2n2fElSftBooudjKEVE_85-7QyE-7XZrXr3rRT6y6zQ3Y4FNAIWzDwlnYbImfLbXO9Eh7uFMtj4-fsfcURMhLlVtqEAw0hncBamsdqvF7wuxvr65RmRtA6W0txvIbivg0U5lZsrQbw0YOevQy43ZTR8LCB7p2LfmkXsf55m42iw7LNdE6Mo_SGtWHXQkbKrRf-kjWkKGRSom8bCHE4pMienLkneGOIHgPZMVJ_SZLvCREzXAhcrGtKPhG-nEWcpUFxHrK6QIKGf13_ylg5jd1H8-vMEwKT2Y9kimgbTBF3wNP8PbAz7XhUjyWRMipBC_0G00)
 
 > **Note:** If you're following the articles, start with the baseline commit and progress through each defense as you read about the corresponding attack.
 
@@ -280,12 +281,18 @@ Test Commands (TEST_BUILD only):
         isPaired                  - Returns OK: 1 or OK: 0
         getFlashData              - Get flash data as hex
         setFlashData <hex>        - Set flash data from hex (persists to flash)
-        getMemcmpTime             - Returns OK: <n> cycle count of the last PIN memcmp
+        getPairMemcmpTime         - Returns OK: <n> cycle count of the last PIN memcmp
+        getFeatureMemcmpTime      - Returns OK: <n> cycle count of the last feature MAC memcmp
 
     Car:
         isLocked                  - Returns OK: 1 or OK: 0
         getUnlockCount            - Returns OK: <n> (resets on power cycle)
         getPrngSeed               - Returns OK: <32 hex chars> (16 bytes from getPrngSeed())
+        restart                   - Warm restart (state not cleared); real reboot on TM4C/STM32 (stub on sim) --
+                                    on hardware, must be followed by wait_for_boot() before the next command
+        getEntropyDescription     - Returns OK: <json>, {source_name: bytes_per_sample} for every entropy source
+        getEntropySamples <n>     - Returns OK: <hex>, n rows (n<=255); each row is one sample from every
+                                    entropy source back to back, in getEntropyDescription()'s key order
 ```
 
 Send commands via `monitor.py` or another terminal of choice (screen, minicom, PuTTY, etc).

@@ -52,20 +52,17 @@ static uint16_t adc_single(uint32_t channel, uint32_t sampling_time)
 
 static uint16_t read_adc_vref(void)
 {
-    return adc_single(ADC_CHANNEL_VREFINT,    ADC_SAMPLETIME_56CYCLES);
-    //return adc_single(ADC_CHANNEL_VREFINT,    ADC_SAMPLETIME_480CYCLES);
+    return adc_single(ADC_CHANNEL_VREFINT,    ADC_SAMPLETIME_480CYCLES);
 }
 
 static uint16_t read_adc_temp(void)
 {
-    return adc_single(ADC_CHANNEL_TEMPSENSOR, ADC_SAMPLETIME_56CYCLES);
-    //return adc_single(ADC_CHANNEL_TEMPSENSOR, ADC_SAMPLETIME_480CYCLES);
+    return adc_single(ADC_CHANNEL_TEMPSENSOR, ADC_SAMPLETIME_480CYCLES);
 }
 
 static uint16_t read_adc_float(void)
 {
-    return adc_single(ADC_CHANNEL_1,          ADC_SAMPLETIME_480CYCLES);
-    //return adc_single(ADC_CHANNEL_1,          ADC_SAMPLETIME_56CYCLES);
+    return adc_single(ADC_CHANNEL_1,          ADC_SAMPLETIME_56CYCLES);
 }
 
 static struct AES_ctx s_seed_aes;
