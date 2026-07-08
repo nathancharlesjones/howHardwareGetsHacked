@@ -33,6 +33,12 @@
 /*** Macros ***/
 #define MAX_CMD_LEN 1040
 
+// sendBoardMsg's own hex-decode scratch buffer (see below): sized to carry a
+// full MESSAGE_PACKET regardless of MAX_MSG_LEN, so this TEST_BUILD-only
+// command can inject realistic oversized/malicious payloads for security
+// testing instead of being artificially capped by the real wire-message size.
+#define TEST_SENDBOARDMSG_BUF_LEN 257  // 1 magic + 1 message_len + 255 max payload
+
 /*** Function definitions ***/
 // Core functions - unlockCar and startCar
 void unlockCar(void);
@@ -149,7 +155,7 @@ void processHostCommand(const char *cmd)
   // Test command: sendRawBoardMsg <hex>
   if (strncmp(cmd, "sendBoardMsg ", 13) == 0)
   {
-    uint8_t raw[MAX_MSG_LEN];
+    uint8_t raw[TEST_SENDBOARDMSG_BUF_LEN];
     int len = hexToBytes(cmd + 13, raw, sizeof(raw));
     if (len < 2) { sendError("invalid hex"); return; }
     MESSAGE_PACKET msg;

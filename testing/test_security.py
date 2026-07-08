@@ -70,6 +70,80 @@ class TestSimpleReplayAttacks:
 
         assert proto.is_locked(car_b), "Cross-car attack should NOT succeed"
 
+@pytest.mark.car1
+@pytest.mark.car2
+@pytest.mark.car3
+@pytest.mark.car4
+@pytest.mark.car5
+class TestUnlockBufferOverflow:
+    """car.c's unlockCar() reads the first board message of an unlock attempt
+    (UNLOCK_MAGIC) into a fixed 64-byte stack buffer, before any nonce/CMAC
+    exchange happens - i.e. fully pre-auth. The receive path
+    (messages.c: receive_board_message) does:
+
+        message->message_len = uart_readb(BOARD_UART);       // attacker-controlled, 0-255
+        uart_read(BOARD_UART, message->buffer, message->message_len);
+
+    with no check that message_len fits the 64-byte buffer it's about to fill.
+    Declaring a length larger than the buffer overflows it, corrupting
+    unlockCar()'s saved registers and return address. On real Cortex-M
+    hardware (no stack protector in this build - see SConstruct, no
+    -fstack-protector* flag anywhere in the ARM build config) this is full
+    control-flow hijack; see testing/test_stack_overflow_poc.py for a working
+    proof-of-concept that turns it into arbitrary code execution and flag
+    exfiltration on real STM32 hardware. Here on sim, gcc's own stack
+    protector (glibc canary between the locals and the saved return address)
+    independently catches the corruption and aborts the process - so this
+    test demonstrates the underlying bug (an oversized message_len reaches
+    and corrupts the return address) via that crash, without needing to
+    reproduce the RCE mechanism itself."""
+
+    def test_oversized_unlock_message_crashes_car(self, deploy):
+        # Deliberately a *paired* fob, not unpaired, even though pairing state
+        # is irrelevant to this pre-auth attack: an unpaired fob's main loop
+        # reacts to any unsolicited board-UART byte by calling
+        # receivePairData() (fob.c), which itself blocks waiting for a
+        # PAIR_MAGIC message. The car's own unsolicited NONCE_MAGIC reply to
+        # our forged UNLOCK would trigger exactly that, hanging the fob and
+        # making it look like the attack "worked" (no response) regardless of
+        # whether the car actually crashed. A paired fob only reacts to
+        # buttonPressed(), so it never touches unsolicited board bytes and
+        # can't produce that false positive.
+        car, fob = deploy(RoleConfig("car", id="1"), RoleConfig("paired_fob", id="1", pin="123456"))
+        assert proto.is_locked(car), "Sanity check failed before attack"
+
+        # 200 bytes is comfortably past car.c's 64-byte buffer and reaches
+        # into the saved return address; sendBoardMsg's own decode buffer
+        # (TEST_SENDBOARDMSG_BUF_LEN, see car.c/fob.c) is sized to carry this
+        # for real, so message_len here matches the real number of bytes
+        # actually placed on the wire - this models a real attacker exactly,
+        # no test-harness workaround needed.
+        proto.cmd_send_board_msg(fob, proto.UNLOCK_MAGIC, b"A" * 200)
+        time.sleep(0.05)
+
+        # unlockCar() won't reach its own return (and thus won't touch the
+        # corrupted saved return address) until the RESPONSE_MAGIC receive
+        # unblocks - the attacker doesn't have the CMAC key, so the actual
+        # bytes here don't matter, only that the memcmp is reached and fails.
+        proto.cmd_send_board_msg(fob, proto.RESPONSE_MAGIC, b"\x00" * 8)
+        time.sleep(0.2)
+
+        # A correctly-guarded car would still be alive: the memcmp mismatch
+        # is expected (this isn't a real fob), so it should just send an ACK
+        # failure and return to its main loop. Instead, the corrupted return
+        # address/canary takes it down entirely, and it never responds to
+        # anything again.
+        #
+        # NOTE: once message_len is validated against the buffer size (the
+        # actual fix), this assertion is the one that should start failing -
+        # flip it to `assert resp.success` at that point.
+        resp = proto.cmd_is_locked(car, timeout=2.0)
+        assert not resp.success, (
+            "Car responded normally after an oversized UNLOCK message - expected "
+            "it to have crashed (unbounded uart_read() into a fixed stack buffer, "
+            "corrupting the saved return address / stack canary)."
+        )
+
 @pytest.mark.car2
 class TestComplexReplayAttacks:
     """Advanced replay attacks that require temporary access to a paired fob (eCTF Car #2

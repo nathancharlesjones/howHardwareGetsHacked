@@ -188,6 +188,15 @@ def pytest_addoption(parser):
              "this to only write the .bin/.json capture and skip that immediate analysis."
     )
     parser.addoption(
+        "--stack-overflow-poc-probe",
+        type=str,
+        default=None,
+        help="ST-Link serial number of a real STM32 board to run "
+             "test_stack_overflow_poc.py's RCE proof-of-concept against (skipped "
+             "by default - that test flashes and takes over the board directly "
+             "via OpenOCD/gdb, outside the normal deploy() fixture)."
+    )
+    parser.addoption(
         "--run-birthday-bound-attack-full",
         action="store_true",
         default=False,

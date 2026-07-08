@@ -50,11 +50,6 @@ static uint16_t adc_single(uint32_t channel, uint32_t sampling_time)
     return val;
 }
 
-static uint16_t read_adc_vref(void)
-{
-    return adc_single(ADC_CHANNEL_VREFINT,    ADC_SAMPLETIME_480CYCLES);
-}
-
 static uint16_t read_adc_temp(void)
 {
     return adc_single(ADC_CHANNEL_TEMPSENSOR, ADC_SAMPLETIME_480CYCLES);
@@ -70,26 +65,23 @@ static void seed_encrypt(uint8_t *data) { AES_ECB_encrypt(&s_seed_aes, data); }
 
 const char * getEntropyDescription(void)
 {
-    return "{\"vcc\":2,\"temp\":2,\"float_pin\":2,\"jitter\":4}";
+    return "{\"temp\":2,\"float_pin\":2,\"jitter\":4}";
 }
 
 uint16_t getEntropySamples(uint8_t num_samples, uint8_t* dest)
 {
-    uint8_t byte_width = 10;
+    uint8_t byte_width = 8;
 
     for( size_t count = 0; count < num_samples; count++ )
     {
-        uint16_t sample_16b = read_adc_vref();
+        uint16_t sample_16b = read_adc_temp();
         memcpy(dest, &sample_16b, 2);
 
-        sample_16b = read_adc_temp();
+        sample_16b = read_adc_float();
         memcpy(dest+2, &sample_16b, 2);
 
-        sample_16b = read_adc_float();
-        memcpy(dest+4, &sample_16b, 2);
-
         uint32_t sample_32b = read_hsi_per_lsi();
-        memcpy(dest+6, &sample_32b, 4);
+        memcpy(dest+4, &sample_32b, 4);
         
         dest += byte_width;
     }
@@ -99,7 +91,6 @@ uint16_t getEntropySamples(uint8_t num_samples, uint8_t* dest)
 void getPrngSeed(uint8_t *dest)
 {
     struct __attribute__((packed)) {
-        uint16_t vcc[32];
         uint16_t temp[32];
         uint32_t jitter[32];
         uint16_t float_pin[32];
@@ -115,7 +106,6 @@ void getPrngSeed(uint8_t *dest)
     for(size_t i = 0; i < 2; i++)
     {
         for (int i = 0; i < 32; i++) {
-            s.vcc[i]       = read_adc_vref();
             s.temp[i]      = read_adc_temp();
             s.jitter[i]    = read_hsi_per_lsi();
             s.float_pin[i] = read_adc_float();
