@@ -25,7 +25,8 @@ class TestSinglePairedFob:
         flash = proto.get_flash_data(paired_fob)
         assert flash.paired == 0x01, "Flash data should show paired"
         assert flash.pair_info.car_id != b'\xFF' * 11, "Should have a car ID"
-        assert flash.pair_info.key != b'\xFF' * 16, "Should have a key"
+        assert flash.pair_info.unlock_key != b'\xFF' * 16, "Should have an unlock key"
+        assert flash.pair_info.start_key != b'\xFF' * 16, "Should have a start key"
         assert flash.pair_info.pin != b'\xFF' * 7, "Should have a pin"
 
     def test_paired_fob_can_enable_feature_with_valid_id_and_valid_feature_when_there_is_room(self, paired_fob):
@@ -164,7 +165,8 @@ class TestSingleUnpairedFob:
         flash = proto.get_flash_data(unpaired_fob)
         assert flash.paired == 0, "Flash data should show unpaired"
         assert flash.pair_info.car_id == b'000000\x00\x00\x00\x00\x00', "Should not have a car ID"
-        assert flash.pair_info.key == b'\x00' * 16, "Should not have a key"
+        assert flash.pair_info.unlock_key == b'\x00' * 16, "Should not have an unlock key"
+        assert flash.pair_info.start_key == b'\x00' * 16, "Should not have a start key"
         assert flash.pair_info.pin == b'\x00' * 3, "Should not have a pin"
 
     def test_unpaired_fob_rejects_feature(self, unpaired_fob):
@@ -346,8 +348,9 @@ class TestStateManagement:
         try:
             corrupted = proto.FlashData.new_paired(
                 car_id=original_flash.pair_info.car_id,
-                key=b'\x00' * 16,  # deliberately wrong key
-                pin=original_flash.pair_info.pin
+                unlock_key=b'\x00' * 16,  # deliberately wrong key
+                pin=original_flash.pair_info.pin,
+                start_key=original_flash.pair_info.start_key
             )
             proto.cmd_set_flash_data(fob, corrupted)
 
@@ -374,8 +377,9 @@ class TestStateManagement:
             # Create custom state
             new_flash = proto.FlashData.new_paired(
                 car_id=b'TESTCAR1',
-                key=b'TSTKEY0123456789',
-                pin=b'999999'
+                unlock_key=b'TSTKEY0123456789',
+                pin=b'999999',
+                start_key=b'TSTSTARTKEY01234'
             )
 
             resp = proto.cmd_set_flash_data(paired_fob, new_flash)
@@ -384,7 +388,8 @@ class TestStateManagement:
             # Read back and verify
             flash = proto.get_flash_data(paired_fob)
             assert flash.pair_info.car_id == b'TESTCAR1'.ljust(11, b'\x00')[:11]
-            assert flash.pair_info.key == b'TSTKEY0123456789'
+            assert flash.pair_info.unlock_key == b'TSTKEY0123456789'
+            assert flash.pair_info.start_key == b'TSTSTARTKEY01234'
         finally:
             # Restore original state so other tests aren't affected
             proto.cmd_set_flash_data(paired_fob, original_flash)

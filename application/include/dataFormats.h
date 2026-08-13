@@ -34,4 +34,21 @@ __attribute__((aligned(4)))
   FEATURE_DATA feature_info;
 } FOB_FLASH_DATA;
 
+// Defines a struct for the format of a start message
+typedef struct __attribute__((packed))
+{
+  FEATURE_DATA feature_info;
+  uint8_t mac[8];
+} START_PACKET;
+
+// Buffer layout for building a start message and computing its CMAC.
+// The MAC field in START_PACKET is 8 bytes, but AES_CMAC_digest always writes
+// 16 bytes, so mac_overflow holds the upper half that is never transmitted.
+typedef struct __attribute__((packed)) {
+  uint8_t magic;
+  uint8_t length;
+  START_PACKET payload;
+  uint8_t mac_overflow[8];
+} START_MSG_BUF;
+
 #endif // DATA_FORMATS_H

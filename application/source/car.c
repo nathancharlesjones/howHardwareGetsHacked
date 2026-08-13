@@ -44,14 +44,18 @@
 void unlockCar(void);
 
 /* AES-ECB context used by the CMAC callback; key loaded once in main() */
-static struct AES_ctx cmac_ctx;
+static struct AES_ctx unlock_aes_ctx, start_aes_ctx;
 /* AES-CMAC context storing the AES callback pointer */
-static struct AES_CMAC_ctx aes_cmac_ctx;
+static struct AES_CMAC_ctx unlock_cmac_ctx, start_cmac_ctx;
 
 static ctr_drbg_ctx_t prng_ctx;
 
-static void aes_cmac_encrypt(uint8_t* data) {
-  AES_ECB_encrypt(&cmac_ctx, data);
+static void aes_unlock_cmac(uint8_t* data) {
+  AES_ECB_encrypt(&unlock_aes_ctx, data);
+}
+
+static void aes_start_cmac(uint8_t* data) {
+  AES_ECB_encrypt(&start_aes_ctx, data);
 }
 
 // Helper functions - sending ack messages
@@ -63,12 +67,13 @@ void processHostCommand(const char *cmd);
 
 // Declare const variables
 const uint8_t unlock_key[16] = UNLOCK_KEY;
+const uint8_t start_key[16] = START_KEY;
 const char car_id[11] = CAR_ID;
 
 // State variables
 static bool carLocked = true;
 static uint32_t unlockCount = 0;
-static uint8_t last_feature_info[NUM_FEATURES+1] = {0,1,2,3};
+static uint8_t last_feature_info[NUM_FEATURES+1] = {0};
 
 static void initCar(void)
 {
@@ -91,9 +96,14 @@ int main(int argc, char **argv)
   initHardware_car(argc, argv);
 
   /* expand the key into AES round keys once; reused for every CMAC call */
-  AES_init_ctx(&cmac_ctx, unlock_key);
+  AES_init_ctx(&unlock_aes_ctx, unlock_key);
   /* provide the CMAC library with AES encryption callback function that will perform the actual AES encryption */
-  AES_CMAC_init_ctx(&aes_cmac_ctx, (void*)&aes_cmac_encrypt);
+  AES_CMAC_init_ctx(&unlock_cmac_ctx, (void*)&aes_unlock_cmac);
+
+  /* expand the key into AES round keys once; reused for every CMAC call */
+  AES_init_ctx(&start_aes_ctx, start_key);
+  /* provide the CMAC library with AES encryption callback function that will perform the actual AES encryption */
+  AES_CMAC_init_ctx(&start_cmac_ctx, (void*)&aes_start_cmac);
 
   initCar();
 
@@ -283,7 +293,7 @@ void unlockCar(void)
 
   // Compute MAC
   uint8_t computed_mac[16] = {0};
-  AES_CMAC_digest(&aes_cmac_ctx, (uint8_t*)&nonce, NONCE_SIZE, computed_mac);
+  AES_CMAC_digest(&unlock_cmac_ctx, (uint8_t*)&nonce, NONCE_SIZE, computed_mac);
 
   // Receive response
   uint8_t received_mac[8] = {0};
@@ -315,17 +325,33 @@ void unlockCar(void)
   // Password matches - send success ACK
   sendAckSuccess();
 
-  // Wait for start message with feature data
-  message.buffer = buffer;
-  receive_board_message_by_type(&message, START_MAGIC);
+  // Verify MAC matches
+  START_MSG_BUF msg_buf = {0};
+  message.buffer = (uint8_t*)&msg_buf.payload;
 
+  // Receive unlock message
+  receive_board_message_by_type(&message, START_MAGIC);
+  msg_buf.magic = message.magic;
+  msg_buf.length = message.message_len;
+
+  // Layout of message and msg_buf at this point:
+  // message:
+  //   [ MAGIC | LENGTH | *BUFFER ]
+  //                         |
+  //                         |
+  // msg_buf:                \/
+  //   [ MAGIC | LENGTH | CAR ID (11) | NUM_ACTIVE | FEATURES[3] | MAC (8 + 8) ]
+  
   FEATURE_DATA *feature_info = (FEATURE_DATA *)buffer;
 
-  // Verify car ID matches (compare exactly 8 bytes)
-  if (strcmp(car_id, feature_info->car_id) != 0)
-  {
-      return;
-  }
+  // First, verify car ID matches
+  if (strcmp(car_id, feature_info->car_id) != 0) return;
+
+  // Compute MAC
+  AES_CMAC_digest(&start_cmac_ctx, (uint8_t*)&msg_buf, offsetof(START_MSG_BUF, payload.mac), computed_mac);
+
+  // if( computed MAC != received MAC ) { sendAckFailure(); return; }
+  if( memcmp(computed_mac, msg_buf.payload.mac, 8) != 0 ) return;
 
 #ifdef TEST_BUILD
   // Store features

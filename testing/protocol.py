@@ -154,32 +154,35 @@ def parse_response(line: str) -> Response:
 # From dataFormats.h:
 #   typedef struct __attribute__((aligned(4))) {
 #     uint8_t paired;           // offset 0
-#     PAIR_PACKET pair_info;    // offset 1:  car_id[11], key[16], pin[3]  = 30 bytes
-#     FEATURE_DATA feature_info;// offset 31: car_id[11], num_active, features[3] = 15 bytes
-#   } FOB_FLASH_DATA;           // 46 bytes content, padded to 48
+#     PAIR_PACKET pair_info;    // offset 1:  car_id[11], unlock_key[16], start_key[16], pin[3] = 46 bytes
+#     FEATURE_DATA feature_info;// offset 47: car_id[11], num_active, features[3] = 15 bytes
+#   } FOB_FLASH_DATA;           // 62 bytes content, padded to 64
 
-FLASH_DATA_SIZE = 48  # sizeof(FOB_FLASH_DATA)
+FLASH_DATA_SIZE = 64  # sizeof(FOB_FLASH_DATA)
 
 NUM_FEATURES = 3
 
 
 @dataclass
 class PairPacket:
-    car_id: bytes   # 11 bytes
-    key: bytes      # 16 bytes
-    pin: bytes      # 3 bytes
+    car_id: bytes      # 11 bytes
+    unlock_key: bytes  # 16 bytes
+    start_key: bytes   # 16 bytes
+    pin: bytes         # 3 bytes
 
     def pack(self) -> bytes:
         return self.car_id.ljust(11, b'\x00')[:11] + \
-               self.key.ljust(16, b'\x00')[:16] + \
+               self.unlock_key.ljust(16, b'\x00')[:16] + \
+               self.start_key.ljust(16, b'\x00')[:16] + \
                self.pin.ljust(3, b'\x00')[:3]
 
     @classmethod
     def unpack(cls, data: bytes) -> 'PairPacket':
         return cls(
             car_id=data[0:11],
-            key=data[11:27],
-            pin=data[27:30]
+            unlock_key=data[11:27],
+            start_key=data[27:43],
+            pin=data[43:46]
         )
 
 
@@ -222,8 +225,8 @@ class FlashData:
         """Unpack from bytes received from getFlashData."""
         return cls(
             paired=data[0],
-            pair_info=PairPacket.unpack(data[1:31]),
-            feature_info=FeatureData.unpack(data[31:46])
+            pair_info=PairPacket.unpack(data[1:47]),
+            feature_info=FeatureData.unpack(data[47:62])
         )
 
     @classmethod
@@ -240,16 +243,18 @@ class FlashData:
         """Create a fresh unpaired fob state."""
         return cls(
             paired=False,
-            pair_info=PairPacket(b'\x00'*11, b'\x00'*16, b'\x00'*3),
+            pair_info=PairPacket(b'\x00'*11, b'\x00'*16, b'\x00'*16, b'\x00'*3),
             feature_info=FeatureData(b'\x00'*11, 0, [0, 0, 0])
         )
 
     @classmethod
-    def new_paired(cls, car_id: bytes, key: bytes, pin: bytes) -> 'FlashData':
+    def new_paired(cls, car_id: bytes, unlock_key: bytes, pin: bytes, start_key: bytes = None) -> 'FlashData':
         """Create a paired fob state."""
+        if start_key is None:
+            start_key = unlock_key
         return cls(
             paired=True,
-            pair_info=PairPacket(car_id, key, pin),
+            pair_info=PairPacket(car_id, unlock_key, start_key, pin),
             feature_info=FeatureData(car_id, 0, [0, 0, 0])
         )
 

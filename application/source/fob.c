@@ -56,7 +56,7 @@ static struct AES_CMAC_ctx unlock_cmac_ctx, start_cmac_ctx, feature_cmac_ctx;
 static uint32_t last_pair_memcmp_execution_time;
 static uint32_t last_feature_memcmp_execution_time;
 static bool custom_start_msg = false;
-static uint8_t start_msg[sizeof(FEATURE_DATA)] = {0};
+static uint8_t start_msg[sizeof(START_PACKET)] = {0};
 #endif
 
 /*** Function definitions ***/
@@ -283,7 +283,7 @@ void processHostCommand(FOB_FLASH_DATA *fob_state_ram, const char *cmd)
   if (strcmp(cmd, "getPairMemcmpTime") == 0)
   {
     char time[16] = {0};
-    snprintf(time, 15, "%ld", last_pair_memcmp_execution_time);
+    snprintf(time, 15, "%lu", (unsigned long)last_pair_memcmp_execution_time);
     sendOK(time);
     return;
   }
@@ -292,7 +292,7 @@ void processHostCommand(FOB_FLASH_DATA *fob_state_ram, const char *cmd)
   if (strcmp(cmd, "getFeatureMemcmpTime") == 0)
   {
     char time[16] = {0};
-    snprintf(time, 15, "%ld", last_feature_memcmp_execution_time);
+    snprintf(time, 15, "%lu", (unsigned long)last_feature_memcmp_execution_time);
     sendOK(time);
     return;
   }
@@ -537,14 +537,32 @@ void attemptUnlock(FOB_FLASH_DATA *fob_state_ram)
     return;
   }
 
-  // ACK received - send start message with feature data
-  message.magic = START_MAGIC;
-  message.message_len = sizeof(FEATURE_DATA);
+  // ACK received - send start message with feature data and MAC
+
+  // msg_buf is used first to store the input to AES-CMAC and the MAC result
+  // Once the MAC is computed, msg_buf.payload forms the message
+  // Layout of buffer before AES_CMAC_digest:
+  //          1 byte     1 byte     15 bytes     16 bytes
+  //     [ START_MAGIC | Length | FEATURE_DATA | Padding ]
+  // Layout of buffer after AES_CMAC_digest:
+  //          1 byte     1 byte     15 bytes     16 bytes
+  //     [ START_MAGIC | Length | FEATURE_DATA |   MAC   ]
+  //                             \-------message--------/ (first 8 bytes of MAC only)
+  START_MSG_BUF msg_buf = {0};
+
+  msg_buf.magic = START_MAGIC;
+  msg_buf.length = sizeof(START_PACKET);
+  memcpy(&msg_buf.payload.feature_info, (uint8_t *)&fob_state_ram->feature_info, sizeof(FEATURE_DATA));
+  AES_CMAC_digest(&start_cmac_ctx, (uint8_t*)&msg_buf, offsetof(START_MSG_BUF, payload.mac), msg_buf.payload.mac);
+  
+  message.magic = msg_buf.magic;
+  message.message_len = msg_buf.length;
+
 #ifdef TEST_BUILD
-  message.buffer = custom_start_msg ? start_msg : (uint8_t *)&fob_state_ram->feature_info;
+  message.buffer = custom_start_msg ? start_msg : (uint8_t*)&msg_buf.payload;;
   custom_start_msg = false;
 #else
-  message.buffer = (uint8_t *)&fob_state_ram->feature_info;
+  message.buffer = (uint8_t*)&msg_buf.payload;;
 #endif
   send_board_message(&message);
 
