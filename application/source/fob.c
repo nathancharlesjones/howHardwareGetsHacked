@@ -48,9 +48,9 @@ typedef struct {
 
 /*** Static variables ***/
 /* AES-ECB context used by the CMAC callback; key loaded once in main() */
-static struct AES_ctx unlock_aes_ctx, feature_aes_ctx;
+static struct AES_ctx unlock_aes_ctx, start_aes_ctx, feature_aes_ctx;
 /* AES-CMAC context storing the AES callback pointer */
-static struct AES_CMAC_ctx unlock_cmac_ctx, feature_cmac_ctx;
+static struct AES_CMAC_ctx unlock_cmac_ctx, start_cmac_ctx, feature_cmac_ctx;
 
 #ifdef TEST_BUILD
 static uint32_t last_pair_memcmp_execution_time;
@@ -73,6 +73,10 @@ static void aes_unlock_cmac(uint8_t* data) {
   AES_ECB_encrypt(&unlock_aes_ctx, data);
 }
 
+static void aes_start_cmac(uint8_t* data) {
+  AES_ECB_encrypt(&start_aes_ctx, data);
+}
+
 static void aes_feature_cmac(uint8_t* data) {
   AES_ECB_encrypt(&feature_aes_ctx, data);
 }
@@ -85,6 +89,14 @@ static void initUnlockAes(const uint8_t *key)
   AES_CMAC_init_ctx(&unlock_cmac_ctx, (void*)&aes_unlock_cmac);
 }
 
+static void initStartAes(const uint8_t *key)
+{
+  static uint8_t start_key[16];
+  memcpy(start_key, key, sizeof(start_key));
+  AES_init_ctx(&start_aes_ctx, start_key);
+  AES_CMAC_init_ctx(&start_cmac_ctx, (void*)&aes_start_cmac);
+}
+
 static void initFobState(FOB_FLASH_DATA *fob_state_ram)
 {
   if (FLASH_UNINITIALIZED == fob_state_ram->paired)
@@ -94,11 +106,14 @@ static void initFobState(FOB_FLASH_DATA *fob_state_ram)
     strcpy(fob_state_ram->pair_info.car_id, CAR_ID);
     strcpy(fob_state_ram->feature_info.car_id, CAR_ID);
     const uint8_t unlock_key[16] = UNLOCK_KEY;
-    memcpy(fob_state_ram->pair_info.key, unlock_key, sizeof(unlock_key));
+    memcpy(fob_state_ram->pair_info.unlock_key, unlock_key, sizeof(unlock_key));
+    const uint8_t start_key[16] = START_KEY;
+    memcpy(fob_state_ram->pair_info.start_key, start_key, sizeof(start_key));
     fob_state_ram->paired = PAIRED;
     saveFobState(fob_state_ram);
   }
-  initUnlockAes(fob_state_ram->pair_info.key);
+  initUnlockAes(fob_state_ram->pair_info.unlock_key);
+  initStartAes(fob_state_ram->pair_info.start_key);
 }
 
 /**
@@ -227,7 +242,8 @@ void processHostCommand(FOB_FLASH_DATA *fob_state_ram, const char *cmd)
     }
     memcpy(fob_state_ram, data, sizeof(FOB_FLASH_DATA));
     saveFobState(fob_state_ram);
-    initUnlockAes(fob_state_ram->pair_info.key);
+    initUnlockAes(fob_state_ram->pair_info.unlock_key);
+    initStartAes(fob_state_ram->pair_info.start_key);
     sendOK(NULL);
     return;
   }
@@ -267,7 +283,7 @@ void processHostCommand(FOB_FLASH_DATA *fob_state_ram, const char *cmd)
   if (strcmp(cmd, "getPairMemcmpTime") == 0)
   {
     char time[16] = {0};
-    snprintf(time, 15, "%d", last_pair_memcmp_execution_time);
+    snprintf(time, 15, "%ld", last_pair_memcmp_execution_time);
     sendOK(time);
     return;
   }
@@ -276,7 +292,7 @@ void processHostCommand(FOB_FLASH_DATA *fob_state_ram, const char *cmd)
   if (strcmp(cmd, "getFeatureMemcmpTime") == 0)
   {
     char time[16] = {0};
-    snprintf(time, 15, "%d", last_feature_memcmp_execution_time);
+    snprintf(time, 15, "%ld", last_feature_memcmp_execution_time);
     sendOK(time);
     return;
   }
@@ -549,7 +565,8 @@ void receivePairData(FOB_FLASH_DATA *fob_state_ram)
   fob_state_ram->paired = FLASH_PAIRED;
   strcpy(fob_state_ram->feature_info.car_id, fob_state_ram->pair_info.car_id);
   saveFobState(fob_state_ram);
-  initUnlockAes(fob_state_ram->pair_info.key);
+  initUnlockAes(fob_state_ram->pair_info.unlock_key);
+  initStartAes(fob_state_ram->pair_info.start_key);
 }
 
 /**

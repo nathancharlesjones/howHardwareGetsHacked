@@ -37,6 +37,7 @@ def main():
     # Find car ID and matching key, if present
     if args.car_id in secrets["keys"]:
         unlock_key_array = secrets["keys"][args.car_id]["unlock"]
+        start_key_array = secrets["keys"][args.car_id]["start"]
         if "prng" in secrets["keys"][args.car_id]:
             prng_key_array = secrets["keys"][args.car_id]["prng"]
             seed_key_array = secrets["keys"][args.car_id]["seed"]
@@ -51,6 +52,8 @@ def main():
         secrets["keys"][args.car_id] = {}
         unlock_key_array = list(random.randbytes(16))
         secrets["keys"][args.car_id]["unlock"] = unlock_key_array
+        start_key_array = list(random.randbytes(16))
+        secrets["keys"][args.car_id]["start"] = start_key_array
         prng_key_array = list(random.randbytes(16))
         secrets["keys"][args.car_id]["prng"] = prng_key_array
         seed_key_array = list(random.randbytes(16))
@@ -70,6 +73,10 @@ def main():
         for i in range(15):
             fp.write(f'{unlock_key_array[i]}, ')
         fp.write(f'{unlock_key_array[15]}}}\n')
+        fp.write('#define START_KEY {')
+        for i in range(15):
+            fp.write(f'{start_key_array[i]}, ')
+        fp.write(f'{start_key_array[15]}}}\n')
         fp.write('#define PRNG_KEY {')
         for i in range(15):
             fp.write(f'{prng_key_array[i]}, ')

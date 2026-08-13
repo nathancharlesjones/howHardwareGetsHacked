@@ -12,7 +12,8 @@
 typedef struct
 {
   char car_id[11];
-  uint8_t key[16];
+  uint8_t unlock_key[16];
+  uint8_t start_key[16];
   uint8_t pin[3];
 } PAIR_PACKET;
 

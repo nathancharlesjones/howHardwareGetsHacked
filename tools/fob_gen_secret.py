@@ -47,12 +47,15 @@ def main():
         # Find car ID and matching key, if present
         if args.car_id in secrets["keys"]:
             unlock_key_array = secrets["keys"][args.car_id]["unlock"]
+            start_key_array = secrets["keys"][args.car_id]["start"]
 
         # Else make a new key (and save it)
         else:
             secrets["keys"][args.car_id] = {}
             unlock_key_array = list(random.randbytes(16))
             secrets["keys"][args.car_id]["unlock"] = unlock_key_array
+            start_key_array = list(random.randbytes(16))
+            secrets["keys"][args.car_id]["start"] = start_key_array
 
         # Write to header file
         with open(args.header_file, "w") as fp:
@@ -65,6 +68,10 @@ def main():
             for i in range(15):
                 fp.write(f'{unlock_key_array[i]}, ')
             fp.write(f'{unlock_key_array[15]}}}\n')
+            fp.write('#define START_KEY {')
+            for i in range(15):
+                fp.write(f'{start_key_array[i]}, ')
+            fp.write(f'{start_key_array[15]}}}\n')
             fp.write('#define FEATURE_KEY {')
             for i in range(15):
                 fp.write(f'{feature_key_array[i]}, ')
@@ -79,6 +86,7 @@ def main():
             fp.write('#define PAIR_PIN "000000"\n')
             fp.write('#define CAR_ID "000000"\n')
             fp.write("#define UNLOCK_KEY {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}\n")
+            fp.write("#define START_KEY {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}\n")
             fp.write('#define FEATURE_KEY {')
             for i in range(15):
                 fp.write(f'{feature_key_array[i]}, ')
