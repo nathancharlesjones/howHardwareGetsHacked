@@ -22,6 +22,9 @@ Test Commands (TEST_BUILD only):
         setFlashData <hex>        - Set flash data from hex (persists to flash)
         getPairMemcmpTime         - Returns OK: <n> cycle count of the last PIN memcmp
         getFeatureMemcmpTime      - Returns OK: <n> cycle count of the last feature MAC memcmp
+        setStartMsg <hex>         - Store a forged FEATURE_DATA payload; sent verbatim as the
+                                    next (one-shot) START message instead of the real feature_info
+        getStartMsg               - Returns OK: <hex> of the stored forged START message (error if none set)
 
     Car:
         isLocked                  - Returns OK: 1 or OK: 0
@@ -32,6 +35,8 @@ Test Commands (TEST_BUILD only):
         getEntropyDescription     - Returns OK: <json>, {source_name: bytes_per_sample} for every entropy source
         getEntropySamples <n>     - Returns OK: <hex>, n rows (n<=255); each row is one sample from every
                                     entropy source back to back, in getEntropyDescription()'s key order
+        getFeatures                - Returns OK: <hex> of num_active[1] + features[3] captured from the last
+                                    successful unlock's START message (error if never unlocked)
 """
 
 import json
@@ -437,7 +442,48 @@ def get_feature_memcmp_time(device, timeout: float = 2.0) -> int:
     return int(resp.value)
 
 
+def cmd_set_start_msg(device, data: bytes, timeout: float = 2.0) -> Response:
+    """
+    Store a forged FEATURE_DATA payload on a fob; the fob's next (and only its
+    next - the firmware clears this after one send) attemptUnlock() sends
+    these bytes verbatim as its START message instead of its real feature_info.
+
+    Args:
+        device: DeployedDevice (fob)
+        data: raw FEATURE_DATA bytes (sizeof(FEATURE_DATA) = 15: car_id[11],
+              num_active[1], features[3]) - see FeatureData.pack()
+    """
+    return parse_response(device.send_recv(f"setStartMsg {data.hex()}", timeout=timeout))
+
+
+def cmd_get_start_msg(device, timeout: float = 2.0) -> Response:
+    """Read back the forged START message stored by cmd_set_start_msg (fails if none is stored)."""
+    return parse_response(device.send_recv("getStartMsg", timeout=timeout))
+
+
 # --- Car Only ---
+
+def cmd_get_features(device, timeout: float = 2.0) -> Response:
+    """
+    Get the car's record of the last unlocking fob's feature data.
+
+    Returns:
+        Response with value = hex(num_active[1] + features[3]) - the same
+        fields unlockCar() would normally use to send feature flags to the
+        host, captured into a TEST_BUILD-only buffer instead. Errors if the
+        car has never been unlocked.
+    """
+    return parse_response(device.send_recv("getFeatures", timeout=timeout))
+
+
+def get_features(device, timeout: float = 2.0) -> tuple[int, list]:
+    """Convenience: get_features() -> (num_active, [feature1, feature2, feature3])."""
+    resp = cmd_get_features(device, timeout=timeout)
+    if not resp.success:
+        raise RuntimeError(f"getFeatures failed: {resp.error}")
+    raw = bytes.fromhex(resp.value)
+    return raw[0], list(raw[1:1 + NUM_FEATURES])
+
 
 def cmd_is_locked(device, timeout: float = 2.0) -> Response:
     """

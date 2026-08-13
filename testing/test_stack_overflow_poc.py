@@ -54,12 +54,15 @@ Two facts fall out of that shape:
      no separate hardcoded scratch address needed, the exploit jumps straight
      into its own tail.
 
-Measured live (gdb + OpenOCD, halting the target mid-main-loop and reading
-SP - the same SP unlockCar() would see at entry, since main()'s loop makes
-every call at the same stack depth): SP = 0x2001FFCC, stable across repeated
-halts, on the specific car_31337 STM32 build this was first derived against.
-_read_live_sp() below re-measures this fresh against whatever's actually
-flashed, rather than trusting that number to still hold.
+This SP value is NOT a fixed constant across builds - it shifted by 4 bytes
+between two builds seen while developing this PoC despite identical source
+(likely a codegen difference from something as small as a different numeric
+car ID string). _read_live_sp() below re-measures it fresh via a real
+breakpoint at main()'s loop-top (an address the loop unconditionally
+executes every iteration, so the read is precise and non-racy - an earlier,
+sampled-async-halt version of this function occasionally caught a
+transiently different SP mid-instruction inside some nested call), rather
+than trusting a number from a prior session to still hold.
 
 Because r0-r3 aren't attacker-controlled at the moment PC is hijacked (SP
 lands at the popped-to address, but no register setup happens for free), the
@@ -323,7 +326,6 @@ target extended-remote localhost:{GDB_PORT}
 monitor reset run
 shell sleep 1
 monitor halt
-print/x $sp
 set {{int}}{lr_bytes_addr:#x} = {forged_lr:#x}
 restore {shellcode_path} binary {shellcode_addr:#x}
 set $pc = {epilogue_addr:#x}
@@ -332,8 +334,6 @@ monitor resume
 shell sleep 1.5
 monitor halt
 print/x $pc
-print/x $sp
-x/9i {epilogue_addr:#x}
 detach
 """)
 

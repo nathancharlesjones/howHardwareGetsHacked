@@ -62,12 +62,13 @@ void sendAckFailure(void);
 void processHostCommand(const char *cmd);
 
 // Declare const variables
-const uint8_t car_key[16] = CAR_KEY;
+const uint8_t unlock_key[16] = UNLOCK_KEY;
 const char car_id[11] = CAR_ID;
 
 // State variables
 static bool carLocked = true;
 static uint32_t unlockCount = 0;
+static uint8_t last_feature_info[NUM_FEATURES+1] = {0,1,2,3};
 
 static void initCar(void)
 {
@@ -90,7 +91,7 @@ int main(int argc, char **argv)
   initHardware_car(argc, argv);
 
   /* expand the key into AES round keys once; reused for every CMAC call */
-  AES_init_ctx(&cmac_ctx, car_key);
+  AES_init_ctx(&cmac_ctx, unlock_key);
   /* provide the CMAC library with AES encryption callback function that will perform the actual AES encryption */
   AES_CMAC_init_ctx(&aes_cmac_ctx, (void*)&aes_cmac_encrypt);
 
@@ -224,6 +225,19 @@ void processHostCommand(const char *cmd)
     sendOK(hex);
     return;
   }
+
+  // Test command: getFeatures
+  if (strcmp(cmd, "getFeatures") == 0)
+  {
+    if( !carLocked )
+    {
+      char hex[sizeof(last_feature_info)*2+1] = {0};
+      bytesToHex(last_feature_info, sizeof(last_feature_info), hex);
+      sendOK(hex);
+    }
+    else sendError("Car has not been unlocked yet");
+    return;
+  }
 #endif
 
   // Unknown command
@@ -312,6 +326,11 @@ void unlockCar(void)
   {
       return;
   }
+
+#ifdef TEST_BUILD
+  // Store features
+  memcpy(last_feature_info, &feature_info->num_active, NUM_FEATURES+1);
+#endif
 
 #ifndef TEST_BUILD
   // Send feature flags

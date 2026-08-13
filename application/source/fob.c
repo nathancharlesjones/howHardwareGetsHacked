@@ -55,6 +55,8 @@ static struct AES_CMAC_ctx unlock_cmac_ctx, feature_cmac_ctx;
 #ifdef TEST_BUILD
 static uint32_t last_pair_memcmp_execution_time;
 static uint32_t last_feature_memcmp_execution_time;
+static bool custom_start_msg = false;
+static uint8_t start_msg[sizeof(FEATURE_DATA)] = {0};
 #endif
 
 /*** Function definitions ***/
@@ -77,9 +79,9 @@ static void aes_feature_cmac(uint8_t* data) {
 
 static void initUnlockAes(const uint8_t *key)
 {
-  static uint8_t car_key[16];
-  memcpy(car_key, key, sizeof(car_key));
-  AES_init_ctx(&unlock_aes_ctx, car_key);
+  static uint8_t unlock_key[16];
+  memcpy(unlock_key, key, sizeof(unlock_key));
+  AES_init_ctx(&unlock_aes_ctx, unlock_key);
   AES_CMAC_init_ctx(&unlock_cmac_ctx, (void*)&aes_unlock_cmac);
 }
 
@@ -91,8 +93,8 @@ static void initFobState(FOB_FLASH_DATA *fob_state_ram)
     hexToBytes(PAIR_PIN, fob_state_ram->pair_info.pin, 3);
     strcpy(fob_state_ram->pair_info.car_id, CAR_ID);
     strcpy(fob_state_ram->feature_info.car_id, CAR_ID);
-    const uint8_t car_key[16] = CAR_KEY;
-    memcpy(fob_state_ram->pair_info.key, car_key, sizeof(car_key));
+    const uint8_t unlock_key[16] = UNLOCK_KEY;
+    memcpy(fob_state_ram->pair_info.key, unlock_key, sizeof(unlock_key));
     fob_state_ram->paired = PAIRED;
     saveFobState(fob_state_ram);
   }
@@ -276,6 +278,30 @@ void processHostCommand(FOB_FLASH_DATA *fob_state_ram, const char *cmd)
     char time[16] = {0};
     snprintf(time, 15, "%d", last_feature_memcmp_execution_time);
     sendOK(time);
+    return;
+  }
+
+  // Test command: setStartMsg <hex>
+  if (strncmp(cmd, "setStartMsg ", 12) == 0)
+  {
+    int len = hexToBytes(cmd + 12, start_msg, sizeof(start_msg));
+    if (len < 2) { sendError("invalid hex"); return; }
+    custom_start_msg = true;
+    
+    sendOK(NULL);
+    return;
+  }
+
+  // Test command: getStartMsg
+  if (strcmp(cmd, "getStartMsg") == 0)
+  {
+    if( custom_start_msg )
+    {
+      char hex[sizeof(start_msg) * 2 + 1];
+      bytesToHex(start_msg, sizeof(start_msg), hex);
+      sendOK(hex);
+    }
+    else sendError("No start message has been stored (using default values)");
     return;
   }
 
@@ -498,7 +524,12 @@ void attemptUnlock(FOB_FLASH_DATA *fob_state_ram)
   // ACK received - send start message with feature data
   message.magic = START_MAGIC;
   message.message_len = sizeof(FEATURE_DATA);
+#ifdef TEST_BUILD
+  message.buffer = custom_start_msg ? start_msg : (uint8_t *)&fob_state_ram->feature_info;
+  custom_start_msg = false;
+#else
   message.buffer = (uint8_t *)&fob_state_ram->feature_info;
+#endif
   send_board_message(&message);
 
   // Unlock successful

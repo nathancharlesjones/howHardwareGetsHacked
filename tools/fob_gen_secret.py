@@ -46,13 +46,13 @@ def main():
     if args.paired:
         # Find car ID and matching key, if present
         if args.car_id in secrets["keys"]:
-            car_key_array = secrets["keys"][args.car_id]["car"]
+            unlock_key_array = secrets["keys"][args.car_id]["unlock"]
 
         # Else make a new key (and save it)
         else:
             secrets["keys"][args.car_id] = {}
-            car_key_array = list(random.randbytes(16))
-            secrets["keys"][args.car_id]["car"] = car_key_array
+            unlock_key_array = list(random.randbytes(16))
+            secrets["keys"][args.car_id]["unlock"] = unlock_key_array
 
         # Write to header file
         with open(args.header_file, "w") as fp:
@@ -61,10 +61,10 @@ def main():
             fp.write("#define PAIRED 1\n")
             fp.write(f'#define PAIR_PIN "{args.pair_pin}"\n')
             fp.write(f'#define CAR_ID "{args.car_id}"\n')
-            fp.write('#define CAR_KEY {')
+            fp.write('#define UNLOCK_KEY {')
             for i in range(15):
-                fp.write(f'{car_key_array[i]}, ')
-            fp.write(f'{car_key_array[15]}}}\n')
+                fp.write(f'{unlock_key_array[i]}, ')
+            fp.write(f'{unlock_key_array[15]}}}\n')
             fp.write('#define FEATURE_KEY {')
             for i in range(15):
                 fp.write(f'{feature_key_array[i]}, ')
@@ -78,7 +78,7 @@ def main():
             fp.write("#define PAIRED 0\n")
             fp.write('#define PAIR_PIN "000000"\n')
             fp.write('#define CAR_ID "000000"\n')
-            fp.write("#define CAR_KEY {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}\n")
+            fp.write("#define UNLOCK_KEY {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}\n")
             fp.write('#define FEATURE_KEY {')
             for i in range(15):
                 fp.write(f'{feature_key_array[i]}, ')

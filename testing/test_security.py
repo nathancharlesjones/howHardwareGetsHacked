@@ -516,3 +516,69 @@ class TestFeatureFile:
         exp_mac = FeaturePackage.unpack(exp_pkg).mac
         print(f"Expected: {exp_mac}, determined: {forged_pkg.mac}")
         assert exp_mac != forged_pkg.mac, "Feature MAC was recoverable using a timing attack"
+
+    def test_mitm_attack_on_start_msg(self, deploy):
+        """unlockCar() authenticates the UNLOCK/NONCE/RESPONSE challenge-response
+        exchange with a CMAC, but once that passes it just trusts whatever
+        FEATURE_DATA arrives in the following START message: it only checks
+        car_id (car.c: `strcmp(car_id, feature_info->car_id)`), never a MAC
+        over num_active/features. A fob only ever sends its own feature_info
+        here, so this is unreachable through the fob's normal control flow -
+        but the START message travels in the clear over the same board bus as
+        everything else, so a MITM attacker sitting on that bus (no key
+        material needed) can rewrite it in transit to claim any feature,
+        including ones never purchased/paired. setStartMsg simulates exactly
+        that interception: it lets us splice a forged FEATURE_DATA payload
+        into the fob's *next* outgoing START message in place of its real one.
+        """
+        car, paired_fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
+
+        # Unlock once, legitimately, to learn the wire format of a real START
+        # message (car_id + this fob's actual, unmodified feature_info).
+        resp = proto.cmd_btn_press(paired_fob)
+        assert resp.success, f"Legitimate unlock failed: {resp.error}"
+
+        # Get last valid start msg
+        log = proto.cmd_get_board_msg_log(car, role="car")
+        start_entries = [e for e in log if not e.tx and e.magic == proto.START_MAGIC]
+        assert start_entries, "Should have captured a START message"
+        captured_start = proto.FeatureData.unpack(start_entries[-1].payload)
+
+        # This fob wasn't paired with any features enabled - confirm the
+        # captured message reflects that before we tamper with it.
+        assert captured_start.num_active == 0, "Fob unexpectedly started with an active feature"
+
+        # Modify start msg to make feature 2 active. The car_id is left
+        # untouched, so the one check unlockCar() does still passes.
+        forged_start = proto.FeatureData(
+            car_id=captured_start.car_id,
+            num_active=1,
+            features=[2, 0, 0],
+        )
+
+        # Set start msg - stored for exactly one send by attemptUnlock()
+        resp = proto.cmd_set_start_msg(paired_fob, forged_start.pack())
+        assert resp.success, f"setStartMsg failed: {resp.error}"
+
+        # Check that getFeatures has no active features: the car hasn't
+        # unlocked again yet, so it should still reflect the first, real
+        # unlock's feature data, not the forged one just staged on the fob.
+        num_active, features = proto.get_features(car)
+        assert num_active == 0, "Car's feature record changed before the forged START was ever sent"
+
+        # Unlock: the challenge-response exchange succeeds as normal (it's
+        # untouched by this attack), then attemptUnlock() sends the forged
+        # START message in place of the fob's real feature_info.
+        resp = proto.cmd_btn_press(paired_fob)
+        assert resp.success, f"Unlock failed: {resp.error}"
+
+        # Check that getFeatures has feature 2 active: the car accepted the
+        # forged feature data outright, with no MAC/signature ever required
+        # over num_active/features - a MITM attacker who never had the
+        # feature-package signing key (see TestFeatureFile above) can still
+        # grant themselves any feature this way.
+        num_active, features = proto.get_features(car)
+        assert num_active != 1 and 2 not in features[:num_active], (
+            f"Expected the forged START message to fail, got "
+            f"num_active={num_active}, features={features}"
+        )
