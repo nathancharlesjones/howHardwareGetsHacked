@@ -11,6 +11,7 @@ This project demonstrates iterative attacks and defenses for embedded systems us
 - [Part 4: Memory Protections](https://www.digikey.com/en/maker/blogs/2026/how-hardware-gets-hacked-part-4-memory-protections)
 - [Part 5: Replay Attacks](https://www.digikey.com/en/maker/blogs/2026/how-hardware-gets-hacked-part-5)
 - [Part 6: Authenticated Exchanges](https://www.digikey.com/en/maker/blogs/2026/how-hardware-gets-hacked-part-6)
+- [Part 7: Freshness and Randomness](https://www.digikey.com/en/maker/blogs/2026/how-hardware-gets-hacked-part-7-freshness-and-randomness)
 
 ## Project Structure
 
@@ -283,6 +284,9 @@ Test Commands (TEST_BUILD only):
         setFlashData <hex>        - Set flash data from hex (persists to flash)
         getPairMemcmpTime         - Returns OK: <n> cycle count of the last PIN memcmp
         getFeatureMemcmpTime      - Returns OK: <n> cycle count of the last feature MAC memcmp
+        setStartMsg <hex>         - Store a forged FEATURE_DATA payload; sent verbatim as the
+                                    next (one-shot) START message instead of the real feature_info
+        getStartMsg               - Returns OK: <hex> of the stored forged START message (error if none set)
 
     Car:
         isLocked                  - Returns OK: 1 or OK: 0
@@ -293,6 +297,8 @@ Test Commands (TEST_BUILD only):
         getEntropyDescription     - Returns OK: <json>, {source_name: bytes_per_sample} for every entropy source
         getEntropySamples <n>     - Returns OK: <hex>, n rows (n<=255); each row is one sample from every
                                     entropy source back to back, in getEntropyDescription()'s key order
+        getFeatures                - Returns OK: <hex> of num_active[1] + features[3] captured from the last
+                                    successful unlock's START message (error if never unlocked)
 ```
 
 Send commands via `monitor.py` or another terminal of choice (screen, minicom, PuTTY, etc).

@@ -214,7 +214,7 @@ stop
 
 #### Flowchart for unlockCar()
 
-![](https://img.plantuml.biz/plantuml/png/PP51Ri8m44Ntd69sJHPSe0Y1Qqo4WAIoatLbXKc9cjWeTf1w-quSJALsDPxl_-UDR82jythmOzyj0CAHwgl46jixGfMV2dw4iyfMavoXmK5x16DDZP3mKYvtyYrBmwr2Su6yoBbu1hZjRoFvcL1BVcOy2S7P7XbIgFSYLyzGsz3WENS1oi1w3UHz2Sqc1Nz50yatkfJCD4VqhOVHTBR-WgRJdwjP3jimVlnG5UT2gOSSgQfaiep81rGFSDWvwBMlh_z14TMWzkE0WUNcD7QENiFOsKZWjbdyLNyNshF3gP9YYaQhy_P6PKlzz1C_)
+[![](https://img.plantuml.biz/plantuml/svg/ZP5HRuCW58NV_HNtRVhGFs3Jh8nIqxJL1VHv8NfjpGGRmINxzmEixVQs9n7ETywvi3LMZdPIVHGMKSgnnkuBeSfF1Jt2MMJhACrGuoWjWXvqZH3Jagzs_2rBt9b0tK1Uv9JTnNHGjybf2HChUYOq3f2NBjwSYVSY5tUWQvtXp3GmwNweFy5XiDc00ruQ__EQWBsYXlWRJH81f4nrTX6tlRoi_MQeGkZnGrIKCY72vX8gIiBBEH4WPCeH3Zi3Ijhw-WZGW_S7C7QukGNs1X-fphvh5tff7EuDbBdyAkq3__R-Z-qyL8lIJYE6gOpl6f0Pc5sUS-x9uLHnzbG5fwtxk1Vz0G00)](https://editor.plantuml.com/uml/ZP5HRuCW58NV_HNtRVhGFs3Jh8nIqxJL1VHv8NfjpGGRmINxzmEixVQs9n7ETywvi3LMZdPIVHGMKSgnnkuBeSfF1Jt2MMJhACrGuoWjWXvqZH3Jagzs_2rBt9b0tK1Uv9JTnNHGjybf2HChUYOq3f2NBjwSYVSY5tUWQvtXp3GmwNweFy5XiDc00ruQ__EQWBsYXlWRJH81f4nrTX6tlRoi_MQeGkZnGrIKCY72vX8gIiBBEH4WPCeH3Zi3Ijhw-WZGW_S7C7QukGNs1X-fphvh5tff7EuDbBdyAkq3__R-Z-qyL8lIJYE6gOpl6f0Pc5sUS-x9uLHnzbG5fwtxk1Vz0G00)
 
 <details><summary>PlantUML code</summary>
 
@@ -226,18 +226,24 @@ start
 :Send NONCE MSG;
 :Compute AES-CMAC(nonce);
 :Receive RESPONSE MSG;
-if (Computed MAC == Rec'd MAC?) then (yes)
+if (Computed unlock MAC == Rec'd MAC?) then (yes)
   :Emit unlock flag;
   :Send ACK_SUCCESS;
   :Receive START MSG;
-  if (Car IDs match?) then (yes)
-    :Emit feature flags;
-  else (no)
+  if (Car IDs match?) then (no)
+    stop
+  else (yes)
   endif
+  if (Computed start msg MAC == Received MAC?) then (no)
+    stop
+  else (yes)
+  endif
+  :Emit feature flags;
+  stop
 else (no)
   :Send ACK_FAILURE;
+  stop
 endif
-stop
 @enduml
 ```
 </details>
@@ -249,11 +255,13 @@ sequenceDiagram
     Paired fob->>Car: UNLOCK MSG
     Car->>Paired fob: NONCE MSG
     Paired fob->>Car: RESPONSE MSG
-    alt MAC matches
+    alt Unlock MAC matches
         Car->>Host: Unlock flag
         Car->>Paired fob: ACK SUCCESS
         Paired fob->>Car: START MSG
-        Car->>Host: Feature flags
+        alt Start MAC matches
+          Car->>Host: Feature flags
+        end
     else MAC does not match
         Car->>Paired fob: ACK FAILURE
     end
@@ -288,9 +296,9 @@ RESPONSE MSG:  │0x59│0x08│      Truncated CMAC (8 bytes)        │
        (START_MAGIC)  │
                   │   │
                   ▼   ▼
-               ┌────┬────┬────────────────────────────┐
-START MSG:     │0x57│0x0F│  Feature info (15 bytes)   │
-               └────┴────┴─────────────┬──────────────┘
+               ┌────┬────┬────────────────────────────┬───────────────────────────┐
+START MSG:     │0x57│0x0F│  Feature info (15 bytes)   │  Truncated MAC (8 bytes)  │
+               └────┴────┴─────────────┬──────────────┴───────────────────────────┘
                                        │
                                        ▼
      ┌───────────────────┬───────────────────────────┬───────────────────────────┐
@@ -328,9 +336,9 @@ sequenceDiagram
          (PAIR_MAGIC)  │
                    │   │
                    ▼   ▼
-                ┌────┬────┬──────────────────┬───────────────────┬──────────────┐
- PAIR MSG:      │0x55│0x1E│Car ID (11 bytes) │ Key (16 bytes)    │Pin (3 bytes) │
-                └────┴────┴──────────────────┴───────────────────┴──────────────┘
+                ┌────┬────┬───────────────────┬───────────────────────┬──────────────────────┬───────────────┐
+ PAIR MSG:      │0x55│0x2E│ Car ID (11 bytes) │ Unlock key (16 bytes) │ Start key (16 bytes) │ Pin (3 bytes) │
+                └────┴────┴───────────────────┴───────────────────────┴──────────────────────┴───────────────┘
 ```
 
 ### Enabling sequence diagram
