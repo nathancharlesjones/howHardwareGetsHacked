@@ -74,9 +74,9 @@ const char car_id[11] = CAR_ID;
 // State variables
 static bool carLocked = true;
 static uint32_t unlockCount = 0;
-static uint8_t last_feature_info[NUM_FEATURES+1] = {0};
 
 #ifdef TEST_BUILD
+static uint8_t last_feature_info[NUM_FEATURES+1] = {0};
 static uint32_t last_start_mac_memcmp_execution_time;
 #endif
 
@@ -295,14 +295,14 @@ void unlockCar(void)
   // Generate and transmit nonce
   message.magic = NONCE_MAGIC;
   message.message_len = NONCE_SIZE;
-  uint32_t nonce;
-  while( ctr_drbg_generate(&prng_ctx, &nonce) != 0 )
+  uint8_t nonce[NONCE_SIZE] = {0};
+  while( ctr_drbg_generate(&prng_ctx, nonce) != 0 )
   {
     uint8_t seed[32] = {0};
     getPrngSeed(seed);
     ctr_drbg_reseed(&prng_ctx, seed);
   }
-  message.buffer = (uint8_t*)&nonce;
+  message.buffer = nonce;
   send_board_message(&message);
 
   // Compute MAC

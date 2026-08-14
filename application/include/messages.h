@@ -31,7 +31,7 @@
 #define START_MAGIC 0x57
 
 #define MAX_MSG_LEN 64
-#define NONCE_SIZE 4  // nonce is uint32_t
+#define NONCE_SIZE 16  // nonce is 16 bytes
 
 /**
  * @brief Structure for message between boards

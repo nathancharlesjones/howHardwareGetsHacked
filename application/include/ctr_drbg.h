@@ -48,4 +48,4 @@ void ctr_drbg_reseed(ctr_drbg_ctx_t *ctx, const uint8_t entropy[32]);
  * 4 bytes. The remaining 96 bits are discarded; they are not reused on
  * the next call. This matches the spec's requirement that output not be
  * buffered across Generate calls at the application layer. */
-int ctr_drbg_generate(ctr_drbg_ctx_t *ctx, uint32_t *out);
+int ctr_drbg_generate(ctr_drbg_ctx_t *ctx, uint8_t *out);

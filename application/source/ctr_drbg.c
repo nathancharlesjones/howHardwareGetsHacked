@@ -130,12 +130,12 @@ void ctr_drbg_reseed(ctr_drbg_ctx_t *ctx, const uint8_t entropy[SEEDLEN])
 }
 
 /* Convenience wrapper: generate one 32-bit value via Generate(128 bits). */
-int ctr_drbg_generate(ctr_drbg_ctx_t *ctx, uint32_t *out)
+int ctr_drbg_generate(ctr_drbg_ctx_t *ctx, uint8_t *out)
 {
     uint8_t block[OUTLEN];
     int ret = ctr_drbg_generate_bytes(ctx, block, sizeof(block));
     if (ret == 0) {
-        memcpy(out, block, sizeof(uint32_t));
+        memcpy(out, block, 16);
         memset(block, 0, sizeof(block));  /* scrub unused output bits */
     }
     return ret;
