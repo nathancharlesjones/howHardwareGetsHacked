@@ -262,7 +262,7 @@ sequenceDiagram
         alt Start MAC matches
           Car->>Host: Feature flags
         end
-    else MAC does not match
+    else Unlock MAC does not match
         Car->>Paired fob: ACK FAILURE
     end
 ```
@@ -297,7 +297,7 @@ RESPONSE MSG:  │0x59│0x08│      Truncated CMAC (8 bytes)        │
                   │   │
                   ▼   ▼
                ┌────┬────┬────────────────────────────┬───────────────────────────┐
-START MSG:     │0x57│0x0F│  Feature info (15 bytes)   │  Truncated MAC (8 bytes)  │
+START MSG:     │0x57│0x17│  Feature info (15 bytes)   │  Truncated MAC (8 bytes)  │
                └────┴────┴─────────────┬──────────────┴───────────────────────────┘
                                        │
                                        ▼

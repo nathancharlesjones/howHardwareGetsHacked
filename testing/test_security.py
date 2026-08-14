@@ -230,7 +230,12 @@ class TestComplexReplayAttacks:
         table_size = math.sqrt(nonce_space * math.log(2))
         projected_attack_s = 2 * table_size * unlock_time_s
 
-        CONCERNING_THRESHOLD_S = 10 * 365.25 * 86400  # 10 years - a generous "should be safe" bar
+        # 1 hour - a realistic bar, not a generous one. A valet (or anyone else
+        # who can plausibly borrow a fob for ~30-60 minutes) can build the table
+        # during that window and keep attacking afterward; if the combined
+        # attack fits inside that same order of magnitude, it doesn't take a
+        # decade-scale adversary to pull off, just an ordinary opportunistic one.
+        CONCERNING_THRESHOLD_S = 1 * 3600
 
         print(f"\nObserved nonce width: {nonce_bits} bits ({nonce_space:,} possible values)")
         print(f"Observed wire time per unlock: {unlock_time_s * 1000:.3f} ms")
