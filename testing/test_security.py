@@ -10,6 +10,7 @@ import secrets
 import json
 from pathlib import Path
 import os
+from tqdm import trange, tqdm
 
 from package import create_feature_package, FeaturePackage
 
@@ -340,7 +341,7 @@ class TestComplexReplayAttacks:
         # Phase 1: attacker has the fob - build the table.
         mac_values = {}
         total_done = 0
-        for _ in range(TABLE_SIZE // BATCH):
+        for _ in trange(TABLE_SIZE // BATCH, desc="Phase 1: building table", unit="batch", unit_scale=BATCH):
             total_done, pairs = do_batch(total_done)
             for nonce, response in pairs:
                 mac_values[nonce] = response
@@ -351,16 +352,25 @@ class TestComplexReplayAttacks:
         collision_nonce = None
         collision_after = None
         monitored = 0
-        while MAX_ITER == 0 or monitored < MAX_ITER:
-            total_done, pairs = do_batch(total_done)
-            monitored += BATCH
-            for nonce, response in pairs:
-                if nonce in mac_values:
-                    collision_nonce = nonce
-                    collision_after = total_done
+        monitor_bar = (
+            trange(MAX_ITER // BATCH, desc="Phase 2: watching for a repeat", unit="batch", unit_scale=BATCH)
+            if MAX_ITER
+            else tqdm(desc="Phase 2: watching for a repeat", unit="batch", unit_scale=BATCH)
+        )
+        try:
+            while MAX_ITER == 0 or monitored < MAX_ITER:
+                total_done, pairs = do_batch(total_done)
+                monitored += BATCH
+                monitor_bar.update(1)
+                for nonce, response in pairs:
+                    if nonce in mac_values:
+                        collision_nonce = nonce
+                        collision_after = total_done
+                        break
+                if collision_nonce is not None:
                     break
-            if collision_nonce is not None:
-                break
+        finally:
+            monitor_bar.close()
 
         assert collision_nonce is None, (
             f"Nonce {collision_nonce.hex()} repeated one already in a {len(mac_values)}-entry "

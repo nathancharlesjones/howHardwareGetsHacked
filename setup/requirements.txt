@@ -17,3 +17,6 @@ gdbgui==0.15.2.0
 
 # Cryptographic library, used for testing CTR-DRBG implementation
 cryptography==46.0.5
+
+# Progress bars (e.g. test_birthday_bound_attack_full)
+tqdm==4.70.0
