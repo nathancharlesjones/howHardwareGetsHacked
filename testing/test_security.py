@@ -73,9 +73,9 @@ FEATURE_DATA_SIZE = 15  # sizeof(FEATURE_DATA): car_id[11] + num_active[1] + fea
 class TestSimpleReplayAttacks:
     """Basic replay attacks. Defenses against these apply to all eCTF car scenarios."""
 
-    def test_replay_captured_unlock_fails(self, deploy):
+    def test_replay_captured_unlock_fails(self, car_and_paired_fob):
         """An attacker who eavesdropped on one unlock can replay it to unlock again."""
-        car, fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
+        car, fob = car_and_paired_fob
 
         # Step 1: perform a legitimate unlock and capture the unlock message
         resp = proto.cmd_btn_press(fob)
@@ -149,7 +149,7 @@ class TestUnlockBufferOverflow:
     and corrupts the return address) via that crash, without needing to
     reproduce the RCE mechanism itself."""
 
-    def test_oversized_unlock_message_crashes_car(self, deploy):
+    def test_oversized_unlock_message_crashes_car(self, car_and_paired_fob):
         # Deliberately a *paired* fob, not unpaired, even though pairing state
         # is irrelevant to this pre-auth attack: an unpaired fob's main loop
         # reacts to any unsolicited board-UART byte by calling
@@ -160,7 +160,7 @@ class TestUnlockBufferOverflow:
         # whether the car actually crashed. A paired fob only reacts to
         # buttonPressed(), so it never touches unsolicited board bytes and
         # can't produce that false positive.
-        car, fob = deploy(RoleConfig("car", id="1"), RoleConfig("paired_fob", id="1", pin="123456"))
+        car, fob = car_and_paired_fob
         assert proto.is_locked(car), "Sanity check failed before attack"
 
         # 200 bytes is comfortably past car.c's 64-byte buffer and reaches
@@ -200,11 +200,11 @@ class TestComplexReplayAttacks:
     """Advanced replay attacks that require temporary access to a paired fob (eCTF Car #2
     scenario). Defenses against these require a challenge-response protocol."""
 
-    def test_forced_rollback_fails(self, deploy):
+    def test_forced_rollback_fails(self, car_and_paired_fob):
         """Forced rollback attack should be defeated: even if an attacker mass-erases
         the car's flash to reset its counter table (simulated by reset), replaying a
         previously captured unlock should be rejected."""
-        car, fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
+        car, fob = car_and_paired_fob
 
         # Step 1: perform a legitimate unlock and capture the unlock message
         resp = proto.cmd_btn_press(fob)
@@ -230,7 +230,7 @@ class TestComplexReplayAttacks:
         assert proto.get_unlock_count(car) == unlock_count_before, \
             "Forced rollback attack should NOT unlock the car"
 
-    def test_birthday_bound_attack_quick_check(self, deploy):
+    def test_birthday_bound_attack_quick_check(self, car_and_paired_fob):
         """Fast, always-on cost estimate for the birthday-bound table/oracle attack
         (see test_oracle_attack_full for an actual reproduction, skipped by default).
 
@@ -248,7 +248,7 @@ class TestComplexReplayAttacks:
         (not the host-command bytes used to trigger this test's own button press,
         and not our own getBoardMsgLog bookkeeping overhead) - a real attacker
         sniffing the car<->fob bus doesn't pay either of those costs."""
-        car, fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
+        car, fob = car_and_paired_fob
 
         resp = proto.cmd_btn_press(fob)
         assert resp.success, f"Unlock failed: {resp.error}"
@@ -302,7 +302,7 @@ class TestComplexReplayAttacks:
         )
 
     @pytest.mark.birthday_bound_attack_full
-    def test_birthday_bound_attack_full(self, deploy, request):
+    def test_birthday_bound_attack_full(self, car_and_paired_fob, request):
         """Full reproduction of the birthday-bound table/oracle attack (skipped by
         default - pass --run-oracle-attack-full to enable; see
         test_oracle_attack_quick_check for a fast, always-on cost estimate of this
@@ -315,7 +315,7 @@ class TestComplexReplayAttacks:
         Nonces seen only during the second window are never added to the table:
         a repeat entirely within that window wasn't in the attacker's table at the
         time they'd have needed it, so it isn't something they could have exploited."""
-        car, fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
+        car, fob = car_and_paired_fob
 
         TABLE_SIZE = request.config.getoption("--oracle-table-size")
         MAX_ITER = request.config.getoption("--oracle-max-iter")  # 0 => no cap, run until found
@@ -387,12 +387,12 @@ class TestNonceRandomness:
         assert entries, "No NONCE message found in board log"
         return bytes(entries[-1].payload[:4])
 
-    def test_nonces_differ_across_reboots(self, deploy):
+    def test_nonces_differ_across_reboots(self, car_and_paired_fob):
         """Catch fixed seeds: a PRNG seeded with a constant value produces the
         same nonce sequence on every boot, letting an attacker who observed one
         session predict every future session without knowing any secret."""
         N_BOOTS = 10
-        car, fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
+        car, fob = car_and_paired_fob
 
         nonces = []
         for _ in range(N_BOOTS):
@@ -402,12 +402,12 @@ class TestNonceRandomness:
         assert len(set(nonces)) == N_BOOTS, \
             f"PRNG repeated a nonce across reboots: {[n.hex() for n in nonces]}"
 
-    def test_nonces_not_sequential(self, deploy):
+    def test_nonces_not_sequential(self, car_and_paired_fob):
         """Catch counter-based PRNGs: state++ produces nonces with a constant
         difference of 1 between successive unlocks. An attacker who observes
         one nonce can immediately predict the next."""
         N_UNLOCKS = 8
-        car, fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
+        car, fob = car_and_paired_fob
 
         nonces = []
         for _ in range(N_UNLOCKS):
@@ -417,14 +417,14 @@ class TestNonceRandomness:
         assert len(set(diffs)) > 1, \
             f"Nonces follow a constant step of {diffs[0]}: {[hex(n) for n in nonces]}"
 
-    def test_nonce_bit_distribution(self, deploy):
+    def test_nonce_bit_distribution(self, car_and_paired_fob):
         """Sanity check: nonce bits should be roughly 50/50 across many samples.
 
         Note: this test alone is not a meaningful security gate — a sequential
         counter (state++) also produces balanced bits and would pass. Use this
         alongside test_nonces_not_sequential, not as a substitute for it."""
         N_UNLOCKS = 32
-        car, fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
+        car, fob = car_and_paired_fob
 
         ones = 0
         total = 0
@@ -501,8 +501,8 @@ class TestPairingPinAttacks:
 class TestFeatureFile:
     """Tests that feature files cannot be forged."""
 
-    def test_feature_file_cannot_be_modified_and_deployed(self, deploy):
-        car, paired_fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
+    def test_feature_file_cannot_be_modified_and_deployed(self, car_and_paired_fob):
+        car, paired_fob = car_and_paired_fob
 
         # Get enabled features
         flash = proto.get_flash_data(paired_fob)
@@ -534,9 +534,9 @@ class TestFeatureFile:
         assert active_features[1] == False, "Fob accepted forged Feature 2"
 
     @pytest.mark.hardware_only
-    def test_timing_attack_on_feature_file_mac_comparison(self, deploy):
+    def test_timing_attack_on_feature_file_mac_comparison(self, paired_fob):
         car_id = "1337"
-        fob = deploy(RoleConfig("paired_fob", id=car_id, pin="123456"))
+        fob = paired_fob
 
         exp_pkg = create_feature_package(car_id, 1)
 
@@ -592,7 +592,7 @@ class TestFeatureFile:
         print(f"Expected: {exp_mac}, determined: {forged_pkg.mac}")
         assert exp_mac != forged_pkg.mac, "Feature MAC was recoverable using a timing attack"
 
-    def test_mitm_attack_on_start_msg(self, deploy):
+    def test_mitm_attack_on_start_msg(self, car_and_paired_fob):
         """unlockCar() authenticates the UNLOCK/NONCE/RESPONSE challenge-response
         exchange with a CMAC, but once that passes it just trusts whatever
         FEATURE_DATA arrives in the following START message: it only checks
@@ -606,7 +606,7 @@ class TestFeatureFile:
         that interception: it lets us splice a forged FEATURE_DATA payload
         into the fob's *next* outgoing START message in place of its real one.
         """
-        car, paired_fob = deploy(RoleConfig("car", id="1337"), RoleConfig("paired_fob", id="1337", pin="123456"))
+        car, paired_fob = car_and_paired_fob
 
         # Unlock once, legitimately, to learn the wire format of a real START
         # message (car_id + this fob's actual, unmodified feature_info).
@@ -659,7 +659,7 @@ class TestFeatureFile:
         )
 
     @pytest.mark.hardware_only
-    def test_timing_attack_on_start_msg_mac_comparison(self, deploy):
+    def test_timing_attack_on_start_msg_mac_comparison(self, car_and_paired_fob):
         """The START message MAC check added in unlockCar() (car.c) guards
         against forgery (see test_mitm_attack_on_start_msg above), but a plain
         memcmp() leaks byte-by-byte timing information the same way the
@@ -672,7 +672,7 @@ class TestFeatureFile:
         each guess, without ever knowing start_key.
         """
         car_id = "1337"
-        car, paired_fob = deploy(RoleConfig("car", id=car_id), RoleConfig("paired_fob", id=car_id, pin="123456"))
+        car, paired_fob = car_and_paired_fob
 
         # A distinctive feature payload (num_active=1, feature 3 active) so a
         # successful forgery is unambiguous: getFeatures() will only ever

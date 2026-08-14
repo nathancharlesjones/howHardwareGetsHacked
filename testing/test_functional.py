@@ -313,10 +313,9 @@ class TestPairedAndUnpairedFob:
         # Unpaired fob should still be unpaired
         assert not proto.is_paired(unpaired), "Should still be unpaired"
 
-    def test_fob_paired_at_runtime_can_unlock_real_car(self, deploy):
+    def test_fob_paired_at_runtime_can_unlock_real_car(self, deploy, paired_and_unpaired_fob):
         # Pair an unpaired fob using a real paired fob
-        paired, unpaired = deploy(RoleConfig("paired_fob", id="1", pin="123456"),
-                                 RoleConfig("unpaired_fob"))
+        paired, unpaired = paired_and_unpaired_fob
         assert proto.cmd_pair(paired, "123456").success
         assert proto.wait_until_paired(unpaired, timeout=5)
 
@@ -324,7 +323,7 @@ class TestPairedAndUnpairedFob:
         cloned_flash = proto.get_flash_data(unpaired)
 
         # Redeploy that exact state onto a fob wired to the real car
-        car, fresh_fob = deploy(RoleConfig("car", id="1"), RoleConfig("unpaired_fob"))
+        car, fresh_fob = deploy(RoleConfig("car", id="1337"), RoleConfig("unpaired_fob"))
         assert proto.cmd_set_flash_data(fresh_fob, cloned_flash).success
 
         # The crux: a fob paired at RUNTIME must be able to unlock, not just report paired=1
@@ -332,13 +331,12 @@ class TestPairedAndUnpairedFob:
         assert resp.success
         assert not proto.is_locked(car)
 
-    def test_fob_paired_at_runtime_can_pair_another_fob(self, deploy):
+    def test_fob_paired_at_runtime_can_pair_another_fob(self, deploy, paired_and_unpaired_fob):
         """A fob paired at runtime (not build time) should retain full
         pairing capability, not just the ability to unlock -- it should be
         able to pair a third fob exactly like a factory-paired fob can."""
         # Pair an unpaired fob using a real paired fob
-        paired, unpaired = deploy(RoleConfig("paired_fob", id="1", pin="123456"),
-                                  RoleConfig("unpaired_fob"))
+        paired, unpaired = paired_and_unpaired_fob
         assert proto.cmd_pair(paired, "123456").success
         assert proto.wait_until_paired(unpaired, timeout=5)
 
