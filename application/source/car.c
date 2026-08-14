@@ -284,6 +284,7 @@ void processHostCommand(const char *cmd)
 void unlockCar(void)
 {
   //sendOK("Inside unlock car\n");
+  delay_ms(UNLOCK_DELAY_MS);
 
   MESSAGE_PACKET message;
   uint8_t buffer[64] = {0};

@@ -21,6 +21,7 @@ opts.Add('opt', 'Optimization level', '2')
 opts.Add(BoolVariable('debug', 'Debug build', False))
 opts.Add(BoolVariable('test', 'Test build (enables test commands)', False))
 opts.Add('pairing_delay_ms', 'Delay (ms) before checking pairing pin (anti-brute-force)', '750')
+opts.Add('unlock_delay_ms', 'Delay (ms) before starting unlock sequence (anti-brute-force)', '750')
 
 # Optional feature flags
 opts.Add('unlock_flag', 'Custom unlock flag value', '')
@@ -103,6 +104,10 @@ if not app_env['pairing_delay_ms'].isdigit():
     print("Error: 'pairing_delay_ms' must be a non-negative integer")
     Exit(1)
 
+if not app_env['unlock_delay_ms'].isdigit():
+    print("Error: 'unlock_delay_ms' must be a non-negative integer")
+    Exit(1)
+
 FLAG_SIZE = 64
 FLAG_DEFAULTS = {
     'unlock_flag':  'default_unlock',
@@ -137,6 +142,7 @@ app_env.Append(CPPDEFINES=[('FEATURE1_FLAG', f'\\"{app_env["feature1_flag"]}\\"'
 app_env.Append(CPPDEFINES=[('FEATURE2_FLAG', f'\\"{app_env["feature2_flag"]}\\"')])
 app_env.Append(CPPDEFINES=[('FEATURE3_FLAG', f'\\"{app_env["feature3_flag"]}\\"')])
 app_env.Append(CPPDEFINES=[('PAIRING_DELAY_MS', app_env['pairing_delay_ms'])])
+app_env.Append(CPPDEFINES=[('UNLOCK_DELAY_MS', app_env['unlock_delay_ms'])])
 
 # Common compiler flags
 app_env.Append(CPPFLAGS=[f'-O{app_env["opt"]}', '-Wall', '-pedantic'])
