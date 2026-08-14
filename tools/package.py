@@ -26,7 +26,7 @@ class FeaturePackage:
     """
     On-the-wire layout of a feature-enable package sent to a fob:
     car_id (11 bytes, NUL-padded) + feature (1 byte) + MAC (16 bytes,
-    AES-CMAC over the preceding 12 bytes, keyed with the car's key).
+    AES-CMAC over the preceding 12 bytes, keyed with the feature key).
     """
     car_id: bytes
     feature: int

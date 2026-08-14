@@ -37,6 +37,7 @@ Test Commands (TEST_BUILD only):
                                     entropy source back to back, in getEntropyDescription()'s key order
         getFeatures                - Returns OK: <hex> of num_active[1] + features[3] captured from the last
                                     successful unlock's START message (error if never unlocked)
+        getStartMacMemcmpTime      - Returns OK: <n> cycle count of the last START message MAC memcmp
 """
 
 import json
@@ -488,6 +489,25 @@ def get_features(device, timeout: float = 2.0) -> tuple[int, list]:
         raise RuntimeError(f"getFeatures failed: {resp.error}")
     raw = bytes.fromhex(resp.value)
     return raw[0], list(raw[1:1 + NUM_FEATURES])
+
+
+def cmd_get_start_mac_memcmp_time(device, timeout: float = 2.0) -> Response:
+    """
+    Get the cycle count of the most recent START message MAC memcmp in
+    unlockCar() (car.c).
+
+    Returns:
+        Response with value=cycle count as decimal string
+    """
+    return parse_response(device.send_recv("getStartMacMemcmpTime", timeout=timeout))
+
+
+def get_start_mac_memcmp_time(device, timeout: float = 2.0) -> int:
+    """Convenience: get the last START message MAC memcmp cycle count as an int."""
+    resp = cmd_get_start_mac_memcmp_time(device, timeout=timeout)
+    if not resp.success:
+        raise RuntimeError(f"getStartMacMemcmpTime failed: {resp.error}")
+    return int(resp.value)
 
 
 def cmd_is_locked(device, timeout: float = 2.0) -> Response:

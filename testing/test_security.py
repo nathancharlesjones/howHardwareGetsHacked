@@ -1,4 +1,5 @@
 import math
+import statistics
 import time
 import pytest
 import struct
@@ -11,6 +12,56 @@ from pathlib import Path
 import os
 
 from package import create_feature_package, FeaturePackage
+
+from cryptography.hazmat.primitives import cmac
+from cryptography.hazmat.primitives.ciphers import algorithms
+
+
+def _expected_start_mac(car_id: str, feature_data: bytes) -> bytes:
+    """
+    Recompute the START message MAC unlockCar() (car.c) expects, straight
+    from this car's start_key - so a timing-attack test can report exactly
+    what it was trying to recover, not just whether it succeeded.
+
+    start_key is per-car (unlike the fleet-wide feature_key in package.py),
+    so this reads it out of the same secrets.json create_feature_package()
+    uses (car_gen_secret.py writes both secrets.json and the build's
+    secrets.h from the same key - secrets.json is just easier to parse than
+    a generated C header).
+    """
+    secrets_file = os.environ.get("TEST_SECRETS_FILE", "secrets/secrets.json")
+    with open(secrets_file, "r") as fp:
+        keys = json.load(fp)["keys"]
+    start_key = bytes(keys[car_id]["start"])
+
+    # Mirrors car.c: AES_CMAC_digest() over [magic | length | feature_data],
+    # i.e. everything in START_MSG_BUF up to (not including) the mac field.
+    c = cmac.CMAC(algorithms.AES(start_key))
+    c.update(bytes([proto.START_MAGIC, len(feature_data) + 8]) + feature_data)
+    return c.finalize()[:8]
+
+
+def _try_start_msg_mac_candidate(car, paired_fob, feature_data: bytes, guess_bytes: bytearray) -> tuple:
+    """
+    Stage guess_bytes as the START message MAC (via setStartMsg) and trigger
+    one unlock attempt.
+
+    Returns:
+        (forged, memcmp_time): forged is True if car.c accepted the guess
+        (feature 3 shows up in getFeatures()); memcmp_time is car.c's
+        reported memcmp cycle count for that attempt (None if forged).
+    """
+    payload = feature_data + bytes(guess_bytes)
+    resp = proto.cmd_set_start_msg(paired_fob, payload)
+    assert resp.success, f"setStartMsg failed: {resp.error}"
+
+    resp = proto.cmd_btn_press(paired_fob)
+    assert resp.success, f"Unlock failed: {resp.error}"
+
+    num_active, features = proto.get_features(car)
+    if num_active == 1 and features[0] == 3:
+        return True, None
+    return False, proto.get_start_mac_memcmp_time(car)
 
 
 FEATURE_DATA_SIZE = 15  # sizeof(FEATURE_DATA): car_id[11] + num_active[1] + features[3]
@@ -508,6 +559,25 @@ class TestFeatureFile:
                 memcmp_times[byte_val] = proto.get_feature_memcmp_time(fob)
 
             if not found:
+                # byte_pos == 3 is special-cased to min() rather than max()
+                # because of how newlib-nano's memcmp compares this
+                # particular pair of pointers: ENABLE_PACKET.mac happens to
+                # land 4-byte aligned (offsetof == 12), so memcmp takes a
+                # word-at-a-time fast path and the timing signal inverts at
+                # the first word boundary it hits inside the 8-byte MAC (see
+                # test_timing_attack_on_start_msg_mac_comparison below, where
+                # the equivalent struct's mac field is *not* 4-byte aligned,
+                # the fast path never triggers, and no inversion happens at
+                # all). That means this hardcoded "byte 3" is an artifact of
+                # this exact struct layout/compiler/libc - not something the
+                # attack can assume in general. A more robust version of this
+                # test wouldn't hardcode which byte(s) invert; it would
+                # detect the inversion programmatically, e.g. by noticing
+                # that all 256 candidates at some byte position clock in at
+                # the same time (a sign every guess is equally wrong, because
+                # the true differentiator was actually at the *previous*
+                # byte and got picked incorrectly) and backtracking to retry
+                # that earlier byte with the opposite selection rule.
                 best = min(memcmp_times, key=memcmp_times.get) if byte_pos == 3 else max(memcmp_times, key=memcmp_times.get)
                 mac = bytearray(forged_pkg.mac)
                 mac[byte_pos] = best
@@ -587,3 +657,95 @@ class TestFeatureFile:
             f"Expected the forged START message to fail, got "
             f"num_active={num_active}, features={features}"
         )
+
+    @pytest.mark.hardware_only
+    def test_timing_attack_on_start_msg_mac_comparison(self, deploy):
+        """The START message MAC check added in unlockCar() (car.c) guards
+        against forgery (see test_mitm_attack_on_start_msg above), but a plain
+        memcmp() leaks byte-by-byte timing information the same way the
+        pairing PIN and feature-file MAC checks used to (see
+        test_timing_attack_on_pairing_pin / test_timing_attack_on_feature_file_
+        mac_comparison). An attacker who can get the fob to send arbitrary
+        START message bytes over the board bus - exactly the setStartMsg
+        primitive test_mitm_attack_on_start_msg uses - can forge a MAC one
+        byte at a time by watching how long car.c's memcmp() takes to reject
+        each guess, without ever knowing start_key.
+        """
+        car_id = "1337"
+        car, paired_fob = deploy(RoleConfig("car", id=car_id), RoleConfig("paired_fob", id=car_id, pin="123456"))
+
+        # A distinctive feature payload (num_active=1, feature 3 active) so a
+        # successful forgery is unambiguous: getFeatures() will only ever
+        # reflect it if car.c's memcmp() accepted our forged MAC, since this
+        # fob was never paired with any real features to begin with.
+        feature_data = proto.FeatureData(car_id=car_id.encode(), num_active=1, features=[3, 0, 0]).pack()
+
+        # memcmp leaks at the byte level. Guess the 8 MAC bytes one at a time,
+        # timing car.c's rejection of each candidate via getStartMacMemcmpTime.
+        #
+        # A single sample per candidate is noisy enough on real hardware that
+        # an unrelated spike can occasionally beat the real signal (a wrong
+        # candidate reads *slower* than the correct one, purely by chance -
+        # this struct isn't 4-byte aligned the way ENABLE_PACKET.mac is in
+        # test_timing_attack_on_feature_file_mac_comparison, so that test's
+        # byte-3 word-boundary quirk doesn't reproduce here the same way). So
+        # instead of trusting one sample, re-sample only the loudest few
+        # candidates several more times each and pick by median.
+        #
+        # That said, "this struct happens not to be 4-byte aligned" is itself
+        # just as much a layout artifact as the other test's "byte 3 happens
+        # to invert" - it's true for this exact struct/compiler/libc, not a
+        # general property of the attack. A more robust version of both this
+        # test and test_timing_attack_on_feature_file_mac_comparison
+        # shouldn't assume an alignment/inversion story up front at all; it
+        # should detect it programmatically. E.g. if every one of the 256
+        # candidates at some byte position comes back with (statistically)
+        # the same time, that's a sign the true differentiator was actually
+        # at the *previous* byte and got guessed wrong there - the fob is
+        # bailing out at the same earlier byte every time regardless of what
+        # we send here - so the test should backtrack, retry the previous
+        # byte with the next-best candidate (or the opposite selection rule),
+        # and only then move forward again.
+        RESAMPLE_TOP_N = 3
+        RESAMPLE_COUNT = 4
+
+        guess_bytes = bytearray(8)
+        for byte_pos in range(8):
+            memcmp_times = {}
+            found = False
+            for byte_val in range(256):
+                guess_bytes[byte_pos] = byte_val
+                forged, t = _try_start_msg_mac_candidate(car, paired_fob, feature_data, guess_bytes)
+                if forged:
+                    found = True
+                    break
+                memcmp_times[byte_val] = t
+
+            if not found:
+                top_candidates = sorted(memcmp_times, key=memcmp_times.get, reverse=True)[:RESAMPLE_TOP_N]
+                medians = {}
+                for candidate in top_candidates:
+                    guess_bytes[byte_pos] = candidate
+                    samples = [memcmp_times[candidate]]
+                    for _ in range(RESAMPLE_COUNT):
+                        forged, t = _try_start_msg_mac_candidate(car, paired_fob, feature_data, guess_bytes)
+                        if forged:
+                            found = True
+                            break
+                        samples.append(t)
+                    if found:
+                        break
+                    medians[candidate] = statistics.median(samples)
+
+                if not found:
+                    guess_bytes[byte_pos] = max(medians, key=medians.get)
+                    print(f"Byte {byte_pos}: resampled medians: {[(f'{v:02X}', t) for v, t in sorted(medians.items(), key=lambda x: -x[1])]}")
+
+            top3 = sorted(memcmp_times.items(), key=lambda x: -x[1])[:3]
+            print(f"Byte {byte_pos}: top 3 (first pass): {[(f'{v:02X}', t) for v, t in top3]}")
+
+        num_active, features = proto.get_features(car)
+        forged = (num_active == 1 and features[0] == 3)
+        expected_mac = _expected_start_mac(car_id, feature_data)
+        print(f"Expected MAC: {expected_mac.hex()}, determined: {guess_bytes.hex()}, forgery succeeded: {forged}")
+        assert bytes(guess_bytes) != expected_mac, "START message MAC was recoverable using a timing attack"

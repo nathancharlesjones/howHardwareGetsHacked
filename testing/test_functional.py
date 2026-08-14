@@ -227,6 +227,45 @@ class TestCarAndPairedFob:
 
         assert proto.get_unlock_count(car) == 3, "Should have 3 unlocks"
 
+    def test_unlock_reports_single_enabled_feature(self, car_and_paired_fob):
+        """After unlocking with a fob that has one real, purchased feature
+        enabled, the car's getFeatures() should reflect exactly that
+        feature - not just a nonzero count, but the actual feature number
+        unlockCar() read out of the fob's START message."""
+        car, fob = car_and_paired_fob
+
+        flash = proto.get_flash_data(fob)
+        pkg = create_feature_package(flash.pair_info.car_id, 2)
+        resp = proto.cmd_enable(fob, pkg)
+        assert resp.success, f"Feature enable failed: {resp.error}"
+
+        resp = proto.cmd_btn_press(fob)
+        assert resp.success, f"btnPress failed: {resp.error}"
+
+        num_active, features = proto.get_features(car)
+        assert num_active == 1, f"Expected 1 active feature, got {num_active}"
+        assert features[0] == 2, f"Expected feature 2 reported, got {features}"
+
+    def test_unlock_reports_all_enabled_features(self, car_and_paired_fob):
+        """Same as test_unlock_reports_single_enabled_feature, but with all
+        NUM_FEATURES features enabled, to also catch array-copy/ordering
+        bugs (e.g. wrong length or transposed indices) that a single-feature
+        case wouldn't necessarily expose."""
+        car, fob = car_and_paired_fob
+
+        flash = proto.get_flash_data(fob)
+        for feature_number in (1, 2, 3):
+            pkg = create_feature_package(flash.pair_info.car_id, feature_number)
+            resp = proto.cmd_enable(fob, pkg)
+            assert resp.success, f"Feature {feature_number} enable failed: {resp.error}"
+
+        resp = proto.cmd_btn_press(fob)
+        assert resp.success, f"btnPress failed: {resp.error}"
+
+        num_active, features = proto.get_features(car)
+        assert num_active == 3, f"Expected 3 active features, got {num_active}"
+        assert features == [1, 2, 3], f"Expected features [1, 2, 3] reported, got {features}"
+
 
 class TestCarAndUnpairedFob:
     """Tests using a car and an unpaired fob (not the car's own fob)."""

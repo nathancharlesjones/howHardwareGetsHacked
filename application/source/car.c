@@ -29,6 +29,7 @@
 #include "aes_cmac.h"
 #include "aes.h"
 #include "ctr_drbg.h"
+#include "memcmp_ct.h"
 
 /*** Macros ***/
 #define MAX_CMD_LEN 1040
@@ -74,6 +75,10 @@ const char car_id[11] = CAR_ID;
 static bool carLocked = true;
 static uint32_t unlockCount = 0;
 static uint8_t last_feature_info[NUM_FEATURES+1] = {0};
+
+#ifdef TEST_BUILD
+static uint32_t last_start_mac_memcmp_execution_time;
+#endif
 
 static void initCar(void)
 {
@@ -248,6 +253,15 @@ void processHostCommand(const char *cmd)
     else sendError("Car has not been unlocked yet");
     return;
   }
+
+  // Test command: getStartMacMemcmpTime
+  if (strcmp(cmd, "getStartMacMemcmpTime") == 0)
+  {
+    char time[16] = {0};
+    snprintf(time, 15, "%lu", (unsigned long)last_start_mac_memcmp_execution_time);
+    sendOK(time);
+    return;
+  }
 #endif
 
   // Unknown command
@@ -342,7 +356,7 @@ void unlockCar(void)
   // msg_buf:                \/
   //   [ MAGIC | LENGTH | CAR ID (11) | NUM_ACTIVE | FEATURES[3] | MAC (8 + 8) ]
   
-  FEATURE_DATA *feature_info = (FEATURE_DATA *)buffer;
+  FEATURE_DATA *feature_info = &msg_buf.payload.feature_info;
 
   // First, verify car ID matches
   if (strcmp(car_id, feature_info->car_id) != 0) return;
@@ -350,8 +364,18 @@ void unlockCar(void)
   // Compute MAC
   AES_CMAC_digest(&start_cmac_ctx, (uint8_t*)&msg_buf, offsetof(START_MSG_BUF, payload.mac), computed_mac);
 
+#ifdef TEST_BUILD
+  uint32_t start = getHardwareTime();
+#endif
+
+  bool macs_match = (memcmp_ct(computed_mac, msg_buf.payload.mac, 8) == 0);
+
+#ifdef TEST_BUILD
+  last_start_mac_memcmp_execution_time = getHardwareTime() - start;
+#endif
+
   // if( computed MAC != received MAC ) { sendAckFailure(); return; }
-  if( memcmp(computed_mac, msg_buf.payload.mac, 8) != 0 ) return;
+  if( !macs_match ) return;
 
 #ifdef TEST_BUILD
   // Store features

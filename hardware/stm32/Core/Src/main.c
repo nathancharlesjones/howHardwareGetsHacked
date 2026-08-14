@@ -97,6 +97,13 @@ static void initHardware(int argc, char ** argv)
   uart_init(HOST_UART, argc, argv);
 
   setLED(OFF);
+
+  // Enable the DWT cycle counter that getHardwareTime() reads. Without this,
+  // DWT->CYCCNT never advances and getHardwareTime() always returns 0 (see
+  // the equivalent HWREG(NVIC_DBG_INT)/HWREG(DWT_CTRL) sequence in tm4c.c).
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->CYCCNT = 0;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 }
 
 void initHardware_car(int argc, char ** argv)

@@ -40,14 +40,19 @@ rectangle CT_PAIR [
     Commit: c6cbcae
 ]
 
-rectangle MAC [
-    ️<:shield:> Authenticate with MAC
+rectangle MAC_FEAT [
+    ️<:shield:> Authenticate feature file with MAC
     Commit: edbd8ae
 ]
 
 rectangle CT_FEATURE [
     ️<:shield:> Perform memcmp in constant-time
     Commit: 6d3b3b0
+]
+
+rectangle MAC_ST [
+    ️<:shield:> Authenticate start message with MAC
+    Commit: 7df9584
 ]
 
 note "Navigate to the commit in question by appending the\
@@ -124,21 +129,31 @@ note right of [CT_PAIR] : Pitfalls\
 \n• Library memcmp_ct (e.g. from wolfSSL)\
 \n• Compare MACs, not pin values
 
-DBG --> MAC : <:crossed_swords:> Forge a feature file\nFlags captured: Car #5
-note right of [MAC] : Pitfalls\
+DBG --> MAC_FEAT : <:crossed_swords:> Forge a feature file\nFlags captured: Car #5
+note right of [MAC_FEAT] : Pitfalls\
 \n• Using hash instead of MAC\
 \n\nAlternatives\
 \n• Encrypt feature files\
 \n\nAdd-ons\
 \n• Python ""secrets"" module\
-\n• Remove explicit error messages
+\n• Remove explicit error messages\
+\n• Per-device feature keys\
+\n• Digital signatures
 
-MAC --> CT_FEATURE : <:crossed_swords:> Timing attack on feature MAC comparison\nFlags capture: Car #5
+MAC_FEAT --> CT_FEATURE : <:crossed_swords:> Timing attack on feature MAC comparison\nFlags capture: Car #5
 note right of [CT_FEATURE] : Pitfalls\
 \n• Compiler optimizations\
 \n\nAdd-ons\
-\n• Delay for each enable attempt\
-\n• Per-device feature keys\
+\n• Delay for each enable attempt
+
+CT_FEATURE --> MAC_ST : <:crossed_swords:> Forge a start message\nFlags captured: Car #5
+note right of [MAC_ST] : Pitfalls\
+\n• Using hash instead of MAC\
+\n\nAlternatives\
+\n• Encrypt start messages\
+\n\nAdd-ons\
+\n• Python ""secrets"" module\
+\n• Per-device start msg keys\
 \n• Digital signatures
 @enduml
 ```
