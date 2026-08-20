@@ -400,15 +400,13 @@ def deploy(hardware_config):
 # Helper Functions
 # ============================================================================
 
-def build_binary(cfg: RoleConfig, platform: str, extra_args: Optional[list] = None) -> Path:
+def build_binary(cfg: RoleConfig, platform: str) -> Path:
     """
     Build firmware for a role using SCons.
 
     Args:
         cfg: RoleConfig with role, id (optional), and pin (optional)
         platform: "stm32", "tm4c", or "sim"
-        extra_args: additional SCons variable=value strings (e.g.
-            ["stack_usage=True"] to request .su files for build-budget tests)
 
     Returns:
         Path to the built binary
@@ -421,8 +419,6 @@ def build_binary(cfg: RoleConfig, platform: str, extra_args: Optional[list] = No
         cmd.append(f"pin={cfg.pin}")
     if cfg.pairing_delay_ms is not None:
         cmd.append(f"pairing_delay_ms={cfg.pairing_delay_ms}")
-    if extra_args:
-        cmd.extend(extra_args)
 
     result = subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=True, text=True)
     if result.returncode != 0:

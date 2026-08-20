@@ -11,8 +11,10 @@ exclusive branches, so *every* call into that function - not just the one
 branch with the big array - was paying for it. Nothing about that was
 visible from source alone without doing this arithmetic by hand.
 
-These tests build with stack_usage=True (adds -fstack-usage to the compile
-flags) so GCC emits one .su file per translation unit, reporting each
+SConstruct adds -fstack-usage to CPPFLAGS on its own whenever CC actually
+accepts it (see compiler_accepts_flag() there) - no opt-in needed, since it
+has no effect on the compiled output and no measurable compile-time cost.
+When it's on, GCC emits one .su file per translation unit, reporting each
 function's own stack frame size and whether it's statically known. That's
 used two ways:
 
@@ -32,10 +34,14 @@ rather than the raw size, specifically to absorb that slack - if it's
 tripping, something has gotten large enough that the imprecision no longer
 matters.
 
-Flash/RAM footprint is checked separately (and exactly - no margin, no
-model) via arm-none-eabi-size against each platform's own linker-script
-region sizes, so a bloat regression shows up before the linker's own
-hard failure would report the same overflow.
+If CC doesn't accept -fstack-usage (a non-GCC/Clang toolchain), checks #1
+and #2 above skip rather than fail or silently pass - there's no substitute
+data source for either (arm-none-eabi-size's totals don't give per-function
+frame sizes or a call graph to degrade to). Flash/RAM footprint, below,
+needs none of this and always runs: checked separately (and exactly - no
+margin, no model) via arm-none-eabi-size against each platform's own
+linker-script region sizes, so a bloat regression shows up before the
+linker's own hard failure would report the same overflow.
 
 Run with `-v -s` to also get a box-drawing memory map (flash as
 text/data/free, RAM as data/bss/heap/free/stack) printed per target - see
@@ -382,7 +388,7 @@ def render_memory_map(label, flash_budget, ram_budget, text, data, bss,
 @pytest.fixture(scope="module")
 def built(request):
     platform, cfg = request.param
-    elf_path = build_binary(cfg, platform, extra_args=["stack_usage=True"])
+    elf_path = build_binary(cfg, platform)
     build_dir = elf_path.parent
     return platform, elf_path, build_dir
 
@@ -427,6 +433,14 @@ class TestBuildBudgets:
         caught the original getBoardMsgLog VLA directly."""
         platform, elf_path, build_dir = built
         su_usage = parse_su_files(build_dir)
+        if not su_usage:
+            pytest.skip(
+                f"{platform}: no .su files found - CC doesn't accept "
+                f"-fstack-usage (see compiler_accepts_flag() in SConstruct), "
+                f"so there's no per-function stack data to check here. "
+                f"test_flash_and_ram_footprint still covers the flash/RAM "
+                f"totals regardless."
+            )
         call_graph, _ = build_call_graph(elf_path)
 
         reachable = reachable_from(call_graph, "main")
@@ -445,6 +459,16 @@ class TestBuildBudgets:
         platform, elf_path, build_dir = built
         budget = parse_ld_budget(platform)
         su_usage = parse_su_files(build_dir)
+        if not su_usage:
+            pytest.skip(
+                f"{platform}: no .su files found - CC doesn't accept "
+                f"-fstack-usage (see compiler_accepts_flag() in SConstruct), "
+                f"so there's no per-function stack data to compute a "
+                f"worst-case depth from. arm-none-eabi-size alone (what "
+                f"test_flash_and_ram_footprint uses) has no substitute for "
+                f"this - it reports totals, not per-function frame sizes or "
+                f"a call graph, so there's nothing to degrade to here."
+            )
         call_graph, indirect = build_call_graph(elf_path)
         text, data, bss = read_footprint(elf_path)
 

@@ -22,7 +22,6 @@ opts.Add(BoolVariable('debug', 'Debug build', False))
 opts.Add(BoolVariable('test', 'Test build (enables test commands)', False))
 opts.Add('pairing_delay_ms', 'Delay (ms) before checking pairing pin (anti-brute-force)', '750')
 opts.Add('unlock_delay_ms', 'Delay (ms) before starting unlock sequence (anti-brute-force)', '750')
-opts.Add(BoolVariable('stack_usage', 'Emit per-function stack usage (.su) files via -fstack-usage', False))
 
 # Optional feature flags
 opts.Add('unlock_flag', 'Custom unlock flag value', '')
@@ -151,10 +150,6 @@ if app_env['debug']:
     app_env.Append(CPPFLAGS=['-g', '-DDEBUG'])
 if app_env['test']:
     app_env.Append(CPPDEFINES=['TEST_BUILD'])
-if app_env['stack_usage']:
-    # One .su file per compiled .c, next to its .o, reporting that
-    # function's own stack frame size (not a call-graph total).
-    app_env.Append(CPPFLAGS=['-fstack-usage'])
 
 # Include paths
 app_env.Append(CPPPATH=[
@@ -163,6 +158,23 @@ app_env.Append(CPPPATH=[
     '#/libraries/tiny-AES-c',     # aes.h
     '#/libraries/tiny-AES-CMAC-c' # aes_cmac.h
 ])
+
+def compiler_accepts_flag(cc, flag):
+    """Best-effort, compiler-agnostic probe: does invoking `cc` with `flag`
+    on a trivial compile succeed, rather than being rejected as an
+    unrecognized option? Tried directly against whatever CC actually is for
+    a given platform, instead of assuming a GCC/Clang-family compiler -
+    some future platform's CC might be neither."""
+    try:
+        result = subprocess.run(
+            [cc, flag, '-c', '-x', 'c', '-o', os.devnull, '-'],
+            input='int main(void) { return 0; }',
+            capture_output=True, text=True, timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0
+
 
 def configure_env(p, env):
     if p in ['stm32', 'tm4c']:
@@ -176,6 +188,16 @@ def configure_env(p, env):
             env['arch_flags'] += ['-mfpu=fpv4-sp-d16', '-mfloat-abi=hard']
         env.Append(CPPFLAGS=env['arch_flags'] + ['-ffunction-sections', '-fdata-sections'])
     # sim: system gcc, no overrides needed
+
+    # -fstack-usage costs nothing when supported (see testing/test_build_budgets.py's
+    # docstring for what it's used for) - no measurable compile-time or
+    # artifact-size effect, since it only ever adds a .su side-output next
+    # to each .o. On by default whenever CC actually accepts it; otherwise
+    # left off rather than assumed, since CC isn't guaranteed to be GCC or
+    # Clang for every platform this project might ever target.
+    if compiler_accepts_flag(env['CC'], '-fstack-usage'):
+        env.Append(CPPFLAGS=['-fstack-usage'])
+
     lib_dir = f'hardware/{p}/build/libraries'
     env['platform_libs'] = (
         env.StaticLibrary(
