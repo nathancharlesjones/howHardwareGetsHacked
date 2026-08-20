@@ -268,14 +268,7 @@ void processHostCommand(FOB_FLASH_DATA *fob_state_ram, const char *cmd)
   // Test command: getBoardMsgLog
   if (strcmp(cmd, "getBoardMsgLog") == 0)
   {
-    uint8_t data[sizeofMsgLog()];
-    memset(data, 0, sizeof(data));
-    getMessageLog(data);
-
-    char hex[sizeof(data) * 2 + 1];
-    bytesToHex(data, sizeof(data), hex);
-
-    sendOK(hex);
+    sendMessageLogAsHex();
     return;
   }
 

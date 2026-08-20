@@ -55,6 +55,11 @@ rectangle MAC_ST [
     Commit: 7df9584
 ]
 
+rectangle NONCE [
+    ️<:shield:> Widen nonces to 128-bits
+    Commit: bd38ea6
+]
+
 note "Navigate to the commit in question by appending the\
 \ncommit number to the URL www.github.com/nathan\
 \ncharlesjones/howHardwareGetsHacked/tree/<6-digit\
@@ -110,7 +115,7 @@ note right of [CR] : Pitfalls\
 \n    → HSM with anti-rollback counter\
 \n    → MCU with TRNG
 
-DBG -right-> DELAY : <:crossed_swords:> Brute force attack on pairing pin\nFlags captured: Cars #2,5
+DBG --> DELAY : <:crossed_swords:> Brute force attack on pairing pin\nFlags captured: Cars #2,5
 note right of [DELAY] : Pitfalls\
 \n• Storing attempt counter in RAM/flash\
 \n• Delaying only after pin is checked\
@@ -129,7 +134,7 @@ note right of [CT_PAIR] : Pitfalls\
 \n• Library memcmp_ct (e.g. from wolfSSL)\
 \n• Compare MACs, not pin values
 
-DBG --> MAC_FEAT : <:crossed_swords:> Forge a feature file\nFlags captured: Car #5
+DBG -right-> MAC_FEAT : <:crossed_swords:> Forge a feature file\nFlags captured: Car #5
 note right of [MAC_FEAT] : Pitfalls\
 \n• Using hash instead of MAC\
 \n\nAlternatives\
@@ -155,5 +160,20 @@ note right of [MAC_ST] : Pitfalls\
 \n• Python ""secrets"" module\
 \n• Per-device start msg keys\
 \n• Digital signatures
+
+CR --> NONCE : <:crossed_swords:> "Birthday problem" attack\nFlags captured: Car #2
+note right of [NONCE] : Pitfalls\
+\n• Adding a rolling code+MAC to the unlock message\
+\n• Tracking a "seen nonce" history\
+\n• Assuming a CSPRNG doesn't repeat values\
+\n\nAlternatives\
+\n• Make it harder (e.g. fingerprint, passive keyless entry)\
+\n• Using a non-repeating PRNG algorithm +\
+\nHSM with anti-rollback counter\
+\n\nAdd-ons\
+\n• Add a 1 sec delay to unlocking\
+\n• Add a MAC to the nonce message\
+\n• Log/lockout/erase after rapid unlock requests\
+\nor repeated failed unlock attempts
 @enduml
 ```

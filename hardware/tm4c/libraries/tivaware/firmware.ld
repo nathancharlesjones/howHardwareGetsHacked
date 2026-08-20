@@ -9,8 +9,6 @@
  *
  *****************************************************************************/
 
-_STACK_SIZE = 0x1C00;
-
 MEMORY
 {
     /* Full flash available - no bootloader */
@@ -19,8 +17,14 @@ MEMORY
     RAM             (rwx)   : ORIGIN = 0x20000000, LENGTH = 0x00008000
 }
 
-/* Top of stack (used by startup file) */
+/* Top of stack (used by startup file). SP starts at, and can grow down from,
+ * the true top of physical RAM - not a hand-picked reservation somewhere in
+ * the middle of it. How much of that headroom the stack (and heap - see
+ * hardware/tm4c/source/syscalls.c) actually need is a question for
+ * testing/test_build_budgets.py to measure per build, not for this script
+ * to guess at. */
 _stack_top = ORIGIN(RAM) + LENGTH(RAM);
+_estack = _stack_top;
 
 SECTIONS
 {
@@ -75,22 +79,11 @@ SECTIONS
         *(.bss*)
         *(COMMON)
         _ebss = .;
-        /* Heap starts here */
+        /* Heap starts here and grows up toward _estack; see _sbrk() in
+         * hardware/tm4c/source/syscalls.c. */
         . = ALIGN(8);
         _end = .;
     } > RAM
-
-    /* Stack section reserves space at end of usable RAM */
-    .stack (NOLOAD) :
-    {
-        . = ALIGN(16);
-        _heap_end = .;          /* Heap limit */
-        . += _STACK_SIZE;
-        _stack_top = .;         /* Stack pointer starts here */
-    } > RAM
-    
-    /* Top of physical RAM */
-    _estack = ORIGIN(RAM) + LENGTH(RAM);
 }
 
 _flash_config_start = ORIGIN(FLASH_CONFIG);

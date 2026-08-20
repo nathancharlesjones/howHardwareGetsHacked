@@ -20,22 +20,29 @@ char **environ = __env;
 void *_sbrk(int incr)
 {
     extern char _end;           // Defined by linker (end of .bss section)
-    extern char _heap_end;      // Defined by linker (end of heap, start of stack area)
+    extern char _estack;        // Defined by linker (true top of physical RAM)
     static char *heap_ptr = 0;
     char *prev_heap_ptr;
 
     if (heap_ptr == 0) {
         heap_ptr = &_end;
     }
-    
+
     prev_heap_ptr = heap_ptr;
-    
-    // Check if we have enough space (don't collide with stack!)
-    if (heap_ptr + incr > &_heap_end) {
+
+    // The linker no longer carves out a fixed reservation for the stack
+    // (see firmware.ld) - there's nothing but _estack itself to check the
+    // heap against here. This codebase doesn't call malloc() directly and
+    // nothing on its current call paths reaches it either, so this is a
+    // correctness fallback rather than an active concern; if that ever
+    // changes, testing/test_build_budgets.py's worst-case stack figure is
+    // what should be weighed against how much heap is actually in use, not
+    // a number invented here.
+    if (heap_ptr + incr > &_estack) {
         errno = ENOMEM;
         return (void *)-1;
     }
-    
+
     heap_ptr += incr;
     return (void *)prev_heap_ptr;
 }

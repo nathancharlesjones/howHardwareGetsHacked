@@ -19,14 +19,6 @@
 #include "messages.h"
 #include "uart.h"
 
-#define MAX_NUM_MSGS 15
-
-typedef struct log_msg
-{
-  bool tx_msg;
-  uint8_t msg[MAX_MSG_LEN];
-} logs;
-
 static logs log[MAX_NUM_MSGS+1] = {0};
 static uint8_t log_idx = 0;
 static uint8_t num_msgs = 0;

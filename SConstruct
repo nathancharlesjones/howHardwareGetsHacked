@@ -22,6 +22,7 @@ opts.Add(BoolVariable('debug', 'Debug build', False))
 opts.Add(BoolVariable('test', 'Test build (enables test commands)', False))
 opts.Add('pairing_delay_ms', 'Delay (ms) before checking pairing pin (anti-brute-force)', '750')
 opts.Add('unlock_delay_ms', 'Delay (ms) before starting unlock sequence (anti-brute-force)', '750')
+opts.Add(BoolVariable('stack_usage', 'Emit per-function stack usage (.su) files via -fstack-usage', False))
 
 # Optional feature flags
 opts.Add('unlock_flag', 'Custom unlock flag value', '')
@@ -150,6 +151,10 @@ if app_env['debug']:
     app_env.Append(CPPFLAGS=['-g', '-DDEBUG'])
 if app_env['test']:
     app_env.Append(CPPDEFINES=['TEST_BUILD'])
+if app_env['stack_usage']:
+    # One .su file per compiled .c, next to its .o, reporting that
+    # function's own stack frame size (not a call-graph total).
+    app_env.Append(CPPFLAGS=['-fstack-usage'])
 
 # Include paths
 app_env.Append(CPPPATH=[

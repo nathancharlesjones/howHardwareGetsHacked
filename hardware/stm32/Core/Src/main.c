@@ -147,6 +147,18 @@ static uint32_t flash_sector_start(uint32_t sector)
 /* -----------------------------------------------------------
    Config Flash Write (Overwrite Whole Sector)
    ----------------------------------------------------------- */
+
+// The only real caller passes sizeof(FOB_FLASH_DATA) (see saveFobState()
+// in hardware/source/platform_common.c) - sized to that rather than a VLA
+// from the runtime `size` parameter, which would make padded_data below
+// unbounded from the compiler's perspective no matter what any given
+// caller actually passes it.
+#define MAX_FLASH_WRITE_SIZE sizeof(FOB_FLASH_DATA)
+// Rounded up to a flash-word (4-byte) boundary, matching flash_data_bytes'
+// own rounding below - keeps the buffer sized correctly by construction
+// rather than needing MAX_FLASH_WRITE_SIZE to already be a multiple of 4.
+#define MAX_FLASH_WRITE_SIZE_PADDED (MAX_FLASH_WRITE_SIZE + (4 - MAX_FLASH_WRITE_SIZE % 4) % 4)
+
 void save_flash(const void *src, size_t size)
 {
   FLASH_EraseInitTypeDef erase =
@@ -160,7 +172,21 @@ void save_flash(const void *src, size_t size)
   size_t flash_data_bytes = (size % 4 == 0) ? size : size + (4 - (size % 4));
   size_t flash_data_words = flash_data_bytes / 4;
 
-  uint8_t padded_data[flash_data_bytes];
+  // Two separate bounds, not one, and neither is an assert(): this can be
+  // reached with a caller-supplied size, and assert() is conventionally
+  // compiled out under NDEBUG, which would silently remove exactly the
+  // protection this exists for.
+  //   1. padded_data below must not overflow.
+  //   2. The write itself must not run past FLASH_SECTOR_6 into
+  //      FLASH_SECTOR_7's data - a real, independent bug from the VLA:
+  //      this function would silently corrupt whatever followed the
+  //      sector if ever called with a size close to a full sector's worth.
+  //      Derived from the same address table flash_sector_start() already
+  //      uses, rather than a second hand-maintained sector-size constant.
+  if (flash_data_bytes > MAX_FLASH_WRITE_SIZE_PADDED) return;
+  if (flash_data_bytes > flash_sector_start(FLASH_SECTOR_7) - flash_sector_start(FLASH_SECTOR_6)) return;
+
+  uint8_t padded_data[MAX_FLASH_WRITE_SIZE_PADDED];
   memset(padded_data, FLASH_UNINITIALIZED, sizeof(padded_data));
   memcpy(padded_data, src, size);
 

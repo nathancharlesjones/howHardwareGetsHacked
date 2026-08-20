@@ -9,6 +9,7 @@
 
 #include "ctr_drbg.h"
 #include "aes.h"
+#include "messages.h"
 #include <string.h>
 
 /* SP 800-90A Table 3, AES-128 no df:
@@ -135,7 +136,7 @@ int ctr_drbg_generate(ctr_drbg_ctx_t *ctx, uint8_t *out)
     uint8_t block[OUTLEN];
     int ret = ctr_drbg_generate_bytes(ctx, block, sizeof(block));
     if (ret == 0) {
-        memcpy(out, block, 16);
+        memcpy(out, block, NONCE_SIZE);
         memset(block, 0, sizeof(block));  /* scrub unused output bits */
     }
     return ret;

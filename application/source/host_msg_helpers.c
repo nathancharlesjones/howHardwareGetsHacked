@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "host_msg_helpers.h"
+#include "messages.h"
 #include "uart.h"
 
 /**
@@ -29,6 +30,37 @@ void sendError(const char *reason)
   char buf[128];
   snprintf(buf, sizeof(buf), "ERROR: %s\n", reason);
   uart_write(HOST_UART, (uint8_t *)buf, strlen(buf));
+}
+
+/**
+ * @brief Fetch the board message log and send it to the host as a hex
+ * string (the getBoardMsgLog test command on both car and fob - identical
+ * on both, so kept here once instead of duplicated in car.c/fob.c).
+ *
+ * Locals rather than static/global: a compiler is free to size a whole
+ * function's stack frame to the worst of its mutually-exclusive branches,
+ * so this needs its own function - kept inline in a command dispatcher
+ * that also handles other commands, it would tax every one of them for
+ * stack space only this rarely-used command needs.
+ *
+ * Fixed-size (MAX_MSG_LOG_BYTES) rather than a VLA sized from
+ * sizeofMsgLog()'s runtime value: a runtime-sized array is unbounded from
+ * the compiler's perspective even when, as here, its actual size never
+ * varies - and unbounded is unbounded whether or not it happens to also be
+ * the biggest thing in its function.
+ */
+void sendMessageLogAsHex(void)
+{
+  if (sizeofMsgLog() > MAX_MSG_LOG_BYTES) { sendError("log buffer too small"); return; }
+
+  uint8_t data[MAX_MSG_LOG_BYTES];
+  memset(data, 0, sizeofMsgLog());
+  getMessageLog(data);
+
+  char hex[MAX_MSG_LOG_BYTES * 2 + 1];
+  bytesToHex(data, sizeofMsgLog(), hex);
+
+  sendOK(hex);
 }
 
 /**

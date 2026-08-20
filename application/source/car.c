@@ -146,6 +146,34 @@ int main(int argc, char **argv)
   }
 }
 
+#ifdef TEST_BUILD
+/**
+ * @brief Handler for the getEntropySamples test command.
+ *
+ * Factored out of processHostCommand() rather than inline (same reasoning
+ * as sendMessageLogAsHex() in host_msg_helpers.c, but more so): at
+ * samples[2550]+hex[5101] (~7.6KB), this was, alone, close to TM4C's entire
+ * stack - every call into processHostCommand was paying for it whether or
+ * not this was the command that ran.
+ */
+#define MAX_ENTROPY_ROW_BYTES 10
+static void handleGetEntropySamples(const char *arg)
+{
+  uint8_t num_samples = atoi(arg);
+
+  // Fixed at the worst-case row width across all platforms (see
+  // getEntropyDescription()/getEntropySamples() in hardware/*/source/*.c)
+  // so this never needs to be a VLA; num_samples is a uint8_t, so this is
+  // also the hard upper bound on how large a request can ever be.
+  uint8_t samples[255*MAX_ENTROPY_ROW_BYTES] = {0};
+  uint16_t bytes = getEntropySamples(num_samples, samples);
+
+  char hex[sizeof(samples)*2+1] = {0};
+  bytesToHex(samples, bytes, hex);
+  sendOK(hex);
+}
+#endif
+
 /**
  * @brief Process a command received from the host
  */
@@ -188,14 +216,7 @@ void processHostCommand(const char *cmd)
   // Test command: getBoardMsgLog
   if (strcmp(cmd, "getBoardMsgLog") == 0)
   {
-    uint8_t data[sizeofMsgLog()];
-    memset(data, 0, sizeof(data));
-    getMessageLog(data);
-
-    char hex[sizeof(data) * 2 + 1];
-    bytesToHex(data, sizeof(data), hex);
-
-    sendOK(hex);
+    sendMessageLogAsHex();
     return;
   }
 
@@ -225,19 +246,7 @@ void processHostCommand(const char *cmd)
   // Test command: getEntropySamples
   if (strncmp(cmd, "getEntropySamples ", 18) == 0)
   {
-    uint8_t num_samples = atoi(cmd + 18);
-
-    // Fixed at the worst-case row width across all platforms (see
-    // getEntropyDescription()/getEntropySamples() in hardware/*/source/*.c)
-    // so this never needs to be a VLA; num_samples is a uint8_t, so this is
-    // also the hard upper bound on how large a request can ever be.
-    #define MAX_ENTROPY_ROW_BYTES 10
-    uint8_t samples[255*MAX_ENTROPY_ROW_BYTES] = {0};
-    uint16_t bytes = getEntropySamples(num_samples, samples);
-
-    char hex[sizeof(samples)*2+1] = {0};
-    bytesToHex(samples, bytes, hex);
-    sendOK(hex);
+    handleGetEntropySamples(cmd + 18);
     return;
   }
 

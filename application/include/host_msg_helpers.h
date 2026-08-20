@@ -6,6 +6,7 @@
 
 void sendOK(const char *value);
 void sendError(const char *reason);
+void sendMessageLogAsHex(void);
 void bytesToHex(const uint8_t *bytes, size_t len, char *hex);
 int hexToBytes(const char *hex, uint8_t *bytes, size_t maxLen);
 

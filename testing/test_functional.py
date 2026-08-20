@@ -194,13 +194,18 @@ class TestCarAndPairedFob:
 
     def test_paired_fob_can_unlock_car(self, car_and_paired_fob):
         """A paired fob with matching ID should unlock its car."""
-        car, fob = car_and_paired_fob
+        car, fob = car_and_paired_fob        
 
         # Verify car is locked
         assert proto.is_locked(car), "Car should start locked"
 
         # Fob initiates unlock (blocks until complete)
         resp = proto.cmd_btn_press(fob)
+        assert resp.success, f"btnPress failed: {resp.error}"
+
+        # Check car is now unlocked
+        assert not proto.is_locked(car), "Car should be unlocked"
+
         print("-----Car-----")
         log = proto.cmd_get_board_msg_log(car, role="car")
         for entry in log:
@@ -211,10 +216,7 @@ class TestCarAndPairedFob:
         for entry in log:
             if entry.magic != 0:
                 print(entry)
-        assert resp.success, f"btnPress failed: {resp.error}"
 
-        # Check car is now unlocked
-        assert not proto.is_locked(car), "Car should be unlocked"
         assert proto.get_unlock_count(car) == 1, "Unlock count should be 1"
 
     def test_multiple_unlocks_increment_count(self, car_and_paired_fob):

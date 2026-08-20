@@ -15,10 +15,9 @@
 #ifndef BOARD_LINK_H
 #define BOARD_LINK_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
-
-#include "uart.h"
 
 #define ACK_SUCCESS 1
 #define ACK_FAIL 0
@@ -32,6 +31,24 @@
 
 #define MAX_MSG_LEN 64
 #define NONCE_SIZE 16  // nonce is 16 bytes
+
+#define MAX_NUM_MSGS 15  // how many board messages the log retains
+
+/**
+ * @brief One retained entry in the board message log.
+ */
+typedef struct log_msg
+{
+  bool tx_msg;
+  uint8_t msg[MAX_MSG_LEN];
+} logs;
+
+// Compile-time upper bound on sizeofMsgLog()'s return value. Exposed so a
+// caller needing a buffer to copy the log into (sendMessageLogAsHex() in
+// host_msg_helpers.c) can use a fixed-size array instead of a VLA sized
+// from sizeofMsgLog()'s runtime value - computed from the real struct
+// above rather than hand-duplicating its layout, so it can't drift.
+#define MAX_MSG_LOG_BYTES (MAX_NUM_MSGS * sizeof(logs))
 
 /**
  * @brief Structure for message between boards
