@@ -36,6 +36,12 @@ Flash/RAM footprint is checked separately (and exactly - no margin, no
 model) via arm-none-eabi-size against each platform's own linker-script
 region sizes, so a bloat regression shows up before the linker's own
 hard failure would report the same overflow.
+
+Run with `-v -s` to also get a box-drawing memory map (flash as
+text/data/free, RAM as data/bss/heap/free/stack) printed per target - see
+render_memory_map(). It's visualization only, built from the same numbers
+the assertions above already check; -s is what makes pytest stop
+swallowing the print().
 """
 
 import re
@@ -84,6 +90,14 @@ STACK_SAFETY_MARGIN = 0.5
 # Deliberately conservative for what this codebase actually calls; revisit
 # if a call to something stack-heavier (e.g. float snprintf) shows up.
 UNKNOWN_FUNC_STACK_BYTES = 32
+
+# Reachability probe for the memory-map visualization's heap figure: this
+# codebase never calls malloc() itself (see hardware/tm4c/source/syscalls.c),
+# so "heap used" is 0 by construction, not by measurement - there's no
+# tracked high-water mark to report. Rather than silently print a
+# possibly-false 0 forever, check whether any of these ever become
+# reachable from main() and say "unmeasured" instead if so.
+HEAP_ALLOC_FUNCS = {"malloc", "_malloc_r", "calloc", "_calloc_r", "realloc", "_realloc_r"}
 
 
 # =============================================================================
@@ -263,6 +277,105 @@ def worst_case_stack_path(call_graph, su_usage, root="main", unknown_bytes=UNKNO
 
 
 # =============================================================================
+# Memory-map visualization (printed under `-v -s`; doesn't assert anything -
+# the numbers it renders are the same ones test_flash_and_ram_footprint and
+# test_worst_case_stack_depth already check)
+# =============================================================================
+
+MAP_BAR_WIDTH = 60
+
+
+def _bar_row(segments, total, width=MAP_BAR_WIDTH):
+    """One box-drawing bar row: each (letter, bytes) segment gets a
+    proportional run of `letter`, in segment order, sized so the whole row
+    is exactly `width` columns wide.
+
+    Byte counts almost never divide evenly into `width` columns, so this
+    uses largest-remainder rounding (award each segment its floor share,
+    then hand the columns lost to truncation to whichever segments had the
+    biggest fractional remainder) rather than plain int() truncation - that
+    keeps the row's total width exact without visibly shortchanging
+    whichever segment happens to round down.
+    """
+    nonzero = [(letter, count) for letter, count in segments if count > 0]
+    if not nonzero:
+        return "." * width
+    exact = [count * width / total for _, count in nonzero]
+    cols = [int(w) for w in exact]
+    remainder = width - sum(cols)
+    order = sorted(range(len(nonzero)), key=lambda i: exact[i] - cols[i], reverse=True)
+    for i in order[:remainder]:
+        cols[i] += 1
+    return "".join(letter * n for (letter, _), n in zip(nonzero, cols))
+
+
+def _map_legend_lines(rows, region_total):
+    lines = []
+    label_width = max(len(label) for _, label, _ in rows)
+    for letter, label, n in rows:
+        if n is None:
+            lines.append(f"   {letter} {label:<{label_width}}          unmeasured (reachable, no tracked high-water mark)")
+            continue
+        pct = 100 * n / region_total
+        lines.append(f"   {letter} {label:<{label_width}}  {n:>8,} B  ({pct:5.1f}%)")
+    return lines
+
+
+def render_memory_map(label, flash_budget, ram_budget, text, data, bss,
+                       stack_used, heap_used):
+    """Two stacked box-drawing bars (flash, then RAM) plus a byte/percentage
+    legend under each - flash as text+data+free, RAM as data+bss+heap+
+    free+stack (address order: heap grows up from _end, stack grows down
+    from the true top of RAM, whatever's unclaimed between them is free -
+    see firmware.ld / STM32F411XX_FLASH.ld). heap_used=None means "can't
+    measure, but confirmed unreachable" territory doesn't apply here -
+    render_memory_map is only called once malloc IS reachable, so None
+    always means print "unmeasured" instead of a number."""
+    flash_free = flash_budget - text - data
+    ram_free = ram_budget - data - bss - (heap_used or 0) - stack_used
+
+    flash_bar = _bar_row([("T", text), ("D", data), (".", flash_free)], flash_budget)
+    ram_bar = _bar_row(
+        [("D", data), ("B", bss), ("H", heap_used or 0), (".", ram_free), ("S", stack_used)],
+        ram_budget,
+    )
+
+    lines = [
+        "",
+        "=" * (MAP_BAR_WIDTH + 2),
+        f" {label} memory map",
+        "=" * (MAP_BAR_WIDTH + 2),
+        "",
+        f" FLASH  {flash_budget:,} B budget",
+        "┌" + "─" * MAP_BAR_WIDTH + "┐",
+        "│" + flash_bar + "│",
+        "└" + "─" * MAP_BAR_WIDTH + "┘",
+    ]
+    lines += _map_legend_lines(
+        [("T", "text", text), ("D", "data", data), (".", "free", flash_free)],
+        flash_budget,
+    )
+    lines += [
+        "",
+        f" RAM    {ram_budget:,} B budget",
+        "┌" + "─" * MAP_BAR_WIDTH + "┐",
+        "│" + ram_bar + "│",
+        "└" + "─" * MAP_BAR_WIDTH + "┘",
+    ]
+    lines += _map_legend_lines(
+        [
+            ("D", "data", data),
+            ("B", "bss", bss),
+            ("H", "heap", heap_used),
+            (".", "free", ram_free),
+            ("S", "stack (worst-case)", stack_used),
+        ],
+        ram_budget,
+    )
+    return "\n".join(lines)
+
+
+# =============================================================================
 # Fixture: build once per (platform, role), shared by both checks below
 # =============================================================================
 
@@ -346,6 +459,19 @@ class TestBuildBudgets:
 
         worst_bytes, path = worst_case_stack_path(call_graph, su_usage)
         limit = available_stack * STACK_SAFETY_MARGIN
+
+        # See HEAP_ALLOC_FUNCS: this codebase has no tracked heap high-water
+        # mark, so "0 used" is only trustworthy while malloc/calloc/realloc
+        # stay unreachable from main() - checked fresh per build rather than
+        # asserted once, since that's exactly the kind of thing a future
+        # change could quietly falsify.
+        reachable = reachable_from(call_graph, "main")
+        heap_used = None if reachable & HEAP_ALLOC_FUNCS else 0
+
+        print(render_memory_map(
+            f"{platform}/{elf_path.stem}", budget["flash"], budget["ram"],
+            text, data, bss, worst_bytes, heap_used,
+        ))
 
         indirect_on_path = [f for f in path if indirect.get(f)]
         note = (
