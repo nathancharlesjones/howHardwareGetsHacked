@@ -67,7 +67,7 @@ class RoleConfig:
                         # any time compiled shape/behavior under #ifndef TEST_BUILD matters (e.g.
                         # car.c's unlockCar() only contains its loadFlag()/uart_write() flag-send
                         # block, and only calls those functions at all, when test=False - see
-                        # overflow_offsets.py).
+                        # test_security.py::TestUnlockBufferOverflow.test_full_mac_bypass_blind).
 
 
 # ============================================================================
@@ -192,15 +192,6 @@ def pytest_addoption(parser):
         default=False,
         help="TestEntropyCapture's tests analyze what they just captured by default; pass "
              "this to only write the .bin/.json capture and skip that immediate analysis."
-    )
-    parser.addoption(
-        "--stack-overflow-poc-probe",
-        type=str,
-        default=None,
-        help="ST-Link serial number of a real STM32 board to run "
-             "test_stack_overflow_poc.py's RCE proof-of-concept against (skipped "
-             "by default - that test flashes and takes over the board directly "
-             "via OpenOCD/gdb, outside the normal deploy() fixture)."
     )
     parser.addoption(
         "--run-birthday-bound-attack-full",

