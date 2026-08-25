@@ -14,7 +14,7 @@ import os
 from tqdm import trange, tqdm
 
 from package import create_feature_package, FeaturePackage
-from overflow_offsets import derive_mac_overwrite_offsets
+from binary_exploitation import derive_mac_overwrite_offsets
 
 from cryptography.hazmat.primitives import cmac
 from cryptography.hazmat.primitives.ciphers import algorithms
@@ -139,7 +139,7 @@ def _require_arm_toolchain():
 
 def _craft_mac_bypass_payload(mac_gap: int, mac_len: int = 8, forged_mac: bytes = None) -> bytes:
     """Payload for the adjacent-local MAC-bypass bug (see
-    overflow_offsets.derive_mac_overwrite_offsets): exactly mac_gap + mac_len
+    binary_exploitation.derive_mac_overwrite_offsets): exactly mac_gap + mac_len
     bytes, laid out as
 
         [ forged_mac (mac_len) | junk (mac_gap - mac_len) | forged_mac (mac_len) ]
@@ -306,7 +306,7 @@ class TestUnlockBufferOverflow:
 
         hardware_only: sim's own stack layout doesn't necessarily reproduce
         this exact adjacent-local overwrite, and the MAC-gap derivation
-        (overflow_offsets.derive_mac_overwrite_offsets) needs a real compiled
+        (binary_exploitation.derive_mac_overwrite_offsets) needs a real compiled
         ELF to disassemble."""
         _require_arm_toolchain()
 
