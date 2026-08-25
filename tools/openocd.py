@@ -122,6 +122,62 @@ def flash(platform, serial_number, file_path):
         return 1  # Failure
 
 
+def reset(platform, serial_number, halt=False):
+    """
+    Reset a device via OpenOCD, without touching its flash image.
+
+    This is the debug-probe equivalent of an attacker toggling a MOSFET tied
+    to the target's reset pin: used to recover a device that's hung (e.g.
+    from a corrupted return address landing PC somewhere invalid) without
+    re-flashing it. Unlike flash()/lock()/unlock(), this never needs to halt
+    and reprogram the target, so it's just OpenOCD's own reset command -
+    no gdb session required.
+
+    Args:
+        platform (str): Board platform identifier ('stm32' or 'tm4c')
+        serial_number (str): Serial number of the device to target
+        halt (bool): If True, reset and halt (leaves the target ready for a
+            debugger to attach) instead of resetting and immediately
+            resuming normal execution (the default - what a real reset-pin
+            toggle would do).
+
+    Returns:
+        int: 0 if OpenOCD reported the reset succeeded, 1 otherwise
+
+    Raises:
+        ValueError: If platform is not supported
+    """
+    if platform not in BOARD_CONFIG:
+        raise ValueError(f"Unsupported platform: {platform}")
+
+    board_config = BOARD_CONFIG[platform]["config_file"]
+    reset_cmd = "reset halt" if halt else "reset run"
+
+    cmd = [
+        "openocd",
+        "-f", board_config,
+        "-c", f"adapter serial {serial_number}",
+        "-c", "init",
+        "-c", reset_cmd,
+        "-c", "shutdown",
+    ]
+
+    print(f"Resetting {platform} device {serial_number} ({reset_cmd})")
+    print(f"Command: {' '.join(cmd)}")
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    # As with flash(): OpenOCD's return code is unreliable, so key off its
+    # own "Error :" log lines instead. This only confirms OpenOCD itself
+    # reported the reset went through - it's not proof the target actually
+    # came back up responsive; the caller owns that check (e.g. by talking
+    # to the target over its own UART afterward).
+    combined_output = result.stdout + result.stderr
+    print(combined_output)
+
+    return 1 if "Error:" in combined_output else 0
+
+
 def lock(platform, serial_number):
     """
     Lock a device to enable read protection.
@@ -303,6 +359,28 @@ def main():
         args.platform,
         args.serial_number,
         args.file,
+    )))
+
+    # Reset subcommand
+    reset_parser = subparsers.add_parser("reset", help="Reset a device without reflashing it")
+    reset_parser.add_argument(
+        "platform",
+        choices=["stm32", "tm4c"],
+        help="Board platform identifier",
+    )
+    reset_parser.add_argument(
+        "serial_number",
+        help="Serial number of the device",
+    )
+    reset_parser.add_argument(
+        "--halt",
+        action="store_true",
+        help="Reset and halt instead of reset and resume normal execution",
+    )
+    reset_parser.set_defaults(func=lambda args: sys.exit(reset(
+        args.platform,
+        args.serial_number,
+        args.halt,
     )))
 
     # Lock subcommand

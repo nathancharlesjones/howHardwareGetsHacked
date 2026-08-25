@@ -62,6 +62,12 @@ class RoleConfig:
     id: Optional[str] = None  # Required for car and paired_fob
     pin: Optional[str] = None  # Required for paired_fob
     pairing_delay_ms: Optional[str] = None  # Override anti-brute-force pairing delay (paired_fob only)
+    test: bool = True  # TEST_BUILD (enables test commands like sendBoardMsg). Default matches
+                        # prior hardcoded behavior. Set False for a production image - needed
+                        # any time compiled shape/behavior under #ifndef TEST_BUILD matters (e.g.
+                        # car.c's unlockCar() only contains its loadFlag()/uart_write() flag-send
+                        # block, and only calls those functions at all, when test=False - see
+                        # overflow_offsets.py).
 
 
 # ============================================================================
@@ -412,7 +418,7 @@ def build_binary(cfg: RoleConfig, platform: str) -> Path:
         Path to the built binary
     """
     # Build command with conditional arguments
-    cmd = ["scons", "-j8", f"platform={platform}", f"role={cfg.role}", "test=True"]
+    cmd = ["scons", "-j8", f"platform={platform}", f"role={cfg.role}", f"test={cfg.test}"]
     if cfg.id:
         cmd.append(f"id={cfg.id}")
     if cfg.pin:

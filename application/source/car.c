@@ -283,12 +283,15 @@ void processHostCommand(const char *cmd)
  * Receives unlock message, validates password, waits for start message,
  * then sends unlock flag and feature flags to host.
  *
- * Message format sent to host on success:
- *   OK: <unlock_flag_64_bytes>
- *   OK: 1,<feature1_flag_64_bytes>   (if feature 1 enabled)
- *   OK: 2,<feature2_flag_64_bytes>   (if feature 2 enabled)
- *   OK: 3,<feature3_flag_64_bytes>   (if feature 3 enabled)
- *   OK: done
+ * On success (production build only, i.e. built without TEST_BUILD), the
+ * flags are written to the host UART as raw bytes, not through sendOK() -
+ * there is no "OK: " prefix, no feature-number/comma tag, and no trailing
+ * "done" marker. Each flag is FLAG_SIZE (64) bytes followed by "\n\r":
+ *   <unlock_flag_64_bytes>\n\r
+ *   <feature_flag_64_bytes>\n\r   (repeated once per active feature, 0-3 times)
+ *
+ * So the wire output is between 1 and 4 raw 64-byte flags, each terminated
+ * by "\n\r", back to back.
  */
 void unlockCar(void)
 {

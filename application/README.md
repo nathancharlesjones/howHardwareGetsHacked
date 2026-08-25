@@ -281,7 +281,7 @@ UNLOCK MSG:    │0x56│0x00│
                   │   │
                   ▼   ▼
                ┌────┬────┬──────────────────────┐
-NONCE MSG:     │0x58│0x04│    Nonce (4 bytes)   │
+NONCE MSG:     │0x58│0x10│   Nonce (16 bytes)   │
                └────┴────┴──────────────────────┘
 
                  Tag Len
