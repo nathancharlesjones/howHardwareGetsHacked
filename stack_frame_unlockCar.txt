@@ -1,0 +1,91 @@
+unlockCar()'s 216-byte stack frame (STM32 build, car_1234)
+Derived from application/source/car.lst - not guessed from source order.
+
+Caller (main's while loop)
+                                                                        --+
+sp+232 ------->+----------------------------------------------+          |
+               | LR (4B)            - return addr into main()  |         |
+               +------------------------------------------------+       |  push {r4,r5,r6,lr}
+               | r6 (4B)             - saved                    |       |       (16B)
+               +------------------------------------------------+       |
+               | r5 (4B)             - saved                    |       |
+               +------------------------------------------------+       |
+               | r4 (4B)             - saved (also: holds 0,     |       |
+               |                       reused to zero-init       |       |
+               |                       computed_mac/flag_buffer) |     --+
+sp+216 ------->+----------------------------------------------+        --+
+               | flag_buffer[64]                                |        |
+               |  sp+152..215                                   |        |
+               |  REUSED (different times, same bytes) as:      |        |  64B
+               |   - sendAckSuccess()'s own `message` struct     |        |
+               |     (sp+152 magic/len, sp+156 buffer ptr)       |        |
+               |   - sendAckFailure()'s own `message` struct     |        |
+               |     (same offsets, only on the mismatch path)   |        |
+sp+152 ------->+----------------------------------------------+        --+
+               | buffer[64]              sp+88..151             |          64B
+sp+88  ------->+----------------------------------------------+
+               | (unused/padding)        sp+85..87              |          3B
+sp+85  ------->+----------------------------------------------+        --+
+               | msg_buf (START_MSG_BUF; 33B)   sp+52..84       |          |
+               |  REUSED (different times, same bytes) as:      |          |
+               |   - sendAckSuccess()'s own `message` struct     |          |
+               |     (sp+52 magic/len - called BEFORE msg_buf     |         |
+               |     is declared)                                |         |
+               |   - sendAckFailure()'s own `buffer[1]`           |         |
+               |     (sp+52, mismatch path only)                 |         |
+               |                                                 |          |  33B
+               |   +-----------------------------------------+   |          |
+               |   | magic              sp+52   (1B)         |   |          |
+               |   | length             sp+53   (1B)         |   |          |
+               |   | payload.feature_info.car_id[11]          |   |          |
+               |   |                     sp+54   (11B)        |   |          |
+               |   | payload.feature_info.num_active          |   |          |
+               |   |                     sp+65   (1B)         |   |          |
+               |   | payload.feature_info.features[3]         |   |          |
+               |   |                     sp+66   (3B)         |   |          |
+               |   | payload.mac[8]      sp+69   (8B)  <---.  |   |          |
+               |   | mac_overflow[8]     sp+77   (8B)      |  |   |          |
+               |   +-----------------------------------------+   |          |
+sp+52  ------->+----------------------------------------------+        --+
+               | computed_mac[16]        sp+36..51    <----'      |        16B
+sp+36  ------->+----------------------------------------------+
+               | nonce[16]               sp+20..35              |          16B
+sp+20  ------->+----------------------------------------------+
+               | received_mac[8]         sp+12..19               |          8B
+sp+12  ------->+----------------------------------------------+        --+
+               | message (MESSAGE_PACKET; 8B)   sp+4..11         |          |
+               |   +-----------------------------------------+   |          |
+               |   | magic               sp+4    (1B)         |   |          |  8B
+               |   | message_len         sp+5    (1B)         |   |          |
+               |   | padding             sp+6    (2B)         |   |          |
+               |   | buffer (ptr)        sp+8    (4B)         |   |          |
+               |   +-----------------------------------------+   |          |
+sp+4   ------->+----------------------------------------------+        --+
+               | buffer[1] (sendAckSuccess's local buffer[0])   |          1B, sp+0
+               | padding                                        |          3B, sp+1..3
+sp+0   ------->+----------------------------------------------+
+               Stack pointer at entry to unlockCar()  (frame = 216B)
+
+Total: 216B (0-3:4 + 4-11:8 + 12-19:8 + 20-35:16 + 36-51:16 + 52-84:33
+             + 85-87:3 + 88-151:64 + 152-215:64 = 216)
+
+---
+Why the "received_mac is only 8B" correction changes the math:
+
+received_mac[8]  @ sp+12..19
+nonce[16]        @ sp+20..35   <- sits BETWEEN received_mac and computed_mac
+computed_mac[16] @ sp+36..51
+
+received_mac and computed_mac are NOT adjacent. nonce[16] occupies the
+16 bytes between them, so the real distance from the start of
+received_mac to the start of computed_mac ("mac_gap" in
+testing/binary_exploitation.py) is:
+
+    36 - 12 = 24 bytes  (= sizeof(received_mac) + sizeof(nonce) = 8 + 16)
+
+not 8. A `received_board_message_by_type()` call into received_mac with
+an attacker-chosen length has to write past all 8 bytes of received_mac
+AND all 16 bytes of nonce before it starts clobbering computed_mac -
+i.e. the overflow has to travel 24 bytes before the two buffers it's
+trying to make "equal" (memcmp(computed_mac, received_mac, 8)) actually
+start to overlap.
