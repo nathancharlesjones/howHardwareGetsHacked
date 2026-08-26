@@ -52,7 +52,7 @@ uint32_t send_board_message(MESSAGE_PACKET *message)
  * @param message pointer to message where data will be received
  * @return uint32_t the number of bytes received - 0 for error
  */
-uint32_t receive_board_message(MESSAGE_PACKET *message)
+uint32_t receive_board_message(MESSAGE_PACKET *message, uint8_t recv_size)
 {
   message->magic = (uint8_t)uart_readb(BOARD_UART);
 
@@ -60,7 +60,8 @@ uint32_t receive_board_message(MESSAGE_PACKET *message)
     return 0;
   }
 
-  message->message_len = (uint8_t)uart_readb(BOARD_UART);
+  uint8_t len = (uint8_t)uart_readb(BOARD_UART);
+  message->message_len = len > recv_size ? recv_size : len;
   uart_read(BOARD_UART, message->buffer, message->message_len);
 
   // Save received message to log
@@ -81,9 +82,9 @@ uint32_t receive_board_message(MESSAGE_PACKET *message)
  * @param type the type of message to receive
  * @return uint32_t the number of bytes received
  */
-uint32_t receive_board_message_by_type(MESSAGE_PACKET *message, uint8_t type) {
+uint32_t receive_board_message_by_type(MESSAGE_PACKET *message, uint8_t type, uint8_t recv_size) {
   do {
-    receive_board_message(message);
+    receive_board_message(message, recv_size);
   } while (message->magic != type);
 
   return message->message_len;

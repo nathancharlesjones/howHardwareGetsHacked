@@ -303,7 +303,7 @@ void unlockCar(void)
   message.buffer = buffer;
 
   // Receive unlock message
-  receive_board_message_by_type(&message, UNLOCK_MAGIC);
+  receive_board_message_by_type(&message, UNLOCK_MAGIC, 64);
 
   // Generate and transmit nonce
   message.magic = NONCE_MAGIC;
@@ -325,7 +325,7 @@ void unlockCar(void)
   // Receive response
   uint8_t received_mac[8] = {0};
   message.buffer = received_mac;
-  receive_board_message_by_type(&message, RESPONSE_MAGIC);
+  receive_board_message_by_type(&message, RESPONSE_MAGIC, 8);
 
   if( memcmp(computed_mac, received_mac, 8) != 0 )
   {
@@ -357,7 +357,7 @@ void unlockCar(void)
   message.buffer = (uint8_t*)&msg_buf.payload;
 
   // Receive unlock message
-  receive_board_message_by_type(&message, START_MAGIC);
+  receive_board_message_by_type(&message, START_MAGIC, sizeof(msg_buf.payload));
   msg_buf.magic = message.magic;
   msg_buf.length = message.message_len;
 

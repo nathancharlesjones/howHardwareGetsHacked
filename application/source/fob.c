@@ -510,7 +510,7 @@ void attemptUnlock(FOB_FLASH_DATA *fob_state_ram)
   send_board_message(&message);
 
   // Receive nonce message
-  receive_board_message_by_type(&message, NONCE_MAGIC);
+  receive_board_message_by_type(&message, NONCE_MAGIC, NONCE_SIZE);
 
   // Craft encrypted response
   uint8_t MAC[16] = {0};
@@ -569,7 +569,7 @@ void receivePairData(FOB_FLASH_DATA *fob_state_ram)
   uint8_t buffer[255];
   message.buffer = buffer;
 
-  receive_board_message_by_type(&message, PAIR_MAGIC);
+  receive_board_message_by_type(&message, PAIR_MAGIC, 255);
   
   memcpy((uint8_t*)&fob_state_ram->pair_info, (uint8_t*)buffer, sizeof(PAIR_PACKET));
   fob_state_ram->pair_info.car_id[10] = '\0';
@@ -591,7 +591,7 @@ uint8_t receiveAck(void)
   MESSAGE_PACKET message;
   uint8_t buffer[255];
   message.buffer = buffer;
-  receive_board_message_by_type(&message, ACK_MAGIC);
+  receive_board_message_by_type(&message, ACK_MAGIC, 255);
 
   return message.buffer[0];
 }
