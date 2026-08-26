@@ -198,6 +198,18 @@ def configure_env(p, env):
     if compiler_accepts_flag(env['CC'], '-fstack-usage'):
         env.Append(CPPFLAGS=['-fstack-usage'])
 
+    # -Wa,-adhlns=<file> asks the assembler to emit a mixed C/assembly
+    # listing (.lst) next to each object file - purely a diagnostic aid,
+    # with no effect on the compiled output. GCC is the default toolchain
+    # for every platform this project currently targets, so this is on by
+    # default; gated the same way as -fstack-usage above (probed against
+    # the actual CC rather than assumed) so an unsupported CC just skips it
+    # with a warning instead of failing the whole build.
+    if compiler_accepts_flag(env['CC'], f'-Wa,-adhlns={os.devnull}'):
+        env.Append(CPPFLAGS=['-Wa,-adhlns=${TARGET.base}.lst'])
+    else:
+        print(f"Warning: {env['CC']} does not support -Wa,-adhlns; skipping .lst file generation")
+
     lib_dir = f'hardware/{p}/build/libraries'
     env['platform_libs'] = (
         env.StaticLibrary(
