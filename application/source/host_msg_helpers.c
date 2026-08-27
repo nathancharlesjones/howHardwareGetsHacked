@@ -48,7 +48,13 @@ void sendError(const char *reason)
  * the compiler's perspective even when, as here, its actual size never
  * varies - and unbounded is unbounded whether or not it happens to also be
  * the biggest thing in its function.
+ *
+ * TEST_BUILD-only: the log it reads (messages.c's static log[]) and its
+ * accessors (sizeofMsgLog()/getMessageLog()) only exist in TEST_BUILD -
+ * this function's only callers (the getBoardMsgLog command in car.c/fob.c)
+ * are already inside their own #ifdef TEST_BUILD, so this stays in step.
  */
+#ifdef TEST_BUILD
 void sendMessageLogAsHex(void)
 {
   if (sizeofMsgLog() > MAX_MSG_LOG_BYTES) { sendError("log buffer too small"); return; }
@@ -62,6 +68,7 @@ void sendMessageLogAsHex(void)
 
   sendOK(hex);
 }
+#endif
 
 /**
  * @brief Convert bytes to hex string

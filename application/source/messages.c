@@ -19,9 +19,11 @@
 #include "messages.h"
 #include "uart.h"
 
+#ifdef TEST_BUILD
 static logs log[MAX_NUM_MSGS+1] = {0};
 static uint8_t log_idx = 0;
 static uint8_t num_msgs = 0;
+#endif
 
 /**
  * @brief Send a message between boards
@@ -35,6 +37,7 @@ uint32_t send_board_message(MESSAGE_PACKET *message)
   uart_writeb(BOARD_UART, message->message_len);
   uart_write(BOARD_UART, message->buffer, message->message_len);
 
+#ifdef TEST_BUILD
   // Save sent message to log
   uint8_t idx = log_idx++ & 0xF;
   log[idx].tx_msg = true;
@@ -42,6 +45,7 @@ uint32_t send_board_message(MESSAGE_PACKET *message)
   log[idx].msg[1] = message->message_len;
   memcpy(&log[idx].msg[2], message->buffer, message->message_len);
   num_msgs = (num_msgs == 0xF) ? 0xF : num_msgs + 1;
+#endif
 
   return message->message_len;
 }
@@ -64,14 +68,16 @@ uint32_t receive_board_message(MESSAGE_PACKET *message, uint8_t recv_size)
   message->message_len = len > recv_size ? recv_size : len;
   uart_read(BOARD_UART, message->buffer, message->message_len);
 
+#ifdef TEST_BUILD
   // Save received message to log
   uint8_t idx = log_idx++ & 0xF;
-  log[idx].tx_msg = false; 
+  log[idx].tx_msg = false;
   log[idx].msg[0] = message->magic;
   log[idx].msg[1] = message->message_len;
   memcpy(&log[idx].msg[2], message->buffer, message->message_len);
   num_msgs = (num_msgs == 0xF) ? 0xF : num_msgs + 1;
-  
+#endif
+
   return message->message_len;
 }
 
@@ -90,6 +96,7 @@ uint32_t receive_board_message_by_type(MESSAGE_PACKET *message, uint8_t type, ui
   return message->message_len;
 }
 
+#ifdef TEST_BUILD
 size_t sizeofMsgLog(void)
 {
   return MAX_NUM_MSGS * sizeof(logs);
@@ -104,3 +111,4 @@ void getMessageLog(uint8_t* buffer)
     memcpy(buffer + buffer_idx * sizeof(logs), &log[send_idx], sizeof(logs));
   }
 }
+#endif
