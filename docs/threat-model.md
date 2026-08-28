@@ -9,6 +9,14 @@ skinparam rectangle<<OUT OF SCOPE>> {
 rectangle " " <<Out of Scope>> as OOS1
 rectangle " " <<Out of Scope>> as OOS2
 
+skinparam rectangle<<Not pursued>> {
+    BorderStyle dashed
+    BackgroundColor #F5F5F5
+    FontColor gray
+    BorderColor gray
+}
+rectangle " " <<Not pursued>> as NP1
+
 rectangle BASE [
     <:shield:>️ Base (insecure) example
     Commit: eff74cd
@@ -58,6 +66,11 @@ rectangle MAC_ST [
 rectangle NONCE [
     ️<:shield:> Widen nonces to 128-bits
     Commit: bd38ea6
+]
+
+rectangle LENGTH [
+    ️<:shield:> Add length checks to all array writes
+    Commit: xxxxxxx
 ]
 
 note "Navigate to the commit in question by appending the\
@@ -175,5 +188,27 @@ note right of [NONCE] : Pitfalls\
 \n• Add a MAC to the nonce message\
 \n• Log/lockout/erase after rapid unlock requests\
 \nor repeated failed unlock attempts
+
+DBG --> LENGTH : <:crossed_swords:> Buffer overflow attack\nFlags captured: all
+note right of [LENGTH] : Pitfalls\
+\n• Checking length parameter only AFTER copying all the data\
+\n• Add stack guards (wouldn't prevent overflow into\
+\n  computed_mac, but *would* help prevent overflow of LR)\
+\n• Add a checksum to each message\
+\n\nAlternatives\
+\n• Store expected length of each message\
+\n• Make each receive buffer 255 bytes\
+\n• Redesign the protocol around fixed-sized messages only\
+\n\nAdd-ons\
+\n• Reject malformed messages, don't just truncate them\
+\n• Add static analysis to the project to catch\
+\n  future problems like unbounded writes\
+\n• To prevent/mitigate overflow of LR:\
+\n    → Add stack guards\
+\n    → Make RAM non-executable\
+\n• Log when messages are truncated, or when receiving an\
+\n  unexpected message type.
+
+LENGTH --> NP1 : <:crossed_swords:> Fuzzing board messages\nFlags captured: Unknown
 @enduml
 ```
